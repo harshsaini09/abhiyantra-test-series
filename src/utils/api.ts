@@ -383,26 +383,32 @@ export function getExportUrl(subjectId?: number, topicId?: number): string {
 const SAVED_REPORTS_KEY = 'abhiyantra_saved_report_cards';
 
 export async function fetchCurrentUser(): Promise<UserProfile | null> {
+  // 1. First check local storage so authenticated session persists instantly on refresh
+  let localUser: UserProfile | null = null;
+  try {
+    const raw = localStorage.getItem('abhiyantra_user_profile');
+    if (raw) localUser = JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+
+  // 2. Query server session to sync
   try {
     const res = await fetch(`${API_BASE}/auth/me`, {
       credentials: 'include',
     });
     if (res.ok) {
       const data = await res.json();
-      return data.user || null;
+      if (data && data.user) {
+        localStorage.setItem('abhiyantra_user_profile', JSON.stringify(data.user));
+        return data.user;
+      }
     }
   } catch {
     // fallback
   }
 
-  // Check local profile storage
-  try {
-    const raw = localStorage.getItem('abhiyantra_user_profile');
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // ignore
-  }
-  return null;
+  return localUser;
 }
 
 export async function loginWithGoogleApi(credential: string): Promise<UserProfile | null> {

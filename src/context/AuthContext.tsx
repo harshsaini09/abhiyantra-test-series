@@ -18,8 +18,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const PENDING_RESULTS_KEY = 'abhiyantra_pending_test_results';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    try {
+      const raw = localStorage.getItem('abhiyantra_user_profile');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(false);
   const [pendingResults, setPendingResults] = useState<TestResults | null>(() => {
     try {
       const saved = sessionStorage.getItem(PENDING_RESULTS_KEY);
