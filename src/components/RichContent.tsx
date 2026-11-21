@@ -23,11 +23,16 @@ interface Segment {
   language?: string;
 }
 
+/**
+ * Universal preprocessor that converts raw unescaped math expressions,
+ * matrices, limits, integrals, summations, and physics equations into KaTeX syntax.
+ */
 function preprocessMath(raw: string): string {
   if (!raw) return '';
+  let text = raw;
 
   // 1. Matrix shorthand: [[6, 2], [3, 4]] or [[1, 2, 3], [4, 5, 6]]
-  let text = raw.replace(/\[\s*\[([^[\]]+)\](?:\s*,\s*\[([^[\]]+)\])+\s*\]/g, (fullMatch) => {
+  text = text.replace(/\[\s*\[([^[\]]+)\](?:\s*,\s*\[([^[\]]+)\])+\s*\]/g, (fullMatch) => {
     const rowRegex = /\[([^[\]]+)\]/g;
     const rows: string[] = [];
     let rMatch: RegExpExecArray | null;
@@ -44,10 +49,113 @@ function preprocessMath(raw: string): string {
     '$$$1$$'
   );
 
-  // 3. Dimensions like 2x2, 2×2, 3x3, 4x4, nxn, mxn (e.g. "2×2 matrix" or "2x2 matrix" -> "$2 \times 2$ matrix")
-  text = text.replace(/(\d+|n|m)\s*[xX\u00d7\u2715\*]\s*(\d+|n|m)/g, (_m, p1, p2) => `$${p1} \\times ${p2}$`);
+  // 3. Raw limits without delimiters: e.g. "lim(x → +∞) (10x² - 3x + 4) / (2x² + 9)" or "lim_{x \to 0} sin(x)/x"
+  text = text.replace(
+    /(?<!\$|\\\[)\b(lim\s*(?:\([^()]+\)|_\{[^}]+\}|_[a-zA-Z0-9\u2192\-\+]+)\s*[\(\)\w\s\^\+\-\*\/\u00b0-\u207f\u2080-\u2089\u00d7\u221e\.]+(?:\/[^\s,\.\?=]+)?)(?=\s*(?:={1,2}|________|\bis\b|[,\.\?]|$))/gi,
+    (match) => `$${match.trim()}$`
+  );
+
+  // 4. Raw integrals without delimiters: e.g. "\int_{0}^{\pi} sin(x) dx" or "int(0 to 1) x^2 dx"
+  text = text.replace(
+    /(?<!\$|\\\[)\b(\\int\b[\s\S]*?d[a-zA-Z]|int\s*\([^()]+\)[\s\S]*?d[a-zA-Z])(?!\$|\\\])/gi,
+    (match) => `$${match.trim()}$`
+  );
+
+  // 5. Raw summations without delimiters: e.g. "\sum_{i=1}^{n} i^2" or "sum(i=1 to n) i"
+  text = text.replace(
+    /(?<!\$|\\\[)\b(\\sum\b[\s\S]*?(?=[,\.\?;\)]|$)|sum\s*\([^()]+\)[\s\S]*?(?=[,\.\?;\)]|$))(?!\$|\\\])/gi,
+    (match) => `$${match.trim()}$`
+  );
+
+  // 6. Dimensions like 2x2, 2×2, 3x3, 4x4, nxn, mxn (e.g. "2×2 matrix" -> "$2 \times 2$ matrix")
+  text = text.replace(/(\d+|n|m)\s*[xX\u00d7\u2715\*]\s*(\d+|n|m)(?=\s+(?:matrix|dimension|array|tensor|grid))/gi, (_m, p1, p2) => `$${p1} \\times ${p2}$`);
 
   return text;
+}
+
+/**
+ * Universal math sanitizer that transforms Unicode superscripts/subscripts,
+ * limits, fractions, arrows, Greek letters, and physics symbols into proper KaTeX tokens.
+ */
+function cleanMathForKatex(rawMath: string): string {
+  let math = rawMath.trim();
+
+  // 1. Unicode superscripts: x², x³, xⁿ, x⁺¹, x⁻²
+  const sups: Record<string, string> = {
+    '\u00b0': '0',
+    '\u00b9': '1',
+    '\u00b2': '2',
+    '\u00b3': '3',
+    '\u2074': '4',
+    '\u2075': '5',
+    '\u2076': '6',
+    '\u2077': '7',
+    '\u2078': '8',
+    '\u2079': '9',
+    '\u207a': '+',
+    '\u207b': '-',
+    '\u207f': 'n',
+  };
+  math = math.replace(/([\w\)])([\u00b0\u00b1\u00b2\u00b3\u2074-\u2079\u207a\u207b\u207f]+)/g, (_, base, supStr) => {
+    const norm = supStr.split('').map((c: string) => sups[c] || c).join('');
+    return `${base}^{${norm}}`;
+  });
+
+  // 2. Unicode subscripts: x₀, x₁, x₂...
+  const subs: Record<string, string> = {
+    '\u2080': '0',
+    '\u2081': '1',
+    '\u2082': '2',
+    '\u2083': '3',
+    '\u2084': '4',
+    '\u2085': '5',
+    '\u2086': '6',
+    '\u2087': '7',
+    '\u2088': '8',
+    '\u2089': '9',
+  };
+  math = math.replace(/([\w\)])([\u2080-\u2089]+)/g, (_, base, subStr) => {
+    const norm = subStr.split('').map((c: string) => subs[c] || c).join('');
+    return `${base}_{${norm}}`;
+  });
+
+  // 3. Arrow & standard mathematical and physics symbols
+  math = math.replace(/(\u2192|-->|->|\bto\b)/g, ' \\to ');
+  math = math.replace(/(\u221e|\binfinity\b|\binf\b)/gi, ' \\infty ');
+  math = math.replace(/\u00d7/g, ' \\times ');
+  math = math.replace(/\u00f7/g, ' \\div ');
+  math = math.replace(/\u2264/g, ' \\le ');
+  math = math.replace(/\u2265/g, ' \\ge ');
+  math = math.replace(/\u2260/g, ' \\ne ');
+  math = math.replace(/\u2248/g, ' \\approx ');
+  math = math.replace(/\u00b1/g, ' \\pm ');
+  math = math.replace(/\u2208/g, ' \\in ');
+  math = math.replace(/\u2209/g, ' \\notin ');
+  math = math.replace(/\u2282/g, ' \\subset ');
+  math = math.replace(/\u2286/g, ' \\subseteq ');
+  math = math.replace(/\u222a/g, ' \\cup ');
+  math = math.replace(/\u2229/g, ' \\cap ');
+  math = math.replace(/\u2200/g, ' \\forall ');
+  math = math.replace(/\u2203/g, ' \\exists ');
+  math = math.replace(/\u2202/g, ' \\partial ');
+  math = math.replace(/\u2207/g, ' \\nabla ');
+
+  // 4. Square roots: sqrt(x) -> \sqrt{x}
+  math = math.replace(/\bsqrt\s*\(([^()]+)\)/gi, (_m, p1) => `\\sqrt{${p1.trim()}}`);
+
+  // 5. Limits: lim(x \to \infty) or lim_(x \to 0) -> \lim_{x \to \infty}
+  math = math.replace(/\blim\s*(?:\(([^()]+)\)|_\{([^}]+)\}|_([a-zA-Z0-9\\]+))/gi, (_, p1, p2, p3) => {
+    const t = (p1 || p2 || p3 || '').trim();
+    return `\\lim_{${t}} `;
+  });
+
+  // 6. Algebraic fractions: (A) / (B) -> \frac{A}{B}
+  math = math.replace(/\(([^()]+)\)\s*\/\s*\(([^()]+)\)/g, (_m, p1, p2) => `\\frac{${p1.trim()}}{${p2.trim()}}`);
+
+  // 7. Clean up double-escaped LaTeX slashes (e.g. \\times -> \times)
+  math = math.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+
+  return math;
 }
 
 function tokenize(text: string): Segment[] {
@@ -81,9 +189,6 @@ function tokenize(text: string): Segment[] {
 
 function parseTextAndMath(rawText: string, segments: Segment[]): void {
   // Matches display math $$...$$ or \[...\] and inline math $...$ or \(...\) and inline code `...`
-  // Display math: \$\$([\s\S]*?)\$\$ | \\\[([\s\S]*?)\\\]
-  // Inline math: \$([^\$\n]+?)\$ | \\\(([\s\S]*?)\\\)
-  // Inline code: `([^`\n]+?)`
   const mixedRegex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[^\$\n]+?\$|\\\([\s\S]*?\\\)|\`[^`\n]+?\`)/g;
   let lastIdx = 0;
   let m: RegExpExecArray | null;
@@ -187,8 +292,7 @@ function CodeBlockView({ code, language }: { code: string; language: string }) {
 function KatexMath({ math, displayMode }: { math: string; displayMode: boolean }) {
   const html = useMemo(() => {
     try {
-      // Clean up accidental double-escaped LaTeX slashes (e.g. \\times -> \times)
-      const cleaned = math.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+      const cleaned = cleanMathForKatex(math);
       return katex.renderToString(cleaned, {
         displayMode,
         throwOnError: false,
@@ -233,7 +337,7 @@ export default function RichContent({ content, className = '', inline = false }:
           }
           if (seg.type === 'inline-code') {
             return (
-              <code key={i} className="px-1.5 py-0.5 rounded bg-slate-100 text-indigo-700 font-mono text-xs">
+              <code key={i} className="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs text-indigo-700 border border-slate-200">
                 {seg.content}
               </code>
             );
@@ -245,7 +349,7 @@ export default function RichContent({ content, className = '', inline = false }:
   }
 
   return (
-    <div className={`rich-content-flow ${className}`}>
+    <div className={`space-y-2 ${className}`}>
       {segments.map((seg, i) => {
         if (seg.type === 'code-block') {
           return <CodeBlockView key={i} code={seg.content} language={seg.language || 'c'} />;
@@ -258,22 +362,14 @@ export default function RichContent({ content, className = '', inline = false }:
         }
         if (seg.type === 'inline-code') {
           return (
-            <code key={i} className="px-1.5 py-0.5 mx-0.5 rounded bg-slate-100 text-indigo-700 font-mono text-xs border border-slate-200">
+            <code key={i} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs sm:text-sm text-indigo-700 border border-slate-200">
               {seg.content}
             </code>
           );
         }
-
-        // Standard text: preserve paragraphs & linebreaks
-        const lines = seg.content.split('\n');
         return (
-          <span key={i}>
-            {lines.map((line, lineIdx) => (
-              <span key={lineIdx}>
-                {line}
-                {lineIdx < lines.length - 1 && <br />}
-              </span>
-            ))}
+          <span key={i} className="whitespace-pre-wrap leading-relaxed">
+            {seg.content}
           </span>
         );
       })}
