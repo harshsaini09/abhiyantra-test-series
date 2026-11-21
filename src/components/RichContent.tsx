@@ -44,8 +44,8 @@ function preprocessMath(raw: string): string {
     '$$$1$$'
   );
 
-  // 3. Dimensions like 2x2, 3x3, 4x4, nxn, mxn (e.g. "2x2 matrix" -> "$2 \times 2$ matrix")
-  text = text.replace(/\b(\d+|n|m)\s*[xX]\s*(\d+|n|m)\b/g, (_m, p1, p2) => `$${p1} \\times ${p2}$`);
+  // 3. Dimensions like 2x2, 2×2, 3x3, 4x4, nxn, mxn (e.g. "2×2 matrix" or "2x2 matrix" -> "$2 \times 2$ matrix")
+  text = text.replace(/(\d+|n|m)\s*[xX\u00d7\u2715\*]\s*(\d+|n|m)/g, (_m, p1, p2) => `$${p1} \\times ${p2}$`);
 
   return text;
 }

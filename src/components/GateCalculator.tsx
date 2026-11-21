@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Calculator, GripHorizontal } from 'lucide-react';
+import { Minus, X, HelpCircle } from 'lucide-react';
 
 interface GateCalculatorProps {
   isOpen: boolean;
@@ -26,13 +26,14 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
   const [isNewEntry, setIsNewEntry] = useState(true);
   const [prevOp, setPrevOp] = useState<string | null>(null);
   const [storedValue, setStoredValue] = useState<number | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Dragging state
   const [position, setPosition] = useState<{ x: number; y: number }>(() => {
-    // Default to top-right corner
     return {
-      x: typeof window !== 'undefined' ? Math.max(20, window.innerWidth - 480) : 100,
-      y: 75,
+      x: typeof window !== 'undefined' ? Math.max(10, window.innerWidth - 530) : 100,
+      y: 65,
     };
   });
   const isDraggingRef = useRef(false);
@@ -43,8 +44,9 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
     initY: 0,
   });
 
-  // Handle Dragging
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Only drag from header, ignore buttons inside header
+    if ((e.target as HTMLElement).tagName.toLowerCase() === 'button') return;
     isDraggingRef.current = true;
     dragStartRef.current = {
       startX: e.clientX,
@@ -60,8 +62,8 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
       if (!isDraggingRef.current) return;
       const dx = e.clientX - dragStartRef.current.startX;
       const dy = e.clientY - dragStartRef.current.startY;
-      const newX = Math.max(10, Math.min(window.innerWidth - 440, dragStartRef.current.initX + dx));
-      const newY = Math.max(10, Math.min(window.innerHeight - 380, dragStartRef.current.initY + dy));
+      const newX = Math.max(0, Math.min(window.innerWidth - 420, dragStartRef.current.initX + dx));
+      const newY = Math.max(0, Math.min(window.innerHeight - 150, dragStartRef.current.initY + dy));
       setPosition({ x: newX, y: newY });
     };
 
@@ -81,7 +83,6 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
   const formatResult = (val: number): string => {
     if (isNaN(val)) return 'Error';
     if (!isFinite(val)) return val > 0 ? 'Infinity' : '-Infinity';
-    // Limit precision
     const str = val.toPrecision(12);
     return String(parseFloat(str));
   };
@@ -115,11 +116,6 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
     setIsNewEntry(true);
   };
 
-  const clearEntry = () => {
-    setDisplay('0');
-    setIsNewEntry(true);
-  };
-
   const backspace = () => {
     if (display === 'Error' || isNewEntry) {
       setDisplay('0');
@@ -141,7 +137,7 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
     }
   };
 
-  // Binary operators (+, -, *, /, mod, x^y)
+  // Binary operators (+, -, *, /, mod, xʸ, logyx, ʸ√x, Exp)
   const handleOperator = (op: string) => {
     const current = parseFloat(display);
     if (isNaN(current)) return;
@@ -165,16 +161,20 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
         return a + b;
       case '-':
         return a - b;
-      case '×':
       case '*':
         return a * b;
-      case '÷':
       case '/':
         return b !== 0 ? a / b : NaN;
       case 'mod':
         return a % b;
-      case 'x^y':
+      case 'xʸ':
         return Math.pow(a, b);
+      case 'ʸ√x':
+        return b !== 0 ? Math.pow(a, 1 / b) : NaN;
+      case 'logyx':
+        return a > 0 && b > 0 && b !== 1 ? Math.log(a) / Math.log(b) : NaN;
+      case 'Exp':
+        return a * Math.pow(10, b);
       default:
         return b;
     }
@@ -231,35 +231,53 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
       case 'tanh':
         res = Math.tanh(x);
         break;
+      case 'asinh':
+        res = Math.asinh(x);
+        break;
+      case 'acosh':
+        res = Math.acosh(x);
+        break;
+      case 'atanh':
+        res = Math.atanh(x);
+        break;
       case 'ln':
         res = x > 0 ? Math.log(x) : NaN;
         break;
-      case 'log10':
+      case 'log':
         res = x > 0 ? Math.log10(x) : NaN;
         break;
-      case 'e^x':
+      case 'log2':
+        res = x > 0 ? Math.log2(x) : NaN;
+        break;
+      case 'eˣ':
         res = Math.exp(x);
         break;
-      case '10^x':
+      case '10ˣ':
         res = Math.pow(10, x);
         break;
-      case 'x^2':
+      case 'x²':
         res = x * x;
         break;
-      case 'x^3':
+      case 'x³':
         res = x * x * x;
         break;
-      case 'sqrt':
+      case '√':
         res = x >= 0 ? Math.sqrt(x) : NaN;
         break;
-      case 'cbrt':
+      case '∛x':
         res = Math.cbrt(x);
         break;
       case '1/x':
         res = x !== 0 ? 1 / x : NaN;
         break;
+      case '|x|':
+        res = Math.abs(x);
+        break;
       case 'n!':
         res = factorial(x);
+        break;
+      case '%':
+        res = x / 100;
         break;
       default:
         return;
@@ -270,8 +288,8 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
     setIsNewEntry(true);
   };
 
-  const handleConstant = (c: 'pi' | 'e') => {
-    const val = c === 'pi' ? Math.PI : Math.E;
+  const handleConstant = (c: 'π' | 'e') => {
+    const val = c === 'π' ? Math.PI : Math.E;
     setDisplay(formatResult(val));
     setIsNewEntry(true);
   };
@@ -324,363 +342,530 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
         top: `${position.y}px`,
         zIndex: 9999,
       }}
-      className="w-[430px] max-w-[96vw] bg-slate-900 border-2 border-slate-700 text-white rounded-2xl shadow-2xl overflow-hidden select-none font-sans"
+      className="w-[505px] max-w-[98vw] bg-[#e6e6e6] border border-[#7f9db9] shadow-[0_10px_30px_rgba(0,0,0,0.45)] select-none font-sans text-[#222]"
     >
-      {/* ─── Drag Header ─── */}
+      {/* ─── TCS-iON Blue Title Bar ─── */}
       <div
         onMouseDown={handleMouseDown}
-        className="flex items-center justify-between px-3.5 py-2.5 bg-slate-800 border-b border-slate-700 cursor-move text-xs font-bold text-slate-200"
+        className="flex items-center justify-between px-3 py-1.5 bg-[#2196f3] text-white cursor-move"
       >
-        <div className="flex items-center gap-2">
-          <Calculator className="w-4 h-4 text-indigo-400" />
-          <span>GATE Scientific Calculator</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">
-            TCS-iON Style
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <GripHorizontal className="w-4 h-4 text-slate-500" />
+        <span className="text-sm font-semibold tracking-wide">Scientific Calculator</span>
+        <div className="flex items-center gap-1.5">
           <button
-            onClick={onClose}
-            className="p-1 hover:bg-red-600 rounded text-slate-400 hover:text-white transition"
+            type="button"
+            onClick={() => setShowHelp(!showHelp)}
+            className="px-3 py-0.5 rounded-full bg-[#00bcd4] hover:bg-[#00acc1] text-white text-xs font-medium shadow-sm transition"
           >
-            <X className="w-4 h-4" />
+            Help
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="p-1 hover:bg-[#1976d2] rounded text-white transition flex items-center justify-center w-6 h-6"
+            title="Minimize"
+          >
+            <Minus className="w-3.5 h-3.5 stroke-[3]" />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 hover:bg-[#d32f2f] rounded text-white transition flex items-center justify-center w-6 h-6"
+            title="Close"
+          >
+            <X className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
       </div>
 
-      {/* ─── Display & Status Ribbon ─── */}
-      <div className="p-3.5 bg-slate-950/80 border-b border-slate-800 space-y-1">
-        {/* Status Pills */}
-        <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-          <div className="flex items-center gap-2">
-            <span
-              onClick={() => setAngleMode(angleMode === 'deg' ? 'rad' : 'deg')}
-              className="cursor-pointer px-1.5 py-0.5 rounded bg-slate-800 text-indigo-300 hover:bg-slate-700 font-bold"
-            >
-              [{angleMode.toUpperCase()}]
+      {/* ─── Help Dialog Overlay ─── */}
+      {showHelp && (
+        <div className="p-3 bg-[#fff9c4] border-b border-[#fbc02d] text-xs text-slate-800 space-y-1">
+          <div className="flex items-center justify-between font-bold text-[#b78103]">
+            <span className="flex items-center gap-1">
+              <HelpCircle className="w-3.5 h-3.5" /> Official GATE Calculator Help
             </span>
-            {hasMemory && (
-              <span className="px-1.5 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-bold">
-                [M: {formatResult(memory)}]
-              </span>
-            )}
+            <button
+              onClick={() => setShowHelp(false)}
+              className="text-xs text-slate-500 hover:text-slate-800 underline"
+            >
+              Close Help
+            </button>
           </div>
-          <span className="truncate max-w-[200px] text-slate-500">{formula}</span>
+          <p>
+            • Select <strong>Deg</strong> or <strong>Rad</strong> for trigonometric computations.
+          </p>
+          <p>
+            • Use <strong>mod</strong> for remainder, <strong>xʸ</strong> for exponents, and{' '}
+            <strong>ʸ√x</strong> for roots.
+          </p>
+          <p>
+            • Memory keys: <strong>MS</strong> saves value, <strong>MR</strong> recalls,{' '}
+            <strong>MC</strong> clears memory.
+          </p>
         </div>
+      )}
 
-        {/* Current Result / Number */}
-        <div className="text-right text-2xl font-mono font-bold text-emerald-400 tracking-wide overflow-x-auto whitespace-nowrap py-1">
-          {display}
+      {/* ─── Calculator Body (Hidden when Minimized) ─── */}
+      {!isMinimized && (
+        <div className="p-2.5 space-y-2 bg-[#dcdcdc]">
+          {/* Top Formula / Expression Display */}
+          <div className="w-full bg-white border border-[#a0a0a0] px-2 py-1 h-7 text-right text-xs font-mono text-slate-600 overflow-x-auto whitespace-nowrap shadow-inner">
+            {formula || '\u00A0'}
+          </div>
+
+          {/* Main Number Display (Big bold '0') */}
+          <div className="w-full bg-white border border-[#a0a0a0] px-2 py-1 h-10 text-right text-2xl font-bold font-mono text-black overflow-x-auto whitespace-nowrap shadow-inner flex items-center justify-end">
+            {display}
+          </div>
+
+          {/* ─── Keypad Grid matching Official TCS-iON ─── */}
+          <div className="space-y-1.5 pt-1">
+            {/* ROW 1: mod | (o) Deg ( ) Rad | MC | MR | MS | M+ | M- */}
+            <div className="flex items-center justify-between gap-1 text-xs">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOperator('mod')}
+                  className="w-12 h-7 bg-[#f3f3f3] hover:bg-[#e8e8e8] active:bg-[#d0d0d0] border border-[#a9a9a9] rounded-sm font-semibold text-slate-800 shadow-xs"
+                >
+                  mod
+                </button>
+                <div className="flex items-center gap-2 pl-1 text-[11px] font-medium text-slate-800">
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="angleMode"
+                      checked={angleMode === 'deg'}
+                      onChange={() => setAngleMode('deg')}
+                      className="accent-[#2196f3] w-3 h-3 cursor-pointer"
+                    />
+                    <span>Deg</span>
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="angleMode"
+                      checked={angleMode === 'rad'}
+                      onChange={() => setAngleMode('rad')}
+                      className="accent-[#2196f3] w-3 h-3 cursor-pointer"
+                    />
+                    <span>Rad</span>
+                  </label>
+                  {hasMemory && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.5 rounded border border-emerald-300">
+                      M
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Memory Buttons */}
+              <div className="flex items-center gap-1">
+                {(['MC', 'MR', 'MS', 'M+', 'M-'] as const).map((mKey) => (
+                  <button
+                    key={mKey}
+                    type="button"
+                    onClick={() => handleMemory(mKey)}
+                    className="w-10 h-7 bg-[#f3f3f3] hover:bg-[#e8e8e8] active:bg-[#d0d0d0] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-xs shadow-xs"
+                  >
+                    {mKey}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ROW 2: sinh | cosh | tanh | Exp | ( | ) | ← (Red) | C (Red) | +/- (Red) | √ */}
+            <div className="grid grid-cols-10 gap-1 text-xs">
+              <button
+                type="button"
+                onClick={() => handleScientific('sinh')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                sinh
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('cosh')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                cosh
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('tanh')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                tanh
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOperator('Exp')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                Exp
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('(')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                (
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit(')')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                )
+              </button>
+              <button
+                type="button"
+                onClick={backspace}
+                className="h-8 bg-[#f44336] hover:bg-[#e53935] active:bg-[#c62828] text-white border border-[#b71c1c] rounded-sm font-bold text-sm shadow-xs flex items-center justify-center"
+                title="Backspace"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={clearAll}
+                className="h-8 bg-[#f44336] hover:bg-[#e53935] active:bg-[#c62828] text-white border border-[#b71c1c] rounded-sm font-bold text-sm shadow-xs"
+                title="Clear"
+              >
+                C
+              </button>
+              <button
+                type="button"
+                onClick={toggleSign}
+                className="h-8 bg-[#f44336] hover:bg-[#e53935] active:bg-[#c62828] text-white border border-[#b71c1c] rounded-sm font-bold text-sm shadow-xs"
+                title="Change Sign"
+              >
+                +/-
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('√')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                √
+              </button>
+            </div>
+
+            {/* ROW 3: sinh⁻¹ | cosh⁻¹ | tanh⁻¹ | log₂x | ln | log | 7 | 8 | 9 | / | % */}
+            <div className="grid grid-cols-11 gap-1 text-xs">
+              <button
+                type="button"
+                onClick={() => handleScientific('asinh')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-[11px]"
+              >
+                sinh⁻¹
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('acosh')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-[11px]"
+              >
+                cosh⁻¹
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('atanh')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-[11px]"
+              >
+                tanh⁻¹
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('log2')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                log₂x
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('ln')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                ln
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('log')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                log
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('7')}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                7
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('8')}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                8
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('9')}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                9
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOperator('/')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-bold text-slate-800"
+              >
+                /
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('%')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                %
+              </button>
+            </div>
+
+            {/* ROW 4: π | e | n! | logyx | eˣ | 10ˣ | 4 | 5 | 6 | * | 1/x */}
+            <div className="grid grid-cols-11 gap-1 text-xs">
+              <button
+                type="button"
+                onClick={() => handleConstant('π')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                π
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConstant('e')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                e
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('n!')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                n!
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOperator('logyx')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-[11px]"
+              >
+                logyx
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('eˣ')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                eˣ
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('10ˣ')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                10ˣ
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('4')}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                4
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('5')}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                5
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('6')}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                6
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOperator('*')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-bold text-slate-800"
+              >
+                *
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('1/x')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                1/x
+              </button>
+            </div>
+
+            {/* ROW 5 & 6 (with tall Green '=' button) */}
+            <div className="grid grid-cols-11 gap-1 text-xs">
+              {/* Row 5 left 10 cols */}
+              <button
+                type="button"
+                onClick={() => handleScientific('sin')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                sin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('cos')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                cos
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('tan')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                tan
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOperator('xʸ')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                xʸ
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('x³')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                x³
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('x²')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                x²
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('1')}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                1
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('2')}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                2
+              </button>
+              <button
+                type="button"
+                onClick={() => inputDigit('3')}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                3
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOperator('-')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-bold text-slate-800"
+              >
+                -
+              </button>
+
+              {/* TALL GREEN EQUALS BUTTON: spans row 5 and row 6 */}
+              <button
+                type="button"
+                onClick={handleEquals}
+                className="row-span-2 h-[70px] bg-[#22c55e] hover:bg-[#16a34a] active:bg-[#15803d] text-white font-bold text-xl rounded-sm border border-[#15803d] shadow-sm flex items-center justify-center transition"
+                title="Calculate"
+              >
+                =
+              </button>
+
+              {/* Row 6 left 10 cols */}
+              <button
+                type="button"
+                onClick={() => handleScientific('asin')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-[11px]"
+              >
+                sin⁻¹
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('acos')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-[11px]"
+              >
+                cos⁻¹
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('atan')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-[11px]"
+              >
+                tan⁻¹
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOperator('ʸ√x')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-[11px]"
+              >
+                ʸ√x
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('∛x')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800 text-[11px]"
+              >
+                ∛x
+              </button>
+              <button
+                type="button"
+                onClick={() => handleScientific('|x|')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-medium text-slate-800"
+              >
+                |x|
+              </button>
+              {/* 0 button spans 2 columns */}
+              <button
+                type="button"
+                onClick={() => inputDigit('0')}
+                className="col-span-2 h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                0
+              </button>
+              <button
+                type="button"
+                onClick={inputDot}
+                className="h-8 bg-[#fafafa] hover:bg-[#ececec] border border-[#a9a9a9] rounded-sm font-bold text-slate-900 text-sm shadow-xs"
+              >
+                .
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOperator('+')}
+                className="h-8 bg-[#f5f5f5] hover:bg-[#eaeaea] border border-[#a9a9a9] rounded-sm font-bold text-slate-800"
+              >
+                +
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* ─── Keypad Grid ─── */}
-      <div className="p-3 bg-slate-900 grid grid-cols-6 gap-1.5 text-xs font-semibold">
-        {/* Row 1: Memory & Angle Toggle */}
-        <button
-          onClick={() => setAngleMode(angleMode === 'deg' ? 'rad' : 'deg')}
-          className="col-span-1 p-2 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/30"
-        >
-          {angleMode === 'deg' ? 'Deg' : 'Rad'}
-        </button>
-        <button
-          onClick={() => handleMemory('MC')}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-        >
-          MC
-        </button>
-        <button
-          onClick={() => handleMemory('MR')}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-        >
-          MR
-        </button>
-        <button
-          onClick={() => handleMemory('MS')}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-        >
-          MS
-        </button>
-        <button
-          onClick={() => handleMemory('M+')}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-        >
-          M+
-        </button>
-        <button
-          onClick={() => handleMemory('M-')}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-        >
-          M-
-        </button>
-
-        {/* Row 2: Trig & Clear */}
-        <button
-          onClick={() => handleScientific('sin')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          sin
-        </button>
-        <button
-          onClick={() => handleScientific('cos')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          cos
-        </button>
-        <button
-          onClick={() => handleScientific('tan')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          tan
-        </button>
-        <button
-          onClick={clearEntry}
-          className="p-2 rounded-lg bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/30"
-        >
-          CE
-        </button>
-        <button
-          onClick={clearAll}
-          className="p-2 rounded-lg bg-red-600/40 hover:bg-red-600/60 text-red-200 border border-red-500/30"
-        >
-          C
-        </button>
-        <button
-          onClick={backspace}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-        >
-          ⌫
-        </button>
-
-        {/* Row 3: Inverse Trig & Arithmetic */}
-        <button
-          onClick={() => handleScientific('asin')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          asin
-        </button>
-        <button
-          onClick={() => handleScientific('acos')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          acos
-        </button>
-        <button
-          onClick={() => handleScientific('atan')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          atan
-        </button>
-        <button
-          onClick={() => inputDigit('7')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          7
-        </button>
-        <button
-          onClick={() => inputDigit('8')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          8
-        </button>
-        <button
-          onClick={() => inputDigit('9')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          9
-        </button>
-
-        {/* Row 4: Hyperbolic & Numbers */}
-        <button
-          onClick={() => handleScientific('sinh')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          sinh
-        </button>
-        <button
-          onClick={() => handleScientific('cosh')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          cosh
-        </button>
-        <button
-          onClick={() => handleScientific('tanh')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          tanh
-        </button>
-        <button
-          onClick={() => inputDigit('4')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          4
-        </button>
-        <button
-          onClick={() => inputDigit('5')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          5
-        </button>
-        <button
-          onClick={() => inputDigit('6')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          6
-        </button>
-
-        {/* Row 5: Logarithms & Multiply/Divide */}
-        <button
-          onClick={() => handleScientific('ln')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          ln
-        </button>
-        <button
-          onClick={() => handleScientific('log10')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          log₁₀
-        </button>
-        <button
-          onClick={() => handleOperator('÷')}
-          className="p-2 rounded-lg bg-indigo-600/40 hover:bg-indigo-600 text-indigo-200 text-base font-bold"
-        >
-          ÷
-        </button>
-        <button
-          onClick={() => inputDigit('1')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          1
-        </button>
-        <button
-          onClick={() => inputDigit('2')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          2
-        </button>
-        <button
-          onClick={() => inputDigit('3')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          3
-        </button>
-
-        {/* Row 6: Exponentials & Plus/Minus */}
-        <button
-          onClick={() => handleScientific('e^x')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          eˣ
-        </button>
-        <button
-          onClick={() => handleScientific('10^x')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          10ˣ
-        </button>
-        <button
-          onClick={() => handleOperator('×')}
-          className="p-2 rounded-lg bg-indigo-600/40 hover:bg-indigo-600 text-indigo-200 text-base font-bold"
-        >
-          ×
-        </button>
-        <button
-          onClick={toggleSign}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-        >
-          ±
-        </button>
-        <button
-          onClick={() => inputDigit('0')}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          0
-        </button>
-        <button
-          onClick={inputDot}
-          className="p-2.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-white font-bold text-sm"
-        >
-          .
-        </button>
-
-        {/* Row 7: Powers, Roots & Operations */}
-        <button
-          onClick={() => handleScientific('x^2')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          x²
-        </button>
-        <button
-          onClick={() => handleScientific('x^3')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          x³
-        </button>
-        <button
-          onClick={() => handleOperator('-')}
-          className="p-2 rounded-lg bg-indigo-600/40 hover:bg-indigo-600 text-indigo-200 text-base font-bold"
-        >
-          −
-        </button>
-        <button
-          onClick={() => handleScientific('sqrt')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          √x
-        </button>
-        <button
-          onClick={() => handleScientific('cbrt')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          ∛x
-        </button>
-        <button
-          onClick={() => handleOperator('+')}
-          className="p-2 rounded-lg bg-indigo-600/40 hover:bg-indigo-600 text-indigo-200 text-base font-bold"
-        >
-          +
-        </button>
-
-        {/* Row 8: Powers, Factorial, Constants & Equals */}
-        <button
-          onClick={() => handleOperator('x^y')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          xʸ
-        </button>
-        <button
-          onClick={() => handleScientific('1/x')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          1/x
-        </button>
-        <button
-          onClick={() => handleScientific('n!')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          n!
-        </button>
-        <button
-          onClick={() => handleConstant('pi')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          π
-        </button>
-        <button
-          onClick={() => handleConstant('e')}
-          className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200"
-        >
-          e
-        </button>
-        <button
-          onClick={handleEquals}
-          className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg shadow-sm"
-        >
-          =
-        </button>
-      </div>
+      )}
     </div>
   );
 }
