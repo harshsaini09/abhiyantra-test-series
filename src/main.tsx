@@ -8,7 +8,7 @@ import App from './App';
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-  '1084226343588-dummyabhiyantragateclientid.apps.googleusercontent.com';
+  '465825980892-br7qtrba4jqeun05hkcsc2oq9ku1f3ef.apps.googleusercontent.com';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

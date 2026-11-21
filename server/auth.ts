@@ -5,7 +5,10 @@ import { prisma } from './db';
 
 const router = Router();
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID =
+  process.env.GOOGLE_CLIENT_ID ||
+  process.env.VITE_GOOGLE_CLIENT_ID ||
+  '465825980892-br7qtrba4jqeun05hkcsc2oq9ku1f3ef.apps.googleusercontent.com';
 const JWT_SECRET = process.env.JWT_SECRET || 'abhiyantra-secure-jwt-secret-gate-2026';
 const oauthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
