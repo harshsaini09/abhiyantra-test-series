@@ -23,8 +23,36 @@ interface Segment {
   language?: string;
 }
 
+function preprocessMath(raw: string): string {
+  if (!raw) return '';
+
+  // 1. Matrix shorthand: [[6, 2], [3, 4]] or [[1, 2, 3], [4, 5, 6]]
+  let text = raw.replace(/\[\s*\[([^[\]]+)\](?:\s*,\s*\[([^[\]]+)\])+\s*\]/g, (fullMatch) => {
+    const rowRegex = /\[([^[\]]+)\]/g;
+    const rows: string[] = [];
+    let rMatch: RegExpExecArray | null;
+    while ((rMatch = rowRegex.exec(fullMatch)) !== null) {
+      const items = rMatch[1].split(',').map((s) => s.trim()).join(' & ');
+      rows.push(items);
+    }
+    return `$\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}$`;
+  });
+
+  // 2. Bare LaTeX matrix environments without $ or $$ (e.g. \begin{pmatrix}...\end{pmatrix})
+  text = text.replace(
+    /(?<!\$|\\\[)(\\begin\{(?:matrix|pmatrix|bmatrix|vmatrix|aligned|cases)\}[\s\S]*?\\end\{(?:matrix|pmatrix|bmatrix|vmatrix|aligned|cases)\})(?!\$|\\\])/g,
+    '$$$1$$'
+  );
+
+  // 3. Dimensions like 2x2, 3x3, 4x4, nxn, mxn (e.g. "2x2 matrix" -> "$2 \times 2$ matrix")
+  text = text.replace(/\b(\d+|n|m)\s*[xX]\s*(\d+|n|m)\b/g, (_m, p1, p2) => `$${p1} \\times ${p2}$`);
+
+  return text;
+}
+
 function tokenize(text: string): Segment[] {
   if (!text) return [];
+  const processedText = preprocessMath(text);
 
   const segments: Segment[] = [];
   // Regex to match code blocks ```lang ... ```
@@ -32,9 +60,9 @@ function tokenize(text: string): Segment[] {
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  while ((match = codeBlockRegex.exec(text)) !== null) {
+  while ((match = codeBlockRegex.exec(processedText)) !== null) {
     if (match.index > lastIndex) {
-      parseTextAndMath(text.slice(lastIndex, match.index), segments);
+      parseTextAndMath(processedText.slice(lastIndex, match.index), segments);
     }
     segments.push({
       type: 'code-block',
@@ -44,8 +72,8 @@ function tokenize(text: string): Segment[] {
     lastIndex = match.index + match[0].length;
   }
 
-  if (lastIndex < text.length) {
-    parseTextAndMath(text.slice(lastIndex), segments);
+  if (lastIndex < processedText.length) {
+    parseTextAndMath(processedText.slice(lastIndex), segments);
   }
 
   return segments;
@@ -159,7 +187,9 @@ function CodeBlockView({ code, language }: { code: string; language: string }) {
 function KatexMath({ math, displayMode }: { math: string; displayMode: boolean }) {
   const html = useMemo(() => {
     try {
-      return katex.renderToString(math, {
+      // Clean up accidental double-escaped LaTeX slashes (e.g. \\times -> \times)
+      const cleaned = math.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+      return katex.renderToString(cleaned, {
         displayMode,
         throwOnError: false,
         output: 'htmlAndMathml',
