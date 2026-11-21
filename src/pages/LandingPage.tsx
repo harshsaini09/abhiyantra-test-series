@@ -201,41 +201,44 @@ export default function LandingPage() {
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-300 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-4 py-16 md:py-24 text-center">
-          {/* Official Abhiyantra Brand Logo & Badge */}
-          <div className="flex flex-col items-center justify-center mb-6">
-            <img
-              src="/logo.avif"
-              alt="Abhiyantra Logo"
-              className="w-20 h-20 md:w-24 md:h-24 object-contain rounded-2xl bg-white/10 backdrop-blur-md p-2.5 shadow-xl border border-white/20 mb-3"
-            />
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs md:text-sm font-bold tracking-wide text-white">
+        <div className="relative max-w-4xl mx-auto px-4 py-12 md:py-16 text-center flex flex-col items-center">
+          {/* Official Abhiyantra Brand Logo — Enchanced & Prominent */}
+          <div className="flex flex-col items-center justify-center mb-5">
+            <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-2xl border-4 border-white/30 backdrop-blur-md hover:scale-105 transition-transform duration-300">
+              <img
+                src="/logo.avif"
+                alt="Abhiyantra Logo"
+                className="w-40 h-28 sm:w-52 sm:h-36 md:w-64 md:h-44 object-contain"
+              />
+            </div>
+            <div className="mt-3.5 inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-3.5 py-1 text-xs font-bold tracking-wide text-white border border-white/20">
               <span className="capitalize">abhiyantra</span>
               <span className="opacity-60">•</span>
               <span>Official GATE Test Series</span>
             </div>
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
+          {/* Scaled-down title and subtitle to keep primary focus on Abhiyantra */}
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight leading-tight text-white">
             GATE Mock Test Series
           </h1>
-          <p className="mt-4 text-lg md:text-xl text-indigo-100 max-w-2xl mx-auto leading-relaxed">
-            By <strong className="text-white font-bold">abhiyantra</strong> — Complete GATE CBT examination portal with auto-calculated timer, persistent Question Bank, and Custom Paper Builder.
+          <p className="mt-2.5 text-xs sm:text-sm md:text-base text-indigo-100/90 max-w-xl mx-auto leading-relaxed">
+            By <strong className="text-white font-semibold">abhiyantra</strong> — Complete GATE CBT examination portal with auto-calculated timer, persistent Question Bank, and Custom Paper Builder.
           </p>
 
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
               href="#loader"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-700 font-semibold rounded-xl shadow-lg hover:shadow-xl hover:bg-indigo-50 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-700 text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:bg-indigo-50 transition-all"
             >
-              <Upload className="w-5 h-5" />
+              <Upload className="w-4 h-4" />
               Load Your Test
             </a>
             <button
               onClick={handleTrySample}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-500/40 backdrop-blur-sm text-white font-semibold rounded-xl border border-white/20 hover:bg-indigo-500/60 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-500/40 backdrop-blur-sm text-white text-sm font-semibold rounded-xl border border-white/20 hover:bg-indigo-500/60 transition-all cursor-pointer"
             >
-              <Play className="w-5 h-5" />
+              <Play className="w-4 h-4" />
               Try Sample Test
             </button>
           </div>
