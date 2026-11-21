@@ -331,25 +331,25 @@ export default function TestPage() {
   return (
     <div className="flex h-screen flex-col bg-slate-50">
       {/* ═══ TOP BAR ═══ */}
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2.5 shadow-sm">
-        <div className="flex items-center gap-3 max-w-[48%]">
+      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm">
+        <div className="flex items-center gap-2 sm:gap-3 max-w-[44%] sm:max-w-[50%]">
           <img
             src="/logo.avif"
             alt="Abhiyantra"
-            className="w-9 h-9 object-contain rounded-lg border border-slate-200 p-0.5 shrink-0"
+            className="w-7 h-7 sm:w-9 sm:h-9 object-contain rounded-lg border border-slate-200 p-0.5 shrink-0"
           />
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-extrabold text-indigo-700 uppercase tracking-wider">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="text-[10px] sm:text-[11px] font-extrabold text-indigo-700 uppercase tracking-wider shrink-0">
                 abhiyantra CBT
               </span>
-              <span className="text-slate-300">•</span>
-              <h1 className="truncate text-base font-bold text-slate-800">
+              <span className="text-slate-300 hidden sm:inline">•</span>
+              <h1 className="truncate text-xs sm:text-base font-bold text-slate-800">
                 {testData.title}
               </h1>
             </div>
             {(testData.subject || testData.topic) && (
-              <p className="truncate text-xs text-slate-500 font-medium">
+              <p className="truncate text-[10px] sm:text-xs text-slate-500 font-medium">
                 {[testData.subject, testData.topic].filter(Boolean).join(' • ')}
               </p>
             )}
@@ -357,27 +357,28 @@ export default function TestPage() {
         </div>
 
         <div
-          className={`flex items-center gap-2 font-mono text-lg font-semibold ${
+          className={`flex items-center gap-1.5 sm:gap-2 font-mono text-sm sm:text-lg font-semibold shrink-0 ${
             isWarning ? 'animate-pulse text-red-600' : 'text-slate-700'
           }`}
         >
-          <Clock size={20} />
+          <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
           {formatTime(remainingSeconds)}
         </div>
 
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+          className="flex items-center gap-1 sm:gap-1.5 rounded-xl bg-red-600 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-red-700 shrink-0 shadow-xs"
         >
-          <Send size={16} />
-          Submit Test
+          <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">Submit Test</span>
+          <span className="sm:hidden">Submit</span>
         </button>
       </header>
 
       {/* ═══ MAIN BODY ═══ */}
       <div className="flex flex-1 overflow-hidden">
         {/* ─── Question Panel ─── */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 pb-28 md:pb-8">
           {/* question header */}
           <div className="mb-4 flex flex-wrap items-center gap-2.5">
             <span className="text-xl font-bold text-slate-800">
@@ -533,28 +534,30 @@ export default function TestPage() {
           )}
 
           {/* ─── Bottom navigation ─── */}
-          <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+          <div className="mt-8 flex flex-wrap items-center gap-2 sm:gap-3 border-t border-slate-200 pt-4">
             <button
               onClick={goPrev}
               disabled={currentIdx === 0}
-              className="flex items-center gap-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex items-center justify-center gap-1 rounded-xl border border-slate-300 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft size={16} />
-              Previous
+              <span className="hidden sm:inline">Previous</span>
+              <span className="sm:hidden">Prev</span>
             </button>
 
             <button
               onClick={clearResponse}
-              className="flex items-center gap-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              className="flex items-center justify-center gap-1 rounded-xl border border-slate-300 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 transition hover:bg-slate-100"
             >
               <RotateCcw size={16} />
-              Clear Response
+              <span className="hidden sm:inline">Clear Response</span>
+              <span className="sm:hidden">Clear</span>
             </button>
 
             {mode === 'practice' && (
               <button
                 onClick={checkAnswer}
-                className="flex items-center gap-1 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600"
+                className="flex items-center justify-center gap-1 rounded-xl bg-amber-500 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-amber-600"
               >
                 Check Answer
               </button>
@@ -562,15 +565,16 @@ export default function TestPage() {
 
             <button
               onClick={markForReview}
-              className="flex items-center gap-1 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700"
+              className="flex items-center justify-center gap-1 rounded-xl bg-purple-600 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-purple-700"
             >
               <Flag size={16} />
-              Mark for Review &amp; Next
+              <span className="hidden sm:inline">Mark for Review &amp; Next</span>
+              <span className="sm:hidden">Review &amp; Next</span>
             </button>
 
             <button
               onClick={saveAndNext}
-              className="flex items-center gap-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              className="flex items-center justify-center gap-1 rounded-xl bg-indigo-600 px-4 sm:px-5 py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-indigo-700 shadow-xs"
             >
               <Save size={16} />
               Save &amp; Next

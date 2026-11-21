@@ -51,6 +51,7 @@ export default function QuestionBankPage() {
 
   // Hierarchy tree accordion state
   const [expandedSubjects, setExpandedSubjects] = useState<Set<number>>(new Set());
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Solution toggle state
   const [expandedSolutions, setExpandedSolutions] = useState<Set<number>>(new Set());
@@ -289,9 +290,26 @@ export default function QuestionBankPage() {
       </header>
 
       {/* ─── Main Content Layout ─── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 flex flex-col md:flex-row gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex-1 flex flex-col md:flex-row gap-6">
+        {/* Mobile Hierarchy Toggle Button */}
+        <button
+          type="button"
+          onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+          className="md:hidden w-full flex items-center justify-between p-3.5 bg-white rounded-2xl border border-slate-200 shadow-xs font-bold text-xs text-slate-800"
+        >
+          <span className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-indigo-600" />
+            {activeSubjectName
+              ? `${activeSubjectName} ${activeTopicName ? `→ ${activeTopicName}` : ''}`
+              : 'Browse Subjects & Topics Hierarchy'}
+          </span>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 transition-transform ${showMobileSidebar ? 'rotate-180' : ''}`}
+          />
+        </button>
+
         {/* ─── LEFT: Two-Level Hierarchy Tree Sidebar ─── */}
-        <aside className="w-full md:w-80 shrink-0 space-y-4">
+        <aside className={`w-full md:w-80 shrink-0 space-y-4 ${showMobileSidebar ? 'block' : 'hidden md:block'}`}>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">

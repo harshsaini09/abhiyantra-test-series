@@ -22,34 +22,34 @@ export default function Navbar() {
   }, []);
 
   const links = [
-    { to: '/', label: 'Home / Import', icon: <Home className="w-4 h-4" /> },
-    { to: '/question-bank', label: 'Question Bank', icon: <Database className="w-4 h-4" /> },
-    { to: '/custom-builder', label: 'Custom Builder', icon: <Wrench className="w-4 h-4" /> },
-    { to: '/report-cards', label: 'Report Cards', icon: <Award className="w-4 h-4" /> },
+    { to: '/', label: 'Home', shortLabel: 'Home', icon: <Home className="w-4 h-4" /> },
+    { to: '/question-bank', label: 'Question Bank', shortLabel: 'Q-Bank', icon: <Database className="w-4 h-4" /> },
+    { to: '/custom-builder', label: 'Custom Builder', shortLabel: 'Builder', icon: <Wrench className="w-4 h-4" /> },
+    { to: '/report-cards', label: 'Report Cards', shortLabel: 'Reports', icon: <Award className="w-4 h-4" /> },
   ];
 
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
           {/* Logo & Brand */}
-          <Link to="/" className="flex items-center gap-3 text-indigo-700 hover:text-indigo-800 transition-colors group shrink-0">
+          <Link to="/" className="flex items-center gap-2.5 sm:gap-3 text-indigo-700 hover:text-indigo-800 transition-colors group shrink-0">
             <img
               src="/logo.avif"
               alt="Abhiyantra Logo"
-              className="w-10 h-10 object-contain rounded-xl bg-slate-50 border border-slate-200 p-1 shadow-xs group-hover:scale-105 transition-transform"
+              className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-xl bg-slate-50 border border-slate-200 p-1 shadow-xs group-hover:scale-105 transition-transform"
             />
             <div>
-              <span className="text-xl font-extrabold tracking-tight text-slate-900 group-hover:text-indigo-700 transition-colors">
+              <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 group-hover:text-indigo-700 transition-colors">
                 abhiyantra
               </span>
-              <span className="block text-[10px] uppercase font-bold tracking-wider text-indigo-600">
+              <span className="hidden sm:block text-[10px] uppercase font-bold tracking-wider text-indigo-600">
                 GATE Examination Platform
               </span>
             </div>
           </Link>
 
-          {/* Center Navigation Links */}
+          {/* Center Navigation Links (Tablet landscape & Desktop) */}
           <div className="hidden md:flex items-center gap-1">
             {links.map((link) => {
               const isActive = location.pathname === link.to;
@@ -71,7 +71,7 @@ export default function Navbar() {
           </div>
 
           {/* Right: Auth State (Google Sign In or User Profile) */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 shrink-0">
             {loading ? (
               <div className="w-8 h-8 rounded-full bg-slate-100 animate-pulse" />
             ) : user ? (
@@ -80,7 +80,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2.5 p-1.5 pl-2 pr-3 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  className="flex items-center gap-2 p-1 sm:p-1.5 sm:pl-2 sm:pr-3 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
                 >
                   {user.avatarUrl ? (
                     <img
@@ -94,7 +94,7 @@ export default function Navbar() {
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="text-left hidden sm:block max-w-[120px]">
+                  <div className="text-left hidden sm:block max-w-[110px] lg:max-w-[140px]">
                     <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
                     <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
                   </div>
@@ -102,7 +102,7 @@ export default function Navbar() {
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-4 py-2 border-b border-slate-100">
                       <p className="text-xs font-bold text-slate-900">{user.name}</p>
                       <p className="text-xs text-slate-500 truncate">{user.email}</p>
@@ -149,28 +149,26 @@ export default function Navbar() {
               </div>
             ) : (
               /* Signed Out: Google Sign In Button */
-              <div className="flex items-center gap-2">
-                <div className="scale-90 origin-right">
-                  <GoogleLogin
-                    onSuccess={(credentialResponse) => {
-                      if (credentialResponse.credential) {
-                        login(credentialResponse.credential);
-                      }
-                    }}
-                    onError={() => {
-                      console.error('Google Sign In failed');
-                    }}
-                    shape="pill"
-                    size="medium"
-                    text="signin_with"
-                  />
-                </div>
+              <div className="flex items-center scale-85 sm:scale-90 origin-right">
+                <GoogleLogin
+                  onSuccess={(credentialResponse) => {
+                    if (credentialResponse.credential) {
+                      login(credentialResponse.credential);
+                    }
+                  }}
+                  onError={() => {
+                    console.error('Google Sign In failed');
+                  }}
+                  shape="pill"
+                  size="medium"
+                  text="signin_with"
+                />
               </div>
             )}
           </div>
         </div>
 
-        {/* Mobile Navigation Bar */}
+        {/* Mobile & Small Tablet Navigation Bar */}
         <div className="flex md:hidden items-center justify-around py-2 border-t border-slate-100">
           {links.map((link) => {
             const isActive = location.pathname === link.to;
@@ -178,12 +176,12 @@ export default function Navbar() {
               <Link
                 key={link.to}
                 to={link.to}
-                className={`flex flex-col items-center gap-1 text-[11px] font-semibold py-1 px-2 rounded-md ${
-                  isActive ? 'text-indigo-700 bg-indigo-50' : 'text-slate-600 hover:text-slate-900'
+                className={`flex flex-col items-center gap-1 text-[11px] font-semibold py-1.5 px-2.5 rounded-lg transition-colors ${
+                  isActive ? 'text-indigo-700 bg-indigo-50 font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {link.icon}
-                <span>{link.label}</span>
+                <span>{link.shortLabel}</span>
               </Link>
             );
           })}

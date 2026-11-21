@@ -336,7 +336,7 @@ export default function CustomTestBuilderPage() {
                   <select
                     value={subjectFilter}
                     onChange={(e) => setSubjectFilter(e.target.value ? Number(e.target.value) : '')}
-                    className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full sm:w-auto px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   >
                     <option value="">All Subjects</option>
                     {hierarchy.map((s) => (
@@ -350,7 +350,7 @@ export default function CustomTestBuilderPage() {
                   <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value as QuestionType | '')}
-                    className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full sm:w-auto px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   >
                     <option value="">All Types</option>
                     <option value="MCQ">MCQ</option>
@@ -362,7 +362,7 @@ export default function CustomTestBuilderPage() {
                   <select
                     value={marksFilter}
                     onChange={(e) => setMarksFilter(e.target.value ? (Number(e.target.value) as MarkValue) : '')}
-                    className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full sm:w-auto px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   >
                     <option value="">All Marks</option>
                     <option value="1">1-Mark</option>

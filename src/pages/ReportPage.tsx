@@ -559,56 +559,56 @@ export default function ReportPage() {
         {/* ================================================================
             4. Action Buttons
             ================================================================ */}
-        <section className="flex flex-wrap gap-4 justify-center pt-4 pb-8 print:hidden">
+        <section className="flex flex-col sm:flex-row flex-wrap gap-2.5 sm:gap-4 justify-center pt-4 pb-8 print:hidden">
           <button
             onClick={() =>
               navigate('/test', {
                 state: { testData: results.testData, mode: results.mode },
               })
             }
-            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold shadow-xs text-xs sm:text-sm"
           >
-            <RotateCcw className="w-5 h-5" />
+            <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
             Retake Test
           </button>
 
           <button
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium shadow-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-xs text-xs sm:text-sm"
           >
-            <Printer className="w-5 h-5" />
+            <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
             Print Report Card
           </button>
 
           <button
             onClick={() => navigate('/report-cards')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors font-medium shadow-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-colors font-semibold shadow-xs text-xs sm:text-sm"
           >
-            <Award className="w-5 h-5" />
+            <Award className="w-4 h-4 sm:w-5 sm:h-5" />
             My Report Cards
           </button>
 
           <button
             onClick={() => navigate('/question-bank')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium shadow-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-xs text-xs sm:text-sm"
           >
-            <Database className="w-5 h-5 text-indigo-600" />
+            <Database className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
             Question Bank
           </button>
 
           <button
             onClick={() => navigate('/custom-builder')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium shadow-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-xs text-xs sm:text-sm"
           >
-            <Wrench className="w-5 h-5 text-indigo-600" />
+            <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
             Custom Test Builder
           </button>
 
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium shadow-sm"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-xs text-xs sm:text-sm"
           >
-            <PlusCircle className="w-5 h-5" />
+            <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
             Upload Another Test
           </button>
         </section>

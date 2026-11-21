@@ -536,44 +536,44 @@ export default function ReportCardsPage() {
 
           {/* Overall Stats Banner */}
           {overallStats && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
-                  <Trophy className="w-6 h-6" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Total Tests Taken</p>
-                  <p className="text-2xl font-extrabold text-slate-900">{overallStats.totalTests}</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
-                  <Target className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Average Accuracy</p>
-                  <p className="text-2xl font-extrabold text-emerald-600">{overallStats.avgAccuracy}%</p>
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Total Tests</p>
+                  <p className="text-lg sm:text-2xl font-extrabold text-slate-900">{overallStats.totalTests}</p>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center font-bold">
-                  <TrendingUp className="w-6 h-6" />
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                  <Target className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Avg Score %</p>
-                  <p className="text-2xl font-extrabold text-purple-600">{overallStats.avgScorePercent}%</p>
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Avg Accuracy</p>
+                  <p className="text-lg sm:text-2xl font-extrabold text-emerald-600">{overallStats.avgAccuracy}%</p>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-bold">
-                  <Award className="w-6 h-6" />
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center font-bold shrink-0">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Highest Score</p>
-                  <p className="text-2xl font-extrabold text-amber-600">{overallStats.highestScore}</p>
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Avg Score %</p>
+                  <p className="text-lg sm:text-2xl font-extrabold text-purple-600">{overallStats.avgScorePercent}%</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                  <Award className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Highest Score</p>
+                  <p className="text-lg sm:text-2xl font-extrabold text-amber-600">{overallStats.highestScore}</p>
                 </div>
               </div>
             </div>
