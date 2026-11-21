@@ -33,6 +33,7 @@ import {
   getNegativeMarkingDisplay,
 } from '../utils/scoring';
 import { saveTestState, loadTestState, clearTestState } from '../utils/storage';
+import { saveReportCardApi } from '../utils/api';
 
 // ───────────────────── helpers ─────────────────────
 
@@ -176,6 +177,8 @@ export default function TestPage() {
     clearTestState();
     const timeTaken = totalDuration - remainingSecondsRef.current;
     const results = gradeTest(testData, responsesRef.current, mode, timeTaken);
+    // Guarantee instant background save so the report card exists immediately
+    saveReportCardApi(results).catch(() => {});
     navigate('/report', { state: { results } });
   }, [totalDuration, testData, mode, navigate]);
 

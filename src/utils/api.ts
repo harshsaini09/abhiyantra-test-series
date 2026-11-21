@@ -531,6 +531,16 @@ export async function saveReportCardApi(results: TestResults): Promise<SavedRepo
     detailedReviewJson: results.questionResults,
   };
 
+  // 1. Immediately guarantee local persistence
+  const localRc: SavedReportCard = {
+    id: `local_rc_${Date.now()}`,
+    ...payload,
+    mode: payload.mode as 'EXAM' | 'PRACTICE',
+    submittedAt: new Date().toISOString(),
+  };
+  saveLocalReportCard(localRc);
+
+  // 2. Synchronize with remote server/PostgreSQL if available
   try {
     const res = await fetch(`${API_BASE}/report-cards`, {
       method: 'POST',
@@ -541,23 +551,15 @@ export async function saveReportCardApi(results: TestResults): Promise<SavedRepo
 
     if (res.ok) {
       const data = await res.json();
-      if (data.reportCard) {
+      if (data && data.reportCard) {
         saveLocalReportCard(data.reportCard);
         return data.reportCard;
       }
     }
   } catch {
-    // fallback to local persistence
+    // fallback cleanly to local
   }
 
-  // Local fallback
-  const localRc: SavedReportCard = {
-    id: `local_rc_${Date.now()}`,
-    ...payload,
-    mode: payload.mode as 'EXAM' | 'PRACTICE',
-    submittedAt: new Date().toISOString(),
-  };
-  saveLocalReportCard(localRc);
   return localRc;
 }
 
