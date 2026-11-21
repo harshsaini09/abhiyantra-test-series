@@ -36,6 +36,7 @@ export interface Question {
 export interface TestData {
   title: string;
   description?: string;
+  promptingTip?: string;
   subject?: string;
   topic?: string;
   defaultSubject?: string;

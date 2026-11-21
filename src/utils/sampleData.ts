@@ -9,6 +9,7 @@ export const sampleTestData: TestData = {
   subject: "Computer Science & IT",
   topic: "Full Syllabus Practice with Math & Visuals",
   description: "Official Abhiyantra GATE practice test covering LaTeX mathematical notation, code syntax highlighting, client-side TikZ diagrams, and official CBT sectional switching.",
+  promptingTip: "AI Prompt instruction: Format all mathematical and physics equations in LaTeX enclosed in single dollar signs ($...$) or double dollar signs ($$...$$). In JSON, double escape backslashes (e.g. \\frac, \\lim, \\sum, \\int, \\begin{bmatrix}). Plaintext limits like lim(x -> inf) and matrices [[a, b], [c, d]] will also format automatically.",
   sections: [
     { id: "GA", name: "Section 1: General Aptitude", questionCount: 2, marks: 3 },
     { id: "SUBJECT", name: "Section 2: Computer Science & IT", questionCount: 8, marks: 13 }

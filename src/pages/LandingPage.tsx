@@ -419,6 +419,25 @@ export default function LandingPage() {
               </p>
             </div>
           </div>
+
+          {/* Mathematical & LaTeX Equations Prompting Guide */}
+          <div className="mt-6 rounded-xl bg-slate-900 border border-slate-700 p-4 sm:p-5 text-white">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <h4 className="font-bold text-sm sm:text-base text-indigo-300">
+                AI Prompting Guide: Generating Mathematical Equations in JSON
+              </h4>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-3">
+              When asking an AI (ChatGPT, Claude, Gemini) or creating questions manually, copy and include this instruction at the end of your prompt to guarantee seamless mathematical rendering:
+            </p>
+            <div className="relative rounded-lg bg-slate-950 border border-slate-800 p-3 text-xs font-mono text-emerald-300 leading-relaxed overflow-x-auto select-all">
+              {`"Format all mathematical, statistical, and physics equations using LaTeX notation enclosed in single dollar signs for inline math (e.g. $f(x) = x^2 - 4x + 7$, $\\lim_{x \\to \\infty} \\frac{10x^2 - 3x + 4}{2x^2 + 9}$, $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}$) or double dollar signs for centered block math ($$...$$). In the JSON output, escape all LaTeX backslashes properly (e.g. \\\\lim, \\\\frac, \\\\begin, \\\\int, \\\\sum)."`}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2">
+              ✦ <strong>Universal Auto-Fallback:</strong> Even if plain text is provided without dollar signs (such as <code className="text-indigo-300 font-mono">lim(x → +∞) (10x² - 3x + 4) / (2x² + 9)</code> or <code className="text-indigo-300 font-mono">matrix [[6, 2], [3, 4]]</code>), Abhiyantra's universal math engine will automatically format and render it with KaTeX typography.
+            </p>
+          </div>
         </div>
       </section>
 
