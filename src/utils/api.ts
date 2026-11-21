@@ -568,7 +568,7 @@ export async function fetchReportCardsApi(): Promise<SavedReportCard[]> {
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         // Sync local cache with remote
         data.forEach((rc) => saveLocalReportCard(rc));
         return data;

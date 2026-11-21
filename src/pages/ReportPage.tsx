@@ -41,15 +41,15 @@ export default function ReportPage() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
 
-  // Auto-save test attempt when user is signed in, or stage for guest
+  // Auto-save test attempt immediately for local offline access, and sync to user if signed in
   useEffect(() => {
     if (results) {
-      if (user) {
-        setSaveStatus('saving');
-        saveReportCardApi(results)
-          .then(() => setSaveStatus('saved'))
-          .catch(() => setSaveStatus('saved'));
-      } else {
+      setSaveStatus('saving');
+      saveReportCardApi(results)
+        .then(() => setSaveStatus('saved'))
+        .catch(() => setSaveStatus('saved'));
+
+      if (!user) {
         stagePendingResults(results);
       }
     }

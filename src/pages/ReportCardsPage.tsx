@@ -155,8 +155,9 @@ export default function ReportCardsPage() {
 
       {/* ─────────────────────────────────────────────────────────────
           SIGNED OUT STATE: Clean Call-to-Action with Google Sign-In
+          (Only shown if user has zero local test attempts)
           ───────────────────────────────────────────────────────────── */}
-      {!user ? (
+      {!user && reportCards.length === 0 ? (
         <main className="flex-1 max-w-5xl mx-auto px-4 py-12 w-full flex flex-col items-center justify-center">
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl p-8 sm:p-12 text-center max-w-2xl w-full">
             <div className="w-20 h-20 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto mb-6 text-indigo-600 shadow-inner">
@@ -279,7 +280,7 @@ export default function ReportCardsPage() {
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{selectedCard.testTitle}</h1>
-                <p className="text-indigo-100 text-xs mt-1">Student: {user.name} ({user.email})</p>
+                <p className="text-indigo-100 text-xs mt-1">Student: {user?.name || 'Local Student'} {user?.email ? `(${user.email})` : ''}</p>
               </div>
 
               <div className="text-right sm:border-l sm:border-white/20 sm:pl-6">
@@ -548,10 +549,12 @@ export default function ReportCardsPage() {
                   Official Student Portal
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                  Welcome back, {user.name}
+                  {user ? `Welcome back, ${user.name}` : 'GATE Mock Test Report Cards'}
                 </h1>
                 <p className="text-slate-300 text-xs sm:text-sm mt-1">
-                  All your past GATE mock tests, scores, solutions, and analytics are synced in real-time with PostgreSQL.
+                  {user
+                    ? 'All your past GATE mock tests, scores, solutions, and analytics are synced in real-time with PostgreSQL.'
+                    : 'Your completed test attempts are saved locally on this browser. Sign in with Google to sync them permanently.'}
                 </p>
               </div>
 
