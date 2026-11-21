@@ -1,0 +1,54 @@
+// Prisma schema for GATE Test Series Platform
+// Configured so DATABASE_URL can be switched to PostgreSQL later without code changes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Subject {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  topics    Topic[]
+  questions Question[]
+}
+
+model Topic {
+  id        Int        @id @default(autoincrement())
+  name      String
+  subjectId Int
+  subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  questions Question[]
+
+  @@unique([subjectId, name])
+}
+
+model Question {
+  id              Int      @id @default(autoincrement())
+  contentHash     String   @unique
+  subjectId       Int
+  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  topicId         Int
+  topic           Topic    @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  type            String   // "MCQ" | "MSQ" | "NAT"
+  marks           Int      // 1 | 2
+  questionText    String
+  optionsJson     String?  // JSON stringified array of string options
+  answerJson      String   // JSON stringified answer (number | number[] | {min, max})
+  solution        String
+  sourceTestTitle String?
+  isArchived      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([subjectId])
+  @@index([topicId])
+  @@index([type])
+  @@index([marks])
+  @@index([isArchived])
+}

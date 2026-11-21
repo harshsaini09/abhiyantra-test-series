@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+/* Custom styles for the GATE Mock Test Platform */
+
+/* Print styles for report card */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Timer pulse animation */
+@keyframes timer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.timer-warning {
+  animation: timer-pulse 1s ease-in-out infinite;
+}
+
+/* Virtual keypad button styles */
+.keypad-btn {
+  @apply w-14 h-12 rounded-lg font-semibold text-lg transition-all duration-150 
+         bg-white border border-slate-300 text-slate-800 
+         hover:bg-slate-100 hover:border-slate-400 active:bg-slate-200 active:scale-95
+         focus:outline-none focus:ring-2 focus:ring-indigo-400;
+}
+
+.keypad-btn-action {
+  @apply w-14 h-12 rounded-lg font-semibold text-lg transition-all duration-150 
+         bg-red-50 border border-red-300 text-red-600
+         hover:bg-red-100 hover:border-red-400 active:bg-red-200 active:scale-95
+         focus:outline-none focus:ring-2 focus:ring-red-400;
+}
+
+/* JSON code block styling */
+.json-display {
+  @apply bg-slate-900 text-green-400 p-4 rounded-xl text-sm font-mono overflow-auto max-h-96
+         border border-slate-700;
+}
+
+.json-display .json-key {
+  color: #93c5fd; /* blue-300 */
+}
+
+.json-display .json-string {
+  color: #86efac; /* green-300 */
+}
+
+.json-display .json-number {
+  color: #fde68a; /* amber-200 */
+}
+
+.json-display .json-bracket {
+  color: #cbd5e1; /* slate-300 */
+}
+
+/* Question palette button sizes */
+.palette-btn {
+  @apply w-10 h-10 rounded-lg text-sm font-bold transition-all duration-150 
+         cursor-pointer hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-1;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
