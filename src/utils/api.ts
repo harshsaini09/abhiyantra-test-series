@@ -9,7 +9,6 @@ import type {
   SavedReportCard,
   TestResults,
 } from '../types';
-import { sampleTestData } from './sampleData';
 
 const API_BASE = '/api';
 const LOCAL_STORAGE_KEY = 'abhiyantra-local-question-bank';
@@ -29,36 +28,12 @@ export interface IngestResponse {
 function getLocalQuestions(): QuestionBankItem[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw !== null) return JSON.parse(raw);
   } catch {
     // ignore
   }
 
-  // Seed with sampleTestData if empty
-  const initial: QuestionBankItem[] = sampleTestData.questions.map((q, idx) => ({
-    id: idx + 1,
-    contentHash: `sample-${q.id}`,
-    subjectId: idx % 5 + 1,
-    subject: { id: idx % 5 + 1, name: q.subject || 'General / Unassigned' },
-    topicId: idx + 1,
-    topic: { id: idx + 1, name: q.topic || 'General' },
-    type: q.type,
-    marks: q.marks,
-    questionText: q.question,
-    options: q.options,
-    answer: q.answer,
-    solution: q.solution,
-    sourceTestTitle: sampleTestData.title,
-    isArchived: false,
-    createdAt: new Date().toISOString(),
-  }));
-
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initial));
-  } catch {
-    // ignore
-  }
-  return initial;
+  return [];
 }
 
 function saveLocalQuestions(items: QuestionBankItem[]): void {
@@ -597,4 +572,30 @@ export async function fetchReportCardDetailApi(id: string): Promise<SavedReportC
 
   const list = getLocalReportCards();
   return list.find((rc) => rc.id === id) || null;
+}
+
+// ─── Reset / Clear Database Function ───
+export async function clearPlatformDataApi(target: 'all' | 'questions' | 'report-cards' = 'all'): Promise<boolean> {
+  // Clear local storage targets (preserving user profile!)
+  if (target === 'all' || target === 'questions') {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]));
+  }
+  if (target === 'all' || target === 'report-cards') {
+    localStorage.removeItem(SAVED_REPORTS_KEY);
+    localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify([]));
+  }
+
+  // Clear server/PostgreSQL database if connected
+  try {
+    const res = await fetch(`${API_BASE}/admin/clear-data`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ target }),
+    });
+    return res.ok;
+  } catch {
+    return true;
+  }
 }

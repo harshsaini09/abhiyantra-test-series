@@ -46,6 +46,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       );
       return;
     }
+    if (url.includes('/admin/clear-data')) {
+      res.end(
+        JSON.stringify({
+          success: true,
+          message: 'Question bank and report cards cleared. Users preserved.',
+        })
+      );
+      return;
+    }
     if (url.includes('/health')) {
       res.end(JSON.stringify({ status: 'ok', brand: 'abhiyantra' }));
       return;

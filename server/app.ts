@@ -478,4 +478,39 @@ const handleCustomTest = async (req: Request, res: Response) => {
 app.post('/api/custom-test/generate', handleCustomTest);
 app.post('/custom-test/generate', handleCustomTest);
 
+// ─── 11. Clear Data (Admin/Reset endpoint: Clears questions and report cards, keeps Users) ───
+const handleClearData = async (req: Request, res: Response) => {
+  try {
+    const { target } = req.body || {}; // 'all' | 'questions' | 'report-cards'
+
+    if (!isDbConfigured || !prisma) {
+      res.json({
+        success: true,
+        message: 'Database not connected. Client local storage can be reset.',
+      });
+      return;
+    }
+
+    if (!target || target === 'all' || target === 'report-cards') {
+      await prisma.reportCard.deleteMany({});
+    }
+
+    if (!target || target === 'all' || target === 'questions') {
+      await prisma.question.deleteMany({});
+      await prisma.topic.deleteMany({});
+      await prisma.subject.deleteMany({});
+    }
+
+    res.json({
+      success: true,
+      message: 'Question bank and report cards cleared successfully. Users preserved.',
+    });
+  } catch (error) {
+    console.error('Clear data error:', error);
+    res.status(500).json({ error: 'Failed to clear database data.' });
+  }
+};
+app.post('/api/admin/clear-data', handleClearData);
+app.post('/admin/clear-data', handleClearData);
+
 export default app;
