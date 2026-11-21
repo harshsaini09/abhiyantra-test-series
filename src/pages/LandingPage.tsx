@@ -246,160 +246,160 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════ How It Works & JSON Format Guide ═══════════ */}
-      <section className="max-w-5xl mx-auto px-4 py-16">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-slate-800">How It Works</h2>
-          <p className="mt-2 text-slate-500 max-w-xl mx-auto">
+      <section className="w-full max-w-5xl mx-auto px-4 py-12 sm:py-16 overflow-hidden">
+        <div className="w-full max-w-xl mx-auto text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">How It Works</h2>
+          <p className="mt-2 text-slate-500 text-xs sm:text-sm md:text-base leading-relaxed px-2 break-words">
             Prepare your questions in a simple JSON format, load it here, and start
             practising — it&rsquo;s that easy.
           </p>
         </div>
 
         {/* Step cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-10 sm:mb-12">
           {[
             {
-              icon: <FileJson className="w-7 h-7 text-indigo-600" />,
+              icon: <FileJson className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" />,
               title: '1. Write JSON',
               desc: 'Create a JSON file with your test title and an array of questions.',
             },
             {
-              icon: <Upload className="w-7 h-7 text-indigo-600" />,
+              icon: <Upload className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" />,
               title: '2. Load & Validate',
               desc: 'Paste or upload the file. We validate every field in real time.',
             },
             {
-              icon: <Play className="w-7 h-7 text-indigo-600" />,
+              icon: <Play className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" />,
               title: '3. Take the Test',
               desc: 'Choose Exam or Practice mode and start. Results & analytics appear instantly.',
             },
           ].map((step) => (
             <div
               key={step.title}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+              className="bg-white rounded-2xl p-5 sm:p-6 shadow-xs border border-slate-200/80 hover:shadow-md transition-shadow"
             >
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mb-4">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 flex items-center justify-center mb-3 sm:mb-4">
                 {step.icon}
               </div>
-              <h3 className="text-lg font-semibold text-slate-800">{step.title}</h3>
-              <p className="mt-1 text-sm text-slate-500 leading-relaxed">{step.desc}</p>
+              <h3 className="text-base sm:text-lg font-bold text-slate-800">{step.title}</h3>
+              <p className="mt-1 text-xs sm:text-sm text-slate-500 leading-relaxed">{step.desc}</p>
             </div>
           ))}
         </div>
 
         {/* JSON format guide */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
-          <h3 className="flex items-center gap-2 text-xl font-bold text-slate-800 mb-4">
-            <BookOpen className="w-5 h-5 text-indigo-600" />
+        <div className="w-full bg-white rounded-2xl shadow-xs border border-slate-200/80 p-4 sm:p-6 md:p-8 overflow-hidden">
+          <h3 className="flex items-center gap-2 text-lg sm:text-xl font-bold text-slate-800 mb-3 sm:mb-4">
+            <BookOpen className="w-5 h-5 text-indigo-600 shrink-0" />
             JSON Format Guide
           </h3>
-          <p className="text-sm text-slate-500 mb-4 leading-relaxed">
-            Each question object in the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-indigo-700 text-xs font-mono">questions</code> array
+          <p className="text-xs sm:text-sm text-slate-500 mb-4 leading-relaxed break-words">
+            Each question object in the <code className="bg-slate-100 px-1.5 py-0.5 rounded text-indigo-700 text-xs font-mono break-all">questions</code> array
             supports the following fields:
           </p>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+          <div className="w-full overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-[520px] w-full text-xs sm:text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-50 text-left text-slate-600">
-                  <th className="px-4 py-2.5 font-semibold rounded-tl-lg">Field</th>
-                  <th className="px-4 py-2.5 font-semibold">Type</th>
-                  <th className="px-4 py-2.5 font-semibold rounded-tr-lg">Description</th>
+                  <th className="px-3.5 py-2.5 font-semibold">Field</th>
+                  <th className="px-3.5 py-2.5 font-semibold">Type</th>
+                  <th className="px-3.5 py-2.5 font-semibold">Description</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">title</td>
-                  <td className="px-4 py-2.5">string</td>
-                  <td className="px-4 py-2.5">Test title (e.g. "GATE CS Practice Set 1")</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">title</td>
+                  <td className="px-3.5 py-2.5">string</td>
+                  <td className="px-3.5 py-2.5">Test title (e.g. "GATE CS Practice Set 1")</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">defaultSubject</td>
-                  <td className="px-4 py-2.5">string (optional)</td>
-                  <td className="px-4 py-2.5">Test-level default subject applied if question lacks one</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">defaultSubject</td>
+                  <td className="px-3.5 py-2.5">string (optional)</td>
+                  <td className="px-3.5 py-2.5">Test-level default subject applied if question lacks one</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">defaultTopic</td>
-                  <td className="px-4 py-2.5">string (optional)</td>
-                  <td className="px-4 py-2.5">Test-level default topic applied if question lacks one</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">defaultTopic</td>
+                  <td className="px-3.5 py-2.5">string (optional)</td>
+                  <td className="px-3.5 py-2.5">Test-level default topic applied if question lacks one</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">id</td>
-                  <td className="px-4 py-2.5">number</td>
-                  <td className="px-4 py-2.5">Unique question identifier</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">id</td>
+                  <td className="px-3.5 py-2.5">number</td>
+                  <td className="px-3.5 py-2.5">Unique question identifier</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">type</td>
-                  <td className="px-4 py-2.5">"MCQ" | "MSQ" | "NAT"</td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">type</td>
+                  <td className="px-3.5 py-2.5">"MCQ" | "MSQ" | "NAT"</td>
+                  <td className="px-3.5 py-2.5">
                     <strong>MCQ</strong> = single-correct, <strong>MSQ</strong> = multi-select, <strong>NAT</strong> = numerical answer
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">marks</td>
-                  <td className="px-4 py-2.5">1 | 2</td>
-                  <td className="px-4 py-2.5">Mark value (matches GATE pattern)</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">marks</td>
+                  <td className="px-3.5 py-2.5">1 | 2</td>
+                  <td className="px-3.5 py-2.5">Mark value (matches GATE pattern)</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">subject</td>
-                  <td className="px-4 py-2.5">string (optional)</td>
-                  <td className="px-4 py-2.5">Subject name (e.g. "Data Structures", "Operating Systems")</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">subject</td>
+                  <td className="px-3.5 py-2.5">string (optional)</td>
+                  <td className="px-3.5 py-2.5">Subject name (e.g. "Data Structures", "Operating Systems")</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">topic</td>
-                  <td className="px-4 py-2.5">string (optional)</td>
-                  <td className="px-4 py-2.5">Topic name (e.g. "Stacks &amp; Queues", "Virtual Memory")</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">topic</td>
+                  <td className="px-3.5 py-2.5">string (optional)</td>
+                  <td className="px-3.5 py-2.5">Topic name (e.g. "Stacks &amp; Queues", "Virtual Memory")</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">question</td>
-                  <td className="px-4 py-2.5">string</td>
-                  <td className="px-4 py-2.5">The question text</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">question</td>
+                  <td className="px-3.5 py-2.5">string</td>
+                  <td className="px-3.5 py-2.5">The question text</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">options</td>
-                  <td className="px-4 py-2.5">string[]</td>
-                  <td className="px-4 py-2.5">Required for MCQ &amp; MSQ (min 2 items). Omit for NAT.</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">options</td>
+                  <td className="px-3.5 py-2.5">string[]</td>
+                  <td className="px-3.5 py-2.5">Required for MCQ &amp; MSQ (min 2 items). Omit for NAT.</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">answer</td>
-                  <td className="px-4 py-2.5">number | number[] | &#123;min, max&#125;</td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">answer</td>
+                  <td className="px-3.5 py-2.5">number | number[] | &#123;min, max&#125;</td>
+                  <td className="px-3.5 py-2.5">
                     MCQ → 0-based index; MSQ → array of indices; NAT → number or range
                   </td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2.5 font-mono text-indigo-700 text-xs">solution</td>
-                  <td className="px-4 py-2.5">string</td>
-                  <td className="px-4 py-2.5">Explanation shown after the test</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">solution</td>
+                  <td className="px-3.5 py-2.5">string</td>
+                  <td className="px-3.5 py-2.5">Explanation shown after the test</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           {/* GATE marking rules summary */}
-          <div className="mt-6 grid sm:grid-cols-3 gap-4 text-sm">
-            <div className="rounded-xl bg-indigo-50/60 p-4">
-              <h4 className="font-semibold text-indigo-700 flex items-center gap-1.5 mb-1">
-                <Shield className="w-4 h-4" /> Marking Scheme
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm">
+            <div className="rounded-xl bg-indigo-50/60 p-3.5 sm:p-4 border border-indigo-100">
+              <h4 className="font-bold text-indigo-700 flex items-center gap-1.5 mb-1 text-xs sm:text-sm">
+                <Shield className="w-4 h-4 shrink-0" /> Marking Scheme
               </h4>
-              <ul className="space-y-0.5 text-slate-600 list-disc list-inside">
+              <ul className="space-y-0.5 text-slate-600 list-disc list-inside text-xs sm:text-sm">
                 <li>MCQ wrong → −⅓ (1-mark) / −⅔ (2-mark)</li>
                 <li>MSQ &amp; NAT → no negative marking</li>
               </ul>
             </div>
-            <div className="rounded-xl bg-blue-50/60 p-4">
-              <h4 className="font-semibold text-blue-700 flex items-center gap-1.5 mb-1">
-                <Timer className="w-4 h-4" /> Auto Timer
+            <div className="rounded-xl bg-blue-50/60 p-3.5 sm:p-4 border border-blue-100">
+              <h4 className="font-bold text-blue-700 flex items-center gap-1.5 mb-1 text-xs sm:text-sm">
+                <Timer className="w-4 h-4 shrink-0" /> Auto Timer
               </h4>
-              <p className="text-slate-600">
-                Duration is auto-calculated: <code className="bg-white px-1 py-0.5 rounded text-xs font-mono">questions × (180 min / 65)</code> ≈ 2.77 min per question.
+              <p className="text-slate-600 text-xs sm:text-sm break-words">
+                Duration is auto-calculated: <code className="bg-white px-1 py-0.5 rounded text-[11px] font-mono break-all inline">questions × (180 min / 65)</code> ≈ 2.77 min per question.
               </p>
             </div>
-            <div className="rounded-xl bg-emerald-50/60 p-4">
-              <h4 className="font-semibold text-emerald-700 flex items-center gap-1.5 mb-1">
-                <Sparkles className="w-4 h-4" /> MSQ Scoring
+            <div className="rounded-xl bg-emerald-50/60 p-3.5 sm:p-4 border border-emerald-100">
+              <h4 className="font-bold text-emerald-700 flex items-center gap-1.5 mb-1 text-xs sm:text-sm">
+                <Sparkles className="w-4 h-4 shrink-0" /> MSQ Scoring
               </h4>
-              <p className="text-slate-600">
+              <p className="text-slate-600 text-xs sm:text-sm">
                 Full marks only on exact match. Partial answers score 0 (no penalty).
               </p>
             </div>
@@ -408,19 +408,19 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════ Interactive Example JSON ═══════════ */}
-      <section className="bg-slate-800 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-16">
-          <h2 className="text-2xl md:text-3xl font-bold mb-2">Example JSON</h2>
-          <p className="text-slate-400 mb-6 text-sm">
+      <section className="bg-slate-800 text-white w-full overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">Example JSON</h2>
+          <p className="text-slate-400 mb-6 text-xs sm:text-sm">
             Copy this sample, tweak it with your own questions, and load it below.
           </p>
 
-          <div className="relative rounded-xl bg-slate-900/80 border border-slate-700 overflow-hidden">
+          <div className="relative rounded-xl bg-slate-900/80 border border-slate-700 overflow-hidden w-full max-w-full">
             <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 border-b border-slate-700 text-xs text-slate-400">
               <FileJson className="w-4 h-4" />
               gate-sample-test.json
             </div>
-            <pre className="overflow-x-auto p-4 text-sm leading-relaxed max-h-96 overflow-y-auto">
+            <pre className="w-full max-w-full overflow-x-auto p-3 sm:p-4 text-xs sm:text-sm leading-relaxed max-h-96 overflow-y-auto">
               <code className="text-emerald-300">{sampleJSONString}</code>
             </pre>
           </div>

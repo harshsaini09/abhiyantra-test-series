@@ -8,7 +8,7 @@ import ReportCardsPage from './pages/ReportCardsPage';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 w-full max-w-full overflow-x-hidden">
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/test" element={<TestPage />} />
