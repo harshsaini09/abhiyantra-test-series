@@ -25,10 +25,10 @@ export interface Question {
   options?: string[];
   answer: number | number[] | NATAnswer;
   solution: string;
-  imageUrl?: string;
-  tikzCode?: string;
-  solutionImageUrl?: string;
-  solutionTikzCode?: string;
+  imageUrl?: string | null;
+  tikzCode?: string | null;
+  solutionImageUrl?: string | null;
+  solutionTikzCode?: string | null;
   section?: 'GA' | 'SUBJECT' | string;
 }
 
@@ -43,7 +43,9 @@ export interface TestData {
   sections?: Array<{
     id: string;
     name: string;
-    questionIds: number[];
+    questionIds?: number[];
+    questionCount?: number;
+    marks?: number;
   }>;
   questions: Question[];
 }
@@ -91,6 +93,7 @@ export interface QuestionBankItem {
   tikzCode?: string | null;
   solutionImageUrl?: string | null;
   solutionTikzCode?: string | null;
+  section?: 'GA' | 'SUBJECT' | string;
   sourceTestTitle?: string | null;
   isArchived: boolean;
   createdAt: string;

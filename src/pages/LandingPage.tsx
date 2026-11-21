@@ -370,7 +370,22 @@ export default function LandingPage() {
                 <tr>
                   <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">solution</td>
                   <td className="px-3.5 py-2.5">string</td>
-                  <td className="px-3.5 py-2.5">Explanation shown after the test</td>
+                  <td className="px-3.5 py-2.5">Explanation shown after the test (supports KaTeX $math$ and code blocks)</td>
+                </tr>
+                <tr>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">imageUrl</td>
+                  <td className="px-3.5 py-2.5">string (optional)</td>
+                  <td className="px-3.5 py-2.5">Responsive question diagram image (https:// or data:image/...) with click-to-zoom</td>
+                </tr>
+                <tr>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">tikzCode</td>
+                  <td className="px-3.5 py-2.5">string (optional)</td>
+                  <td className="px-3.5 py-2.5">LaTeX \begin&#123;tikzpicture&#125; code rendered directly into crisp SVG</td>
+                </tr>
+                <tr>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">section</td>
+                  <td className="px-3.5 py-2.5">"GA" | "SUBJECT"</td>
+                  <td className="px-3.5 py-2.5">Optional section tag for official GATE sectional switching</td>
                 </tr>
               </tbody>
             </table>

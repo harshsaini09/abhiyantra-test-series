@@ -9,7 +9,13 @@ import {
   X,
   Menu,
   RotateCcw,
+  Calculator,
 } from 'lucide-react';
+
+import GateCalculator from '../components/GateCalculator';
+import RichContent from '../components/RichContent';
+import { QuestionImage } from '../components/ImageLightbox';
+import TikzDiagram from '../components/TikzDiagram';
 
 import type {
   TestData,
@@ -127,6 +133,27 @@ export default function TestPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
+
+  // Section groups (General Aptitude vs Core Subject)
+  const sections = useMemo(() => {
+    const hasExplicitSections = testData.questions.some(
+      (q) => q.section || q.subject?.toLowerCase().includes('general aptitude')
+    );
+    if (!hasExplicitSections) return [];
+
+    const map = new Map<string, { id: string; name: string; count: number; firstIndex: number }>();
+    testData.questions.forEach((q, idx) => {
+      const isGA = q.section === 'GA' || q.subject?.toLowerCase().includes('general aptitude');
+      const secId = isGA ? 'GA' : 'SUBJECT';
+      const secName = isGA ? 'Section 1: General Aptitude' : `Section 2: ${testData.subject || 'Core Subject'}`;
+      if (!map.has(secId)) {
+        map.set(secId, { id: secId, name: secName, count: 0, firstIndex: idx });
+      }
+      map.get(secId)!.count++;
+    });
+    return Array.from(map.values());
+  }, [testData]);
 
   // Practice-mode feedback
   const [practiceResult, setPracticeResult] = useState<{
@@ -356,24 +383,70 @@ export default function TestPage() {
           </div>
         </div>
 
-        <div
-          className={`flex items-center gap-1.5 sm:gap-2 font-mono text-sm sm:text-lg font-semibold shrink-0 ${
-            isWarning ? 'animate-pulse text-red-600' : 'text-slate-700'
-          }`}
-        >
-          <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-          {formatTime(remainingSeconds)}
-        </div>
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button
+            onClick={() => setShowCalculator((prev) => !prev)}
+            className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/90 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shrink-0 shadow-xs active:scale-95"
+            title="Open GATE On-Screen Scientific Calculator"
+          >
+            <Calculator className="w-4 h-4 text-indigo-600" />
+            <span className="hidden sm:inline">Calculator</span>
+          </button>
 
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-1 sm:gap-1.5 rounded-xl bg-red-600 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-red-700 shrink-0 shadow-xs"
-        >
-          <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          <span className="hidden sm:inline">Submit Test</span>
-          <span className="sm:hidden">Submit</span>
-        </button>
+          <div
+            className={`flex items-center gap-1.5 sm:gap-2 font-mono text-sm sm:text-lg font-semibold shrink-0 ${
+              isWarning ? 'animate-pulse text-red-600' : 'text-slate-700'
+            }`}
+          >
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+            {formatTime(remainingSeconds)}
+          </div>
+
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1 sm:gap-1.5 rounded-xl bg-red-600 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-red-700 shrink-0 shadow-xs"
+          >
+            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Submit Test</span>
+            <span className="sm:hidden">Submit</span>
+          </button>
+        </div>
       </header>
+
+      {/* ═══ SECTION TABS (Official GATE CBT Split) ═══ */}
+      {sections.length > 0 && (
+        <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50/90 px-3 sm:px-6 py-2 overflow-x-auto shrink-0">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">
+            Sections:
+          </span>
+          {sections.map((sec) => {
+            const isCurrentInSec =
+              (sec.id === 'GA' && (question.section === 'GA' || question.subject?.toLowerCase().includes('general aptitude'))) ||
+              (sec.id === 'SUBJECT' && !(question.section === 'GA' || question.subject?.toLowerCase().includes('general aptitude')));
+
+            return (
+              <button
+                key={sec.id}
+                onClick={() => setCurrentIdx(sec.firstIndex)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  isCurrentInSec
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>{sec.name}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    isCurrentInSec ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {sec.count} Qs
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ═══ MAIN BODY ═══ */}
       <div className="flex flex-1 overflow-hidden">
@@ -406,10 +479,23 @@ export default function TestPage() {
             )}
           </div>
 
-          {/* question text */}
-          <p className="mb-6 text-lg leading-relaxed text-slate-700 whitespace-pre-wrap">
-            {question.question}
-          </p>
+          {/* Question Visuals: Image & TikZ Diagram */}
+          {question.imageUrl && (
+            <div className="mb-5 max-w-xl">
+              <QuestionImage src={question.imageUrl} alt={`Question ${currentIdx + 1} Diagram`} />
+            </div>
+          )}
+
+          {question.tikzCode && (
+            <div className="mb-5 max-w-xl">
+              <TikzDiagram code={question.tikzCode} caption={`Figure for Question ${currentIdx + 1}`} />
+            </div>
+          )}
+
+          {/* question text with LaTeX Math & Code syntax highlighting */}
+          <div className="mb-6 text-base sm:text-lg leading-relaxed text-slate-800">
+            <RichContent content={question.question} />
+          </div>
 
           {/* ─── MCQ ─── */}
           {question.type === 'MCQ' && question.options && (
@@ -417,9 +503,9 @@ export default function TestPage() {
               {question.options.map((opt, i) => (
                 <label
                   key={i}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-all ${
                     response.selectedOptions?.[0] === i
-                      ? 'border-indigo-500 bg-indigo-50'
+                      ? 'border-indigo-500 bg-indigo-50/80 shadow-xs ring-1 ring-indigo-300'
                       : 'border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -428,12 +514,14 @@ export default function TestPage() {
                     name={`mcq-${question.id}`}
                     checked={response.selectedOptions?.[0] === i}
                     onChange={() => handleMCQSelect(i)}
-                    className="accent-indigo-600"
+                    className="accent-indigo-600 mt-1"
                   />
-                  <span className="font-semibold text-slate-500">
+                  <span className="font-bold text-slate-500 shrink-0">
                     {String.fromCharCode(65 + i)}.
                   </span>
-                  <span className="text-slate-700">{opt}</span>
+                  <div className="text-slate-800 flex-1 leading-relaxed">
+                    <RichContent content={opt} />
+                  </div>
                 </label>
               ))}
             </div>
@@ -445,9 +533,9 @@ export default function TestPage() {
               {question.options.map((opt, i) => (
                 <label
                   key={i}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-all ${
                     response.selectedOptions?.includes(i)
-                      ? 'border-purple-500 bg-purple-50'
+                      ? 'border-purple-500 bg-purple-50/80 shadow-xs ring-1 ring-purple-300'
                       : 'border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -455,12 +543,14 @@ export default function TestPage() {
                     type="checkbox"
                     checked={response.selectedOptions?.includes(i) ?? false}
                     onChange={() => handleMSQToggle(i)}
-                    className="accent-purple-600"
+                    className="accent-purple-600 mt-1"
                   />
-                  <span className="font-semibold text-slate-500">
+                  <span className="font-bold text-slate-500 shrink-0">
                     {String.fromCharCode(65 + i)}.
                   </span>
-                  <span className="text-slate-700">{opt}</span>
+                  <div className="text-slate-800 flex-1 leading-relaxed">
+                    <RichContent content={opt} />
+                  </div>
                 </label>
               ))}
             </div>
@@ -525,10 +615,20 @@ export default function TestPage() {
                 </span>
               </p>
               <div className="mt-3 border-t border-slate-200 pt-3">
-                <p className="text-sm font-semibold text-slate-700">Solution</p>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600 whitespace-pre-wrap">
-                  {practiceResult.solution}
-                </p>
+                <p className="text-sm font-semibold text-slate-700 mb-2">Solution</p>
+                {question.solutionImageUrl && (
+                  <div className="mb-3 max-w-lg">
+                    <QuestionImage src={question.solutionImageUrl} alt="Solution Diagram" />
+                  </div>
+                )}
+                {question.solutionTikzCode && (
+                  <div className="mb-3 max-w-lg">
+                    <TikzDiagram code={question.solutionTikzCode} caption="Solution Figure" />
+                  </div>
+                )}
+                <div className="text-sm leading-relaxed text-slate-700">
+                  <RichContent content={practiceResult.solution} />
+                </div>
               </div>
             </div>
           )}
@@ -683,6 +783,8 @@ export default function TestPage() {
           </div>
         </div>
       )}
+      {/* GATE On-Screen Scientific Calculator Modal */}
+      <GateCalculator isOpen={showCalculator} onClose={() => setShowCalculator(false)} />
     </div>
   );
 }

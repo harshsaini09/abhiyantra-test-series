@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Sparkles, Code2, AlertTriangle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface TikzDiagramProps {
-  tikzCode: string;
+  tikzCode?: string;
+  code?: string;
   caption?: string;
 }
 
@@ -49,11 +50,13 @@ function loadTikzJax(callback: () => void) {
   }
 }
 
-export default function TikzDiagram({ tikzCode, caption }: TikzDiagramProps) {
+export default function TikzDiagram({ tikzCode, code, caption }: TikzDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [showRawCode, setShowRawCode] = useState(false);
+
+  const rawCode = (tikzCode || code || '').trim();
 
   useEffect(() => {
     let mounted = true;
@@ -61,7 +64,11 @@ export default function TikzDiagram({ tikzCode, caption }: TikzDiagramProps) {
     setError(false);
 
     // Normalize code: wrap in \begin{tikzpicture}...\end{tikzpicture} if not wrapped
-    let codeToRender = tikzCode.trim();
+    let codeToRender = rawCode;
+    if (!codeToRender) {
+      setLoading(false);
+      return;
+    }
     if (!codeToRender.includes('\\begin{tikzpicture}')) {
       codeToRender = `\\begin{tikzpicture}\n${codeToRender}\n\\end{tikzpicture}`;
     }

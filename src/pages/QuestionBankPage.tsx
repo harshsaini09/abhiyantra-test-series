@@ -34,6 +34,9 @@ import {
   X,
   AlertCircle,
 } from 'lucide-react';
+import RichContent from '../components/RichContent';
+import { QuestionImage } from '../components/ImageLightbox';
+import TikzDiagram from '../components/TikzDiagram';
 
 export default function QuestionBankPage() {
   const [stats, setStats] = useState<QuestionBankStats | null>(null);
@@ -578,9 +581,21 @@ export default function QuestionBankPage() {
 
                     {/* Question Text */}
                     <div className="p-4 sm:p-5 space-y-4">
-                      <p className="text-base text-slate-800 font-medium leading-relaxed whitespace-pre-wrap">
-                        {q.questionText}
-                      </p>
+                      {q.imageUrl && (
+                        <div className="max-w-md">
+                          <QuestionImage src={q.imageUrl} alt="Question Visual" />
+                        </div>
+                      )}
+
+                      {q.tikzCode && (
+                        <div className="max-w-md">
+                          <TikzDiagram code={q.tikzCode} caption="Question Diagram" />
+                        </div>
+                      )}
+
+                      <div className="text-base text-slate-800 font-medium leading-relaxed">
+                        <RichContent content={q.questionText} />
+                      </div>
 
                       {/* Options (for MCQ & MSQ) */}
                       {q.options && q.options.length > 0 && (
@@ -604,7 +619,9 @@ export default function QuestionBankPage() {
                                 }`}
                               >
                                 <span className="font-bold shrink-0">{letter})</span>
-                                <span className="flex-1">{opt}</span>
+                                <div className="flex-1">
+                                  <RichContent content={opt} />
+                                </div>
                                 {isCorrect && <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />}
                               </div>
                             );
@@ -635,11 +652,23 @@ export default function QuestionBankPage() {
                         </button>
 
                         {isExpanded && (
-                          <div className="mt-3 p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl text-sm text-indigo-950 space-y-1">
+                          <div className="mt-3 p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl text-sm text-indigo-950 space-y-2">
                             <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 block">
                               Detailed Solution
                             </span>
-                            <p className="leading-relaxed whitespace-pre-wrap">{q.solution}</p>
+                            {q.solutionImageUrl && (
+                              <div className="max-w-md">
+                                <QuestionImage src={q.solutionImageUrl} alt="Solution Visual" />
+                              </div>
+                            )}
+                            {q.solutionTikzCode && (
+                              <div className="max-w-md">
+                                <TikzDiagram code={q.solutionTikzCode} caption="Solution Diagram" />
+                              </div>
+                            )}
+                            <div className="leading-relaxed">
+                              <RichContent content={q.solution} />
+                            </div>
                           </div>
                         )}
                       </div>

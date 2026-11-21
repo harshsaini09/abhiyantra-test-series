@@ -244,6 +244,7 @@ export function validateTestJSON(data: unknown): { valid: boolean; errors: Valid
       topic: obj.topic ? (obj.topic as string).trim() : undefined,
       defaultSubject: obj.defaultSubject ? (obj.defaultSubject as string).trim() : undefined,
       defaultTopic: obj.defaultTopic ? (obj.defaultTopic as string).trim() : undefined,
+      sections: Array.isArray(obj.sections) ? (obj.sections as any) : undefined,
       questions: obj.questions as Question[],
     },
   };

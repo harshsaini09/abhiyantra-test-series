@@ -11,6 +11,9 @@ import type {
   MarkValue,
 } from '../types';
 import { calculateDuration, formatDurationHuman } from '../utils/scoring';
+import RichContent from '../components/RichContent';
+import { QuestionImage } from '../components/ImageLightbox';
+import TikzDiagram from '../components/TikzDiagram';
 import {
   Wrench,
   Play,
@@ -25,7 +28,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-type BuilderMode = 'manual' | 'rules';
+type BuilderMode = 'manual' | 'rules' | 'full-mock';
 
 interface MixRule {
   id: string;
@@ -55,6 +58,36 @@ export default function CustomTestBuilderPage() {
   const [subjectFilter, setSubjectFilter] = useState<number | ''>('');
   const [typeFilter, setTypeFilter] = useState<QuestionType | ''>('');
   const [marksFilter, setMarksFilter] = useState<MarkValue | ''>('');
+
+  // Full Mock Mode State
+  const [mockSubjectId, setMockSubjectId] = useState<number | ''>('');
+
+  // Bucket calculations for Full Mock
+  const gaQuestions = useMemo(() => {
+    return allQuestions.filter(
+      (q) => q.section === 'GA' || q.subject.name.toLowerCase().includes('general aptitude')
+    );
+  }, [allQuestions]);
+
+  const coreQuestions = useMemo(() => {
+    const nonGA = allQuestions.filter(
+      (q) => !(q.section === 'GA' || q.subject.name.toLowerCase().includes('general aptitude'))
+    );
+    if (!mockSubjectId) return nonGA;
+    return nonGA.filter((q) => q.subjectId === mockSubjectId);
+  }, [allQuestions, mockSubjectId]);
+
+  const ga1m = useMemo(() => gaQuestions.filter((q) => q.marks === 1), [gaQuestions]);
+  const ga2m = useMemo(() => gaQuestions.filter((q) => q.marks === 2), [gaQuestions]);
+  const core1m = useMemo(() => coreQuestions.filter((q) => q.marks === 1), [coreQuestions]);
+  const core2m = useMemo(() => coreQuestions.filter((q) => q.marks === 2), [coreQuestions]);
+
+  const totalMockAvailable = ga1m.length + ga2m.length + core1m.length + core2m.length;
+  const isFull65Available =
+    ga1m.length >= 5 &&
+    ga2m.length >= 5 &&
+    core1m.length >= 25 &&
+    core2m.length >= 30;
 
   // Rules Mode State
   const [rules, setRules] = useState<MixRule[]>([
@@ -181,9 +214,65 @@ export default function CustomTestBuilderPage() {
     );
   };
 
-  // Build the TestData object (either from manual selections or rules)
+  // Build the TestData object (manual selections, rules mix, or official full mock)
   const buildTestData = async (): Promise<TestData> => {
-    if (builderMode === 'manual') {
+    if (builderMode === 'full-mock') {
+      const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => 0.5 - Math.random());
+
+      const selectedGa1 = shuffle(ga1m).slice(0, 5);
+      const selectedGa2 = shuffle(ga2m).slice(0, 5);
+      const selectedCore1 = shuffle(core1m).slice(0, 25);
+      const selectedCore2 = shuffle(core2m).slice(0, 30);
+
+      const combined = [
+        ...selectedGa1.map((q) => ({ ...q, section: 'GA' as const })),
+        ...selectedGa2.map((q) => ({ ...q, section: 'GA' as const })),
+        ...selectedCore1.map((q) => ({ ...q, section: 'SUBJECT' as const })),
+        ...selectedCore2.map((q) => ({ ...q, section: 'SUBJECT' as const })),
+      ];
+
+      if (combined.length === 0) {
+        throw new Error('No questions available in the question bank to generate a full mock test.');
+      }
+
+      const totalMarks = combined.reduce((acc, q) => acc + q.marks, 0);
+
+      return {
+        title: testTitle.trim() || `Official GATE Mock Test (${combined.length} Qs / ${totalMarks} Marks)`,
+        subject: mockSubjectId ? hierarchy.find((s) => s.id === mockSubjectId)?.name : 'Official GATE Pattern',
+        description: testDesc.trim() || `Official GATE Examination structure with General Aptitude (Section 1) and Core Subject (Section 2).`,
+        sections: [
+          {
+            id: 'GA',
+            name: 'Section 1: General Aptitude',
+            questionCount: selectedGa1.length + selectedGa2.length,
+            marks: selectedGa1.length * 1 + selectedGa2.length * 2,
+          },
+          {
+            id: 'SUBJECT',
+            name: `Section 2: ${mockSubjectId ? hierarchy.find((s) => s.id === mockSubjectId)?.name : 'Core Subject'}`,
+            questionCount: selectedCore1.length + selectedCore2.length,
+            marks: selectedCore1.length * 1 + selectedCore2.length * 2,
+          },
+        ],
+        questions: combined.map((q, idx) => ({
+          id: idx + 1,
+          section: q.section,
+          subject: q.subject.name,
+          topic: q.topic.name,
+          type: q.type,
+          marks: q.marks,
+          question: q.questionText,
+          options: q.options,
+          answer: q.answer,
+          solution: q.solution,
+          imageUrl: q.imageUrl,
+          tikzCode: q.tikzCode,
+          solutionImageUrl: q.solutionImageUrl,
+          solutionTikzCode: q.solutionTikzCode,
+        })),
+      };
+    } else if (builderMode === 'manual') {
       if (selectedQuestionsList.length === 0) {
         throw new Error('Please select at least 1 question to build a test.');
       }
@@ -200,6 +289,10 @@ export default function CustomTestBuilderPage() {
           options: q.options,
           answer: q.answer,
           solution: q.solution,
+          imageUrl: q.imageUrl,
+          tikzCode: q.tikzCode,
+          solutionImageUrl: q.solutionImageUrl,
+          solutionTikzCode: q.solutionTikzCode,
         })),
       };
     } else {
@@ -278,26 +371,41 @@ export default function CustomTestBuilderPage() {
           </div>
 
           {/* Builder Mode Switcher */}
-          <div className="flex items-center bg-white/10 p-1.5 rounded-2xl border border-white/20 backdrop-blur-xs">
+          <div className="flex flex-wrap items-center bg-white/10 p-1.5 rounded-2xl border border-white/20 backdrop-blur-xs gap-1.5">
             <button
               onClick={() => setBuilderMode('manual')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 builderMode === 'manual'
                   ? 'bg-white text-indigo-900 shadow-sm'
                   : 'text-white/80 hover:text-white'
               }`}
             >
-              Pick &amp; Choose (Manual)
+              Pick &amp; Choose
             </button>
             <button
               onClick={() => setBuilderMode('rules')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 builderMode === 'rules'
                   ? 'bg-white text-indigo-900 shadow-sm'
                   : 'text-white/80 hover:text-white'
               }`}
             >
-              Rule-Based Mix (Auto)
+              Rule Mix
+            </button>
+            <button
+              onClick={() => {
+                setBuilderMode('full-mock');
+                setTestTitle('Official GATE Full Mock Test (65 Qs / 100 Marks / 180 Min)');
+                setTestDesc('Official 65-question GATE CBT pattern: 10 General Aptitude + 55 Core Subject questions.');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                builderMode === 'full-mock'
+                  ? 'bg-amber-400 text-slate-950 shadow-sm ring-1 ring-amber-300 font-extrabold'
+                  : 'text-amber-200 hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Official GATE Full Mock (65 Qs)
             </button>
           </div>
         </div>
@@ -455,9 +563,19 @@ export default function CustomTestBuilderPage() {
                               </span>
                             </div>
 
-                            <p className="text-sm font-medium text-slate-800 leading-relaxed whitespace-pre-wrap">
-                              {q.questionText}
-                            </p>
+                            {q.imageUrl && (
+                              <div className="max-w-xs my-2">
+                                <QuestionImage src={q.imageUrl} alt="Question Diagram" />
+                              </div>
+                            )}
+                            {q.tikzCode && (
+                              <div className="max-w-xs my-2">
+                                <TikzDiagram code={q.tikzCode} />
+                              </div>
+                            )}
+                            <div className="text-sm font-medium text-slate-800 leading-relaxed">
+                              <RichContent content={q.questionText} />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -613,6 +731,128 @@ export default function CustomTestBuilderPage() {
               </div>
             </div>
           )}
+
+          {/* ══════════ MODE C: Official GATE Full Mock Generator ══════════ */}
+          {builderMode === 'full-mock' && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-5">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200 mb-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    Official GATE Specification (100 Marks • 180 Minutes)
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900">Official GATE 65-Question Full Mock Paper</h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                    Follows the official GATE CBT blueprint with Section 1: General Aptitude (10 Qs / 15 Marks) and Section 2: Core Subject (55 Qs / 85 Marks).
+                  </p>
+                </div>
+
+                <div className="text-right sm:border-l sm:border-slate-100 sm:pl-5 shrink-0">
+                  <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">Exact Duration</span>
+                  <span className="text-xl font-extrabold text-indigo-700">180 Mins (3h)</span>
+                </div>
+              </div>
+
+              {/* Core Subject Filter Selection */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Target Core Engineering Subject (Section 2)
+                </label>
+                <select
+                  value={mockSubjectId}
+                  onChange={(e) => setMockSubjectId(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                >
+                  <option value="">All Available Core Subjects (Comprehensive Mock)</option>
+                  {hierarchy
+                    .filter((s) => !s.name.toLowerCase().includes('general aptitude'))
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.topics.reduce((acc, t) => acc + (t._count?.questions || 0), 0)} Qs available)
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Specification Breakdown Cards */}
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Syllabus Split &amp; Question Bank Availability
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Bucket 1: GA 1-Mark */}
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-800">General Aptitude (1-Mark)</span>
+                      <span className="font-mono text-indigo-700 font-bold">5 Qs (5 Marks)</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] text-slate-500">
+                      <span>Available: {ga1m.length} Qs</span>
+                      <span className={ga1m.length >= 5 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                        {ga1m.length >= 5 ? '✓ Ready' : `${5 - ga1m.length} short`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bucket 2: GA 2-Mark */}
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-800">General Aptitude (2-Mark)</span>
+                      <span className="font-mono text-indigo-700 font-bold">5 Qs (10 Marks)</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] text-slate-500">
+                      <span>Available: {ga2m.length} Qs</span>
+                      <span className={ga2m.length >= 5 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                        {ga2m.length >= 5 ? '✓ Ready' : `${5 - ga2m.length} short`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bucket 3: Core 1-Mark */}
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-800">Core Subject (1-Mark)</span>
+                      <span className="font-mono text-indigo-700 font-bold">25 Qs (25 Marks)</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] text-slate-500">
+                      <span>Available: {core1m.length} Qs</span>
+                      <span className={core1m.length >= 25 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                        {core1m.length >= 25 ? '✓ Ready' : `${25 - core1m.length} short`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bucket 4: Core 2-Mark */}
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-800">Core Subject (2-Mark)</span>
+                      <span className="font-mono text-indigo-700 font-bold">30 Qs (60 Marks)</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] text-slate-500">
+                      <span>Available: {core2m.length} Qs</span>
+                      <span className={core2m.length >= 30 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                        {core2m.length >= 30 ? '✓ Ready' : `${30 - core2m.length} short`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status & Shortfall Alert */}
+              {!isFull65Available && (
+                <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl text-xs space-y-1.5 text-amber-900">
+                  <div className="flex items-center gap-2 font-bold text-amber-800">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Question Bank Capacity Notice</span>
+                  </div>
+                  <p className="leading-relaxed">
+                    Your Question Bank currently has <strong>{totalMockAvailable}</strong> matching questions (65 needed for full paper). You can generate a <strong>Best-Available Mock Test</strong> with all available questions, or add more questions in the Question Bank.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ─── RIGHT PANEL: Live Test Paper Summary & Actions ─── */}
@@ -685,13 +925,28 @@ export default function CustomTestBuilderPage() {
                 <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                   <span className="text-xs text-slate-400 block font-medium">Questions</span>
                   <span className="text-xl font-bold text-slate-800">
-                    {builderMode === 'manual' ? totalQuestions : rules.reduce((s, r) => s + r.count, 0)}
+                    {builderMode === 'full-mock'
+                      ? isFull65Available
+                        ? 65
+                        : totalMockAvailable
+                      : builderMode === 'manual'
+                      ? totalQuestions
+                      : rules.reduce((s, r) => s + r.count, 0)}
                   </span>
                 </div>
                 <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                   <span className="text-xs text-slate-400 block font-medium">Total Marks</span>
                   <span className="text-xl font-bold text-indigo-600">
-                    {builderMode === 'manual' ? `${totalMarks} M` : 'Auto-computed'}
+                    {builderMode === 'full-mock'
+                      ? `${
+                          Math.min(5, ga1m.length) * 1 +
+                          Math.min(5, ga2m.length) * 2 +
+                          Math.min(25, core1m.length) * 1 +
+                          Math.min(30, core2m.length) * 2
+                        } M`
+                      : builderMode === 'manual'
+                      ? `${totalMarks} M`
+                      : 'Auto-computed'}
                   </span>
                 </div>
               </div>
@@ -702,7 +957,11 @@ export default function CustomTestBuilderPage() {
                   Auto-Calculated Duration:
                 </span>
                 <span className="font-bold text-slate-800">
-                  {builderMode === 'manual'
+                  {builderMode === 'full-mock'
+                    ? isFull65Available
+                      ? '180 Mins (3h)'
+                      : formatDurationHuman(calculateDuration(totalMockAvailable))
+                    : builderMode === 'manual'
                     ? formatDurationHuman(totalDuration)
                     : formatDurationHuman(
                         calculateDuration(rules.reduce((s, r) => s + r.count, 0))
@@ -747,17 +1006,27 @@ export default function CustomTestBuilderPage() {
             <div className="border-t border-slate-100 pt-4 space-y-2">
               <button
                 type="button"
-                disabled={generating || (builderMode === 'manual' && totalQuestions === 0)}
+                disabled={generating || (builderMode === 'manual' && totalQuestions === 0) || (builderMode === 'full-mock' && totalMockAvailable === 0)}
                 onClick={handleLaunchTest}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer text-sm"
               >
                 <Play className="w-4 h-4 fill-current" />
-                {generating ? 'Synthesizing Test...' : 'Launch Test Directly'}
+                {generating ? (
+                  'Synthesizing Mock Test...'
+                ) : builderMode === 'full-mock' ? (
+                  isFull65Available ? (
+                    'Launch Official GATE Full Mock (65 Qs) →'
+                  ) : (
+                    'Generate Best-Available Mock →'
+                  )
+                ) : (
+                  'Launch Test Directly →'
+                )}
               </button>
 
               <button
                 type="button"
-                disabled={generating || (builderMode === 'manual' && totalQuestions === 0)}
+                disabled={generating || (builderMode === 'manual' && totalQuestions === 0) || (builderMode === 'full-mock' && totalMockAvailable === 0)}
                 onClick={handleExportJSON}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 cursor-pointer"
               >

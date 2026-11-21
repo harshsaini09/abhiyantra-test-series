@@ -25,6 +25,9 @@ import { useAuth } from '../context/AuthContext';
 import { saveReportCardApi } from '../utils/api';
 import { formatDurationHuman } from '../utils/scoring';
 import type { TestResults, QuestionResult } from '../types';
+import RichContent from '../components/RichContent';
+import { QuestionImage } from '../components/ImageLightbox';
+import TikzDiagram from '../components/TikzDiagram';
 
 type FilterTab = 'all' | 'correct' | 'incorrect' | 'unattempted';
 
@@ -447,14 +450,27 @@ export default function ReportPage() {
                   {/* Expanded content */}
                   {isExpanded && (
                     <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
-                      {/* Question text */}
-                      <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">
-                        {qr.question.question}
-                      </p>
+                      {/* Question Visuals: Image & TikZ Diagram */}
+                      {qr.question.imageUrl && (
+                        <div className="max-w-md">
+                          <QuestionImage src={qr.question.imageUrl} alt={`Question ${qr.question.id} Diagram`} />
+                        </div>
+                      )}
+
+                      {qr.question.tikzCode && (
+                        <div className="max-w-md">
+                          <TikzDiagram code={qr.question.tikzCode} caption="Question Diagram" />
+                        </div>
+                      )}
+
+                      {/* Question text with LaTeX Math & Code syntax highlighting */}
+                      <div className="text-slate-800 leading-relaxed font-medium">
+                        <RichContent content={qr.question.question} />
+                      </div>
 
                       {/* Options list (for MCQ / MSQ) */}
                       {qr.question.options && (
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {qr.question.options.map((opt, idx) => {
                             const letter = String.fromCharCode(65 + idx);
                             // Determine if this option was selected by user
@@ -467,28 +483,30 @@ export default function ReportPage() {
                               isCorrectOption = (qr.question.answer as number[]).includes(idx);
                             }
 
-                            let optClass = 'bg-slate-50 text-slate-700';
+                            let optClass = 'bg-slate-50 text-slate-700 border-slate-200';
                             if (isCorrectOption) {
-                              optClass = 'bg-green-50 text-green-800 border-green-300';
+                              optClass = 'bg-emerald-50 text-emerald-900 border-emerald-300 font-medium';
                             }
                             if (isSelected && !qr.isCorrect) {
                               optClass = isCorrectOption
-                                ? 'bg-green-50 text-green-800 border-green-300'
-                                : 'bg-red-50 text-red-800 border-red-300';
+                                ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
+                                : 'bg-red-50 text-red-900 border-red-300 font-medium';
                             }
                             if (isSelected && qr.isCorrect) {
-                              optClass = 'bg-green-50 text-green-800 border-green-300';
+                              optClass = 'bg-emerald-50 text-emerald-900 border-emerald-300 font-medium';
                             }
 
                             return (
                               <div
                                 key={idx}
-                                className={`flex items-start gap-2 px-3 py-2 rounded-lg border ${optClass}`}
+                                className={`flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl border ${optClass}`}
                               >
-                                <span className="font-semibold shrink-0">{letter})</span>
-                                <span>{opt}</span>
+                                <span className="font-bold shrink-0">{letter})</span>
+                                <div className="flex-1">
+                                  <RichContent content={opt} />
+                                </div>
                                 {isCorrectOption && (
-                                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0 ml-auto mt-0.5" />
+                                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 ml-auto mt-0.5" />
                                 )}
                                 {isSelected && !isCorrectOption && (
                                   <XCircle className="w-4 h-4 text-red-500 shrink-0 ml-auto mt-0.5" />
@@ -541,11 +559,21 @@ export default function ReportPage() {
 
                       {/* Solution / Explanation */}
                       {qr.question.solution && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <p className="text-sm font-semibold text-blue-700 mb-1">Solution / Explanation</p>
-                          <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">
-                            {qr.question.solution}
-                          </p>
+                        <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-xl p-4.5 space-y-2.5">
+                          <p className="text-xs font-bold uppercase tracking-wider text-indigo-700">Official Solution &amp; Explanation</p>
+                          {qr.question.solutionImageUrl && (
+                            <div className="max-w-md">
+                              <QuestionImage src={qr.question.solutionImageUrl} alt="Solution Diagram" />
+                            </div>
+                          )}
+                          {qr.question.solutionTikzCode && (
+                            <div className="max-w-md">
+                              <TikzDiagram code={qr.question.solutionTikzCode} caption="Solution Figure" />
+                            </div>
+                          )}
+                          <div className="text-sm text-slate-800 leading-relaxed">
+                            <RichContent content={qr.question.solution} />
+                          </div>
                         </div>
                       )}
                     </div>

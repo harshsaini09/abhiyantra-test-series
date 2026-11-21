@@ -25,6 +25,9 @@ import { useAuth } from '../context/AuthContext';
 import { fetchReportCardsApi, fetchReportCardDetailApi } from '../utils/api';
 import type { SavedReportCard, QuestionResult } from '../types';
 import { formatDurationHuman } from '../utils/scoring';
+import RichContent from '../components/RichContent';
+import { QuestionImage } from '../components/ImageLightbox';
+import TikzDiagram from '../components/TikzDiagram';
 
 type FilterMode = 'ALL' | 'EXAM' | 'PRACTICE';
 type SortOption = 'newest' | 'oldest' | 'highest_score' | 'highest_accuracy';
@@ -412,9 +415,21 @@ export default function ReportCardsPage() {
                         {/* Collapsible Content */}
                         {isExpanded && (
                           <div className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-4">
-                            <p className="text-sm font-semibold text-slate-800 leading-relaxed">
-                              {qr.question?.question}
-                            </p>
+                            {qr.question?.imageUrl && (
+                              <div className="max-w-md">
+                                <QuestionImage src={qr.question.imageUrl} alt="Question Visual" />
+                              </div>
+                            )}
+
+                            {qr.question?.tikzCode && (
+                              <div className="max-w-md">
+                                <TikzDiagram code={qr.question.tikzCode} caption="Question Diagram" />
+                              </div>
+                            )}
+
+                            <div className="text-sm font-semibold text-slate-800 leading-relaxed">
+                              <RichContent content={qr.question?.question || ''} />
+                            </div>
 
                             {/* Options if MCQ/MSQ */}
                             {qr.question?.options && (
@@ -441,11 +456,13 @@ export default function ReportCardsPage() {
                                       key={optIdx}
                                       className={`flex items-center justify-between p-3 rounded-xl border text-xs ${optStyle}`}
                                     >
-                                      <div className="flex items-center gap-2.5">
-                                        <span className="font-bold">{optLetter}.</span>
-                                        <span>{opt}</span>
+                                      <div className="flex items-start gap-2.5 flex-1">
+                                        <span className="font-bold shrink-0">{optLetter}.</span>
+                                        <div className="flex-1">
+                                          <RichContent content={opt} />
+                                        </div>
                                       </div>
-                                      <div className="flex items-center gap-1.5 font-bold text-[11px]">
+                                      <div className="flex items-center gap-1.5 font-bold text-[11px] shrink-0 ml-2">
                                         {isUserAnswer && (
                                           <span className="text-slate-500 font-medium">(Your Choice)</span>
                                         )}
@@ -474,14 +491,24 @@ export default function ReportCardsPage() {
                             )}
 
                             {/* Solution Box */}
-                            <div className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 space-y-1.5">
+                            <div className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 space-y-2">
                               <h5 className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
                                 <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                                 Official Abhiyantra Solution:
                               </h5>
-                              <p className="text-xs text-indigo-950 whitespace-pre-wrap leading-relaxed">
-                                {qr.question?.solution || 'Solution provided during assessment.'}
-                              </p>
+                              {qr.question?.solutionImageUrl && (
+                                <div className="max-w-md">
+                                  <QuestionImage src={qr.question.solutionImageUrl} alt="Solution Visual" />
+                                </div>
+                              )}
+                              {qr.question?.solutionTikzCode && (
+                                <div className="max-w-md">
+                                  <TikzDiagram code={qr.question.solutionTikzCode} caption="Solution Diagram" />
+                                </div>
+                              )}
+                              <div className="text-xs text-indigo-950 leading-relaxed">
+                                <RichContent content={qr.question?.solution || 'Solution provided during assessment.'} />
+                              </div>
                             </div>
                           </div>
                         )}
