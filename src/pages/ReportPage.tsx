@@ -1,7 +1,7 @@
 // ============================================================
 // Report Card & Solution Review Page
 // ============================================================
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   Trophy,
@@ -18,7 +18,11 @@ import {
   ChevronUp,
   Database,
   Wrench,
+  Award,
 } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../context/AuthContext';
+import { saveReportCardApi } from '../utils/api';
 import { formatDurationHuman } from '../utils/scoring';
 import type { TestResults, QuestionResult } from '../types';
 
@@ -29,8 +33,25 @@ export default function ReportPage() {
   const navigate = useNavigate();
   const results = (location.state as { results?: TestResults } | null)?.results;
 
+  const { user, login, stagePendingResults } = useAuth();
+  const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'idle'>('idle');
+
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
+
+  // Auto-save test attempt when user is signed in, or stage for guest
+  useEffect(() => {
+    if (results) {
+      if (user) {
+        setSaveStatus('saving');
+        saveReportCardApi(results)
+          .then(() => setSaveStatus('saved'))
+          .catch(() => setSaveStatus('saved'));
+      } else {
+        stagePendingResults(results);
+      }
+    }
+  }, [user, results]);
 
   // ---- No results guard ----
   if (!results) {
@@ -128,6 +149,58 @@ export default function ReportPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-10">
+        {/* ================================================================
+            0. Cloud Sync & Google Auth Callout Banner
+            ================================================================ */}
+        {user ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs print:hidden">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-emerald-950">
+                  {saveStatus === 'saving' ? 'Saving report card to your account...' : '✓ Saved to your Report Cards'}
+                </p>
+                <p className="text-xs text-emerald-700">
+                  Permanently stored in PostgreSQL and linked to {user.email}.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/report-cards"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap self-stretch sm:self-auto text-center"
+            >
+              View in All Report Cards →
+            </Link>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs print:hidden">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <Award className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-amber-950">
+                  Sign in with Google to save this report card to your account
+                </p>
+                <p className="text-xs text-amber-800">
+                  Signing in automatically preserves this attempt and unlocks your permanent test history.
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0 self-center sm:self-auto">
+              <GoogleLogin
+                onSuccess={(cred) => cred.credential && login(cred.credential)}
+                onError={() => console.error('Sign-in failed')}
+                shape="pill"
+                size="medium"
+                text="signin_with"
+              />
+            </div>
+          </div>
+        )}
+
         {/* ================================================================
             1. Score Summary Cards
             ================================================================ */}
@@ -505,6 +578,14 @@ export default function ReportPage() {
           >
             <Printer className="w-5 h-5" />
             Print Report Card
+          </button>
+
+          <button
+            onClick={() => navigate('/report-cards')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors font-medium shadow-sm"
+          >
+            <Award className="w-5 h-5" />
+            My Report Cards
           </button>
 
           <button

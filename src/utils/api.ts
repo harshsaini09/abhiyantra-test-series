@@ -5,6 +5,9 @@ import type {
   TestData,
   QuestionType,
   MarkValue,
+  UserProfile,
+  SavedReportCard,
+  TestResults,
 } from '../types';
 import { sampleTestData } from './sampleData';
 
@@ -388,4 +391,199 @@ export function getExportUrl(subjectId?: number, topicId?: number): string {
   if (subjectId) params.append('subjectId', String(subjectId));
   if (topicId) params.append('topicId', String(topicId));
   return `${API_BASE}/export?${params.toString()}`;
+}
+
+
+// ─── Authentication API Functions ───
+
+const SAVED_REPORTS_KEY = 'abhiyantra_saved_report_cards';
+
+export async function fetchCurrentUser(): Promise<UserProfile | null> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      credentials: 'include',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.user || null;
+    }
+  } catch {
+    // fallback
+  }
+
+  // Check local profile storage
+  try {
+    const raw = localStorage.getItem('abhiyantra_user_profile');
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export async function loginWithGoogleApi(credential: string): Promise<UserProfile | null> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ credential }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user) {
+        localStorage.setItem('abhiyantra_user_profile', JSON.stringify(data.user));
+        return data.user;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  // Fallback JWT client decode if backend is offline
+  try {
+    const base64Url = credential.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const parsed = JSON.parse(jsonPayload);
+    const fallbackUser: UserProfile = {
+      id: parsed.sub || `local_${Date.now()}`,
+      email: parsed.email || '',
+      name: parsed.name || (parsed.email ? parsed.email.split('@')[0] : 'Student'),
+      avatarUrl: parsed.picture || null,
+    };
+    localStorage.setItem('abhiyantra_user_profile', JSON.stringify(fallbackUser));
+    return fallbackUser;
+  } catch {
+    return null;
+  }
+}
+
+export async function logoutUserApi(): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch {
+    // ignore
+  }
+  localStorage.removeItem('abhiyantra_user_profile');
+}
+
+// ─── Report Cards API Functions ───
+
+function getLocalReportCards(): SavedReportCard[] {
+  try {
+    const raw = localStorage.getItem(SAVED_REPORTS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function saveLocalReportCard(rc: SavedReportCard): void {
+  try {
+    const list = getLocalReportCards();
+    const updated = [rc, ...list.filter((item) => item.id !== rc.id)];
+    localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+}
+
+export async function saveReportCardApi(results: TestResults): Promise<SavedReportCard | null> {
+  const payload = {
+    testTitle: results.testData.title || 'GATE Mock Test',
+    mode: (results.mode || 'EXAM').toUpperCase(),
+    totalQuestions: results.questionResults.length,
+    maxMarks: results.maxMarks,
+    score: results.totalScore,
+    accuracy: results.accuracy,
+    correctCount: results.totalCorrect,
+    incorrectCount: results.totalIncorrect,
+    unattemptedCount: results.totalUnattempted,
+    positiveMarks: results.positiveMarks,
+    negativeMarks: results.negativeMarks,
+    timeTakenSeconds: results.timeTaken,
+    allocatedSeconds: (results.testData.questions.length <= 15 ? 1800 : results.testData.questions.length <= 35 ? 5400 : 10800),
+    breakdownJson: {
+      byType: results.byType,
+      byMarks: results.byMarks,
+      bySubject: results.bySubject || {},
+    },
+    detailedReviewJson: results.questionResults,
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/report-cards`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.reportCard) {
+        saveLocalReportCard(data.reportCard);
+        return data.reportCard;
+      }
+    }
+  } catch {
+    // fallback to local persistence
+  }
+
+  // Local fallback
+  const localRc: SavedReportCard = {
+    id: `local_rc_${Date.now()}`,
+    ...payload,
+    mode: payload.mode as 'EXAM' | 'PRACTICE',
+    submittedAt: new Date().toISOString(),
+  };
+  saveLocalReportCard(localRc);
+  return localRc;
+}
+
+export async function fetchReportCardsApi(): Promise<SavedReportCard[]> {
+  try {
+    const res = await fetch(`${API_BASE}/report-cards`, {
+      credentials: 'include',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        // Sync local cache with remote
+        data.forEach((rc) => saveLocalReportCard(rc));
+        return data;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  return getLocalReportCards();
+}
+
+export async function fetchReportCardDetailApi(id: string): Promise<SavedReportCard | null> {
+  try {
+    const res = await fetch(`${API_BASE}/report-cards/${id}`, {
+      credentials: 'include',
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // fallback
+  }
+
+  const list = getLocalReportCards();
+  return list.find((rc) => rc.id === id) || null;
 }

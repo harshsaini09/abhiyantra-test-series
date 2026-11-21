@@ -1,13 +1,50 @@
 // Prisma schema for GATE Test Series Platform
-// Configured so DATABASE_URL can be switched to PostgreSQL later without code changes.
+// Configured for PostgreSQL (compatible with Neon, Supabase, Vercel Postgres)
+// Uses DATABASE_URL (pooled) and DIRECT_URL (direct)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id          String       @id @default(cuid())
+  googleId    String       @unique
+  email       String       @unique
+  name        String
+  avatarUrl   String?
+  createdAt   DateTime     @default(now())
+  reportCards ReportCard[]
+}
+
+model ReportCard {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testTitle          String
+  mode               String   // "EXAM" | "PRACTICE"
+  totalQuestions     Int
+  maxMarks           Float
+  score              Float
+  accuracy           Float
+  correctCount       Int
+  incorrectCount     Int
+  unattemptedCount   Int
+  positiveMarks      Float
+  negativeMarks      Float
+  timeTakenSeconds   Int
+  allocatedSeconds   Int
+  breakdownJson      Json
+  detailedReviewJson Json
+  submittedAt        DateTime @default(now())
+
+  @@index([userId])
+  @@index([submittedAt])
 }
 
 model Subject {

@@ -178,3 +178,33 @@ export interface ValidationError {
   message: string;
   questionIndex?: number;
 }
+
+
+// ─── Authentication & Report Card Types ───
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl?: string | null;
+}
+
+export interface SavedReportCard {
+  id: string;
+  userId?: string;
+  testTitle: string;
+  mode: 'EXAM' | 'PRACTICE';
+  totalQuestions: number;
+  maxMarks: number;
+  score: number;
+  accuracy: number;
+  correctCount: number;
+  incorrectCount: number;
+  unattemptedCount: number;
+  positiveMarks: number;
+  negativeMarks: number;
+  timeTakenSeconds: number;
+  allocatedSeconds: number;
+  breakdownJson?: Record<string, unknown>;
+  detailedReviewJson?: QuestionResult[];
+  submittedAt: string;
+}

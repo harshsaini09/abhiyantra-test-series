@@ -1,0 +1,167 @@
+import { Router, Response } from 'express';
+import { prisma } from './db';
+import { requireAuth, AuthenticatedRequest } from './auth';
+
+const router = Router();
+
+// Apply requireAuth to all report card routes
+router.use(requireAuth);
+
+// ─── 1. Save Completed Report Card (POST /api/report-cards) ───
+router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const user = req.user!;
+    const {
+      testTitle,
+      mode,
+      totalQuestions,
+      maxMarks,
+      score,
+      accuracy,
+      correctCount,
+      incorrectCount,
+      unattemptedCount,
+      positiveMarks,
+      negativeMarks,
+      timeTakenSeconds,
+      allocatedSeconds,
+      breakdownJson,
+      detailedReviewJson,
+    } = req.body;
+
+    if (!testTitle || score === undefined || totalQuestions === undefined) {
+      res.status(400).json({ error: 'Missing required report card fields.' });
+      return;
+    }
+
+    // Ensure User exists in DB before linking ReportCard
+    let dbUserId = user.id;
+    try {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: user.email },
+      });
+      if (!existingUser) {
+        const createdUser = await prisma.user.create({
+          data: {
+            googleId: user.id,
+            email: user.email,
+            name: user.name,
+            avatarUrl: user.avatarUrl,
+          },
+        });
+        dbUserId = createdUser.id;
+      } else {
+        dbUserId = existingUser.id;
+      }
+    } catch (userErr) {
+      console.warn('Could not ensure user in DB:', userErr);
+    }
+
+    const reportCard = await prisma.reportCard.create({
+      data: {
+        userId: dbUserId,
+        testTitle: String(testTitle).trim(),
+        mode: String(mode || 'EXAM').toUpperCase(),
+        totalQuestions: Number(totalQuestions),
+        maxMarks: Number(maxMarks || 0),
+        score: Number(score),
+        accuracy: Number(accuracy || 0),
+        correctCount: Number(correctCount || 0),
+        incorrectCount: Number(incorrectCount || 0),
+        unattemptedCount: Number(unattemptedCount || 0),
+        positiveMarks: Number(positiveMarks || 0),
+        negativeMarks: Number(negativeMarks || 0),
+        timeTakenSeconds: Number(timeTakenSeconds || 0),
+        allocatedSeconds: Number(allocatedSeconds || 0),
+        breakdownJson: typeof breakdownJson === 'string' ? JSON.parse(breakdownJson) : (breakdownJson || {}),
+        detailedReviewJson: typeof detailedReviewJson === 'string' ? JSON.parse(detailedReviewJson) : (detailedReviewJson || []),
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      reportCard,
+      message: 'Report card saved successfully to your account.',
+    });
+  } catch (error) {
+    console.error('Error saving report card:', error);
+    res.status(500).json({ error: 'Failed to save report card.' });
+  }
+});
+
+// ─── 2. List Past Report Cards (GET /api/report-cards) ───
+router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const user = req.user!;
+
+    // Find all report cards for user by email matching or user ID
+    const reportCards = await prisma.reportCard.findMany({
+      where: {
+        user: {
+          email: user.email,
+        },
+      },
+      orderBy: {
+        submittedAt: 'desc',
+      },
+      select: {
+        id: true,
+        testTitle: true,
+        mode: true,
+        totalQuestions: true,
+        maxMarks: true,
+        score: true,
+        accuracy: true,
+        correctCount: true,
+        incorrectCount: true,
+        unattemptedCount: true,
+        positiveMarks: true,
+        negativeMarks: true,
+        timeTakenSeconds: true,
+        allocatedSeconds: true,
+        submittedAt: true,
+        // detailedReviewJson can be omitted from list to keep payload compact, or included if light
+      },
+    });
+
+    res.json(reportCards);
+  } catch (error) {
+    console.error('Error fetching report cards:', error);
+    res.status(500).json({ error: 'Failed to fetch report cards.' });
+  }
+});
+
+// ─── 3. Get Single Report Card with Full Detail (GET /api/report-cards/:id) ───
+router.get('/:id', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const user = req.user!;
+    const id = req.params.id;
+
+    const reportCard = await prisma.reportCard.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: { email: true, name: true },
+        },
+      },
+    });
+
+    if (!reportCard) {
+      res.status(404).json({ error: 'Report card not found.' });
+      return;
+    }
+
+    // Verify ownership
+    if (reportCard.user.email !== user.email) {
+      res.status(403).json({ error: 'Unauthorized to view this report card.' });
+      return;
+    }
+
+    res.json(reportCard);
+  } catch (error) {
+    console.error('Error retrieving report card detail:', error);
+    res.status(500).json({ error: 'Failed to load report card details.' });
+  }
+});
+
+export default router;
