@@ -79,6 +79,10 @@ model Question {
   optionsJson     String?  // JSON stringified array of string options
   answerJson      String   // JSON stringified answer (number | number[] | {min, max})
   solution        String
+  imageUrl        String?
+  tikzCode        String?
+  solutionImageUrl String?
+  solutionTikzCode String?
   sourceTestTitle String?
   isArchived      Boolean  @default(false)
   createdAt       DateTime @default(now())

@@ -74,7 +74,10 @@ function saveLocalQuestions(items: QuestionBankItem[]): void {
 export async function fetchStats(): Promise<QuestionBankStats> {
   try {
     const res = await fetch(`${API_BASE}/stats`);
-    if (res.ok) return await res.json();
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.fallback && data.totalQuestions > 0) return data;
+    }
   } catch {
     // fallback
   }
@@ -102,7 +105,10 @@ export async function fetchStats(): Promise<QuestionBankStats> {
 export async function fetchHierarchy(): Promise<SubjectWithTopics[]> {
   try {
     const res = await fetch(`${API_BASE}/hierarchy`);
-    if (res.ok) return await res.json();
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
   } catch {
     // fallback
   }
@@ -172,7 +178,10 @@ export async function fetchQuestions(filters: QuestionFilters = {}): Promise<Que
     if (filters.includeArchived) params.append('includeArchived', 'true');
 
     const res = await fetch(`${API_BASE}/questions?${params.toString()}`);
-    if (res.ok) return await res.json();
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data;
+    }
   } catch {
     // fallback
   }

@@ -25,6 +25,11 @@ export interface Question {
   options?: string[];
   answer: number | number[] | NATAnswer;
   solution: string;
+  imageUrl?: string;
+  tikzCode?: string;
+  solutionImageUrl?: string;
+  solutionTikzCode?: string;
+  section?: 'GA' | 'SUBJECT' | string;
 }
 
 /** The root test JSON schema */
@@ -35,6 +40,11 @@ export interface TestData {
   topic?: string;
   defaultSubject?: string;
   defaultTopic?: string;
+  sections?: Array<{
+    id: string;
+    name: string;
+    questionIds: number[];
+  }>;
   questions: Question[];
 }
 
@@ -77,6 +87,10 @@ export interface QuestionBankItem {
   options?: string[];
   answer: number | number[] | NATAnswer;
   solution: string;
+  imageUrl?: string | null;
+  tikzCode?: string | null;
+  solutionImageUrl?: string | null;
+  solutionTikzCode?: string | null;
   sourceTestTitle?: string | null;
   isArchived: boolean;
   createdAt: string;

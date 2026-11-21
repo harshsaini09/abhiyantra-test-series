@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { prisma } from './db';
+import { prisma, isDbConfigured } from './db';
 import { requireAuth, AuthenticatedRequest } from './auth';
 
 const router = Router();
@@ -91,6 +91,10 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
 
 // ─── 2. List Past Report Cards (GET /api/report-cards) ───
 router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  if (!isDbConfigured || !prisma) {
+    res.status(200).json([]);
+    return;
+  }
   try {
     const user = req.user!;
 
@@ -120,14 +124,13 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
         timeTakenSeconds: true,
         allocatedSeconds: true,
         submittedAt: true,
-        // detailedReviewJson can be omitted from list to keep payload compact, or included if light
       },
     });
 
     res.json(reportCards);
   } catch (error) {
-    console.error('Error fetching report cards:', error);
-    res.status(500).json({ error: 'Failed to fetch report cards.' });
+    console.warn('Error fetching report cards (returning empty list):', error);
+    res.status(200).json([]);
   }
 });
 

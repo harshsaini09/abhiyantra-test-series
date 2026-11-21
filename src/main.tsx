@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import './index.css';
+import 'katex/dist/katex.min.css';
+import 'prismjs/themes/prism-tomorrow.css';
 import App from './App';
 
 const GOOGLE_CLIENT_ID =

@@ -11,6 +11,10 @@ export interface IngestQuestionInput {
   options?: string[];
   answer: unknown;
   solution: string;
+  imageUrl?: string;
+  tikzCode?: string;
+  solutionImageUrl?: string;
+  solutionTikzCode?: string;
 }
 
 export interface IngestTestInput {
@@ -94,6 +98,10 @@ export async function ingestQuestions(data: IngestTestInput): Promise<IngestResu
           optionsJson: q.options ? JSON.stringify(q.options) : null,
           answerJson: JSON.stringify(q.answer),
           solution: q.solution.trim(),
+          imageUrl: q.imageUrl || null,
+          tikzCode: q.tikzCode || null,
+          solutionImageUrl: q.solutionImageUrl || null,
+          solutionTikzCode: q.solutionTikzCode || null,
           sourceTestTitle: testTitle,
           isArchived: false,
         },

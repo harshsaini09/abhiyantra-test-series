@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { prisma } from './db';
+import { prisma, isDbConfigured } from './db';
 import { ingestQuestions, IngestTestInput } from './ingest';
 import { computeContentHash } from './contentHash';
 import authRouter from './auth';
@@ -56,6 +56,18 @@ app.post('/ingest', handleIngest);
 
 // ─── 3. Overview Statistics ───
 const handleStats = async (_req: Request, res: Response) => {
+  if (!isDbConfigured || !prisma) {
+    res.status(200).json({
+      fallback: true,
+      totalQuestions: 0,
+      totalSubjects: 0,
+      totalTopics: 0,
+      byType: { MCQ: 0, MSQ: 0, NAT: 0 },
+      byMarks: { '1-Mark': 0, '2-Mark': 0 },
+      archivedCount: 0,
+    });
+    return;
+  }
   try {
     const [
       totalQuestions,
@@ -88,8 +100,16 @@ const handleStats = async (_req: Request, res: Response) => {
       archivedCount,
     });
   } catch (error) {
-    console.error('Stats error:', error);
-    res.status(500).json({ error: 'Failed to load statistics.' });
+    console.warn('Stats fallback:', error);
+    res.status(200).json({
+      fallback: true,
+      totalQuestions: 0,
+      totalSubjects: 0,
+      totalTopics: 0,
+      byType: { MCQ: 0, MSQ: 0, NAT: 0 },
+      byMarks: { '1-Mark': 0, '2-Mark': 0 },
+      archivedCount: 0,
+    });
   }
 };
 app.get('/api/stats', handleStats);
@@ -97,6 +117,10 @@ app.get('/stats', handleStats);
 
 // ─── 4. Two-Level Hierarchy (Subject -> Topic with counts) ───
 const handleHierarchy = async (_req: Request, res: Response) => {
+  if (!isDbConfigured || !prisma) {
+    res.status(200).json([]);
+    return;
+  }
   try {
     const subjects = await prisma.subject.findMany({
       orderBy: { name: 'asc' },
@@ -117,8 +141,8 @@ const handleHierarchy = async (_req: Request, res: Response) => {
 
     res.json(subjects);
   } catch (error) {
-    console.error('Hierarchy error:', error);
-    res.status(500).json({ error: 'Failed to fetch hierarchy.' });
+    console.warn('Hierarchy fallback:', error);
+    res.status(200).json([]);
   }
 };
 app.get('/api/hierarchy', handleHierarchy);
@@ -126,6 +150,10 @@ app.get('/hierarchy', handleHierarchy);
 
 // ─── 5. Questions List with Filters ───
 const handleQuestions = async (req: Request, res: Response) => {
+  if (!isDbConfigured || !prisma) {
+    res.status(200).json([]);
+    return;
+  }
   try {
     const { subjectId, topicId, type, marks, search, includeArchived } = req.query;
 
@@ -175,8 +203,8 @@ const handleQuestions = async (req: Request, res: Response) => {
 
     res.json(parsed);
   } catch (error) {
-    console.error('Questions fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch questions.' });
+    console.warn('Questions fetch fallback:', error);
+    res.status(200).json([]);
   }
 };
 app.get('/api/questions', handleQuestions);

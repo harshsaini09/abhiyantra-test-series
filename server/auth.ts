@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
-import { prisma } from './db';
+import { prisma, isDbConfigured } from './db';
 
 const router = Router();
 
@@ -124,30 +124,38 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
     let user: AuthUser;
 
     // Upsert user in PostgreSQL if database is connected
-    try {
-      const dbUser = await prisma.user.upsert({
-        where: { email },
-        update: {
-          name,
-          avatarUrl,
-          googleId,
-        },
-        create: {
-          googleId,
+    if (isDbConfigured && prisma) {
+      try {
+        const dbUser = await prisma.user.upsert({
+          where: { email },
+          update: {
+            name,
+            avatarUrl,
+            googleId,
+          },
+          create: {
+            googleId,
+            email,
+            name,
+            avatarUrl,
+          },
+        });
+        user = {
+          id: dbUser.id,
+          email: dbUser.email,
+          name: dbUser.name,
+          avatarUrl: dbUser.avatarUrl,
+        };
+      } catch (dbErr) {
+        console.warn('Database user upsert warning (falling back to memory session):', dbErr);
+        user = {
+          id: `usr_${googleId.slice(0, 16)}`,
           email,
           name,
           avatarUrl,
-        },
-      });
-      user = {
-        id: dbUser.id,
-        email: dbUser.email,
-        name: dbUser.name,
-        avatarUrl: dbUser.avatarUrl,
-      };
-    } catch (dbErr) {
-      console.warn('Database user upsert warning (falling back to memory session):', dbErr);
-      // Fallback in case PostgreSQL is temporarily unreachable
+        };
+      }
+    } else {
       user = {
         id: `usr_${googleId.slice(0, 16)}`,
         email,
@@ -195,30 +203,32 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Try fetching latest data from database
-    try {
-      const dbUser = await prisma.user.findUnique({
-        where: { email: decoded.email },
-      });
-      if (dbUser) {
-        res.json({
-          user: {
-            id: dbUser.id,
-            email: dbUser.email,
-            name: dbUser.name,
-            avatarUrl: dbUser.avatarUrl,
-          },
+    // Try fetching latest data from database if available
+    if (isDbConfigured && prisma) {
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: decoded.email },
         });
-        return;
+        if (dbUser) {
+          res.status(200).json({
+            user: {
+              id: dbUser.id,
+              email: dbUser.email,
+              name: dbUser.name,
+              avatarUrl: dbUser.avatarUrl,
+            },
+          });
+          return;
+        }
+      } catch {
+        // Fallback to decoded payload
       }
-    } catch {
-      // Fallback to decoded payload
     }
 
-    res.json({ user: decoded });
+    res.status(200).json({ user: decoded });
   } catch (error) {
     console.error('Auth /me error:', error);
-    res.json({ user: null });
+    res.status(200).json({ user: null });
   }
 });
 
