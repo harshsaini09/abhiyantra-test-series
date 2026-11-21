@@ -202,13 +202,13 @@ export default function LandingPage() {
         </div>
 
         <div className="relative max-w-4xl mx-auto px-4 py-12 md:py-16 text-center flex flex-col items-center">
-          {/* Official Abhiyantra Brand Logo — Enchanced & Prominent */}
+          {/* Official Abhiyantra Brand Logo — Transparent & Prominent */}
           <div className="flex flex-col items-center justify-center mb-5">
-            <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-2xl border-4 border-white/30 backdrop-blur-md hover:scale-105 transition-transform duration-300">
+            <div className="hover:scale-105 transition-transform duration-300 py-2">
               <img
                 src="/logo.avif"
                 alt="Abhiyantra Logo"
-                className="w-40 h-28 sm:w-52 sm:h-36 md:w-64 md:h-44 object-contain"
+                className="w-56 sm:w-72 md:w-96 h-auto max-h-36 object-contain drop-shadow-[0_4px_16px_rgba(255,255,255,0.4)]"
               />
             </div>
             <div className="mt-3.5 inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-3.5 py-1 text-xs font-bold tracking-wide text-white border border-white/20">
