@@ -21,7 +21,6 @@ import {
   Award,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { saveReportCardApi } from '../utils/api';
 import { formatDurationHuman } from '../utils/scoring';
 import type { TestResults, QuestionResult } from '../types';
 import RichContent from '../components/RichContent';
@@ -41,19 +40,15 @@ export default function ReportPage() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
 
-  // Auto-save test attempt immediately for local offline access, and sync to user if signed in
+  // Check save status from initial submission
   useEffect(() => {
     if (results) {
-      setSaveStatus('saving');
-      saveReportCardApi(results)
-        .then(() => setSaveStatus('saved'))
-        .catch(() => setSaveStatus('saved'));
-
+      setSaveStatus('saved');
       if (!user) {
         stagePendingResults(results);
       }
     }
-  }, [user, results]);
+  }, [user, results, stagePendingResults]);
 
   // ---- No results guard ----
   if (!results) {

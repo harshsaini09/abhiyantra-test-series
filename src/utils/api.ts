@@ -472,7 +472,23 @@ export async function logoutUserApi(): Promise<void> {
 function getLocalReportCards(): SavedReportCard[] {
   try {
     const raw = localStorage.getItem(SAVED_REPORTS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const list: SavedReportCard[] = JSON.parse(raw);
+      // Clean up any historical duplicates
+      const uniqueList: SavedReportCard[] = [];
+      list.forEach((item) => {
+        const dup = uniqueList.some(
+          (u) =>
+            u.id === item.id ||
+            (u.testTitle === item.testTitle &&
+              u.score === item.score &&
+              u.totalQuestions === item.totalQuestions &&
+              Math.abs(new Date(u.submittedAt).getTime() - new Date(item.submittedAt).getTime()) < 60000)
+        );
+        if (!dup) uniqueList.push(item);
+      });
+      return uniqueList;
+    }
   } catch {
     // ignore
   }
@@ -482,7 +498,19 @@ function getLocalReportCards(): SavedReportCard[] {
 function saveLocalReportCard(rc: SavedReportCard): void {
   try {
     const list = getLocalReportCards();
-    const updated = [rc, ...list.filter((item) => item.id !== rc.id)];
+    // Deduplicate by ID, OR by identical test title, score, and completion timestamp within 60s
+    const isDuplicate = list.some(
+      (item) =>
+        item.id === rc.id ||
+        (item.testTitle === rc.testTitle &&
+          item.score === rc.score &&
+          item.totalQuestions === rc.totalQuestions &&
+          Math.abs(new Date(item.submittedAt).getTime() - new Date(rc.submittedAt).getTime()) < 60000)
+    );
+
+    if (isDuplicate) return;
+
+    const updated = [rc, ...list];
     localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify(updated));
   } catch {
     // ignore
