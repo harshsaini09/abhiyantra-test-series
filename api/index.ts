@@ -32,8 +32,21 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       );
       return;
     }
-    if (url.includes('/questions') || url.includes('/hierarchy') || url.includes('/report-cards')) {
+    if (url.includes('/questions') || url.includes('/hierarchy') || url.includes('/report-cards') || url.includes('/mistakes') || url.includes('/bookmarks')) {
       res.end(JSON.stringify([]));
+      return;
+    }
+    if (url.includes('/analytics')) {
+      res.end(
+        JSON.stringify({
+          totalTests: 0,
+          averageScorePercent: 0,
+          averageAccuracy: 0,
+          trend: [],
+          subjectMastery: [],
+          weakTopics: [],
+        })
+      );
       return;
     }
     if (url.includes('/ingest')) {

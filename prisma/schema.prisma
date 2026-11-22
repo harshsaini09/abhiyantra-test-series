@@ -14,13 +14,15 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  googleId    String       @unique
-  email       String       @unique
+  id          String         @id @default(cuid())
+  googleId    String         @unique
+  email       String         @unique
   name        String
   avatarUrl   String?
-  createdAt   DateTime     @default(now())
+  createdAt   DateTime       @default(now())
   reportCards ReportCard[]
+  mistakes    MistakeEntry[]
+  bookmarks   Bookmark[]
 }
 
 model ReportCard {
@@ -46,6 +48,41 @@ model ReportCard {
 
   @@index([userId])
   @@index([submittedAt])
+}
+
+model MistakeEntry {
+  id                   String    @id @default(cuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionHash         String
+  questionSnapshotJson Json
+  subject              String
+  topic                String
+  wrongCount           Int       @default(1)
+  status               String    @default("NEEDS_REVIEW") // "NEEDS_REVIEW" | "MASTERED"
+  lastWrongAt          DateTime  @default(now())
+  masteredAt           DateTime?
+
+  @@unique([userId, questionHash])
+  @@index([userId])
+  @@index([status])
+  @@index([subject])
+}
+
+model Bookmark {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionHash         String
+  questionSnapshotJson Json
+  subject              String
+  topic                String
+  note                 String?
+  createdAt            DateTime @default(now())
+
+  @@unique([userId, questionHash])
+  @@index([userId])
+  @@index([subject])
 }
 
 model Subject {

@@ -3,15 +3,25 @@ import type {
   SubjectWithTopics,
   QuestionBankItem,
   TestData,
+  Question,
   QuestionType,
   MarkValue,
   UserProfile,
   SavedReportCard,
   TestResults,
+  QuestionResult,
+  MistakeEntry,
+  BookmarkItem,
+  AnalyticsSummary,
+  SubjectMastery,
+  TopicMastery,
 } from '../types';
 
 const API_BASE = '/api';
 const LOCAL_STORAGE_KEY = 'abhiyantra-local-question-bank';
+const SAVED_REPORTS_KEY = 'abhiyantra_saved_report_cards';
+const SAVED_MISTAKES_KEY = 'abhiyantra_saved_mistakes';
+const SAVED_BOOKMARKS_KEY = 'abhiyantra_saved_bookmarks';
 
 export interface IngestResponse {
   success: boolean;
@@ -380,8 +390,6 @@ export function getExportUrl(subjectId?: number, topicId?: number): string {
 
 // ─── Authentication API Functions ───
 
-const SAVED_REPORTS_KEY = 'abhiyantra_saved_report_cards';
-
 export async function fetchCurrentUser(): Promise<UserProfile | null> {
   // 1. First check local storage so authenticated session persists instantly on refresh
   let localUser: UserProfile | null = null;
@@ -469,46 +477,74 @@ export async function logoutUserApi(): Promise<void> {
 
 // ─── Report Cards API Functions ───
 
-function getLocalReportCards(): SavedReportCard[] {
-  try {
-    const raw = localStorage.getItem(SAVED_REPORTS_KEY);
-    if (raw) {
-      const list: SavedReportCard[] = JSON.parse(raw);
-      // Clean up any historical duplicates
-      const uniqueList: SavedReportCard[] = [];
-      list.forEach((item) => {
-        const dup = uniqueList.some(
-          (u) =>
-            u.id === item.id ||
-            (u.testTitle === item.testTitle &&
-              u.score === item.score &&
-              u.totalQuestions === item.totalQuestions &&
-              Math.abs(new Date(u.submittedAt).getTime() - new Date(item.submittedAt).getTime()) < 60000)
-        );
-        if (!dup) uniqueList.push(item);
-      });
-      return uniqueList;
-    }
-  } catch {
-    // ignore
+// ─── Question Hashing Helper ───
+export function computeQuestionHash(q: Question): string {
+  if (q.contentHash) return q.contentHash;
+  const normText = (q.question || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const normType = (q.type || '').trim().toUpperCase();
+  const normOpts = (q.options || [])
+    .map((o) => o.trim().toLowerCase().replace(/\s+/g, ' '))
+    .sort()
+    .join('|||');
+  let hash = 0;
+  const str = `${normText}:::${normType}:::${normOpts}`;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
   }
-  return [];
+  return `qhash_${Math.abs(hash).toString(16)}`;
 }
 
-function saveLocalReportCard(rc: SavedReportCard): void {
-  try {
-    const list = getLocalReportCards();
-    // Deduplicate by ID, OR by identical test title, score, and completion timestamp within 60s
-    const isDuplicate = list.some(
-      (item) =>
-        item.id === rc.id ||
-        (item.testTitle === rc.testTitle &&
-          item.score === rc.score &&
-          item.totalQuestions === rc.totalQuestions &&
-          Math.abs(new Date(item.submittedAt).getTime() - new Date(rc.submittedAt).getTime()) < 60000)
-    );
+// ─── Report Cards API Functions ───
 
-    if (isDuplicate) return;
+export function getLocalReportCards(): SavedReportCard[] {
+  try {
+    const raw = localStorage.getItem(SAVED_REPORTS_KEY);
+    if (!raw) return [];
+    const list: SavedReportCard[] = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+
+    // Deduplicate: Keep one record per test attempt
+    const seen = new Map<string, SavedReportCard>();
+    for (const card of list) {
+      const timeBucket = Math.round(new Date(card.submittedAt).getTime() / 120000);
+      const key = `${card.testTitle}_${card.totalQuestions}_${card.score}_${timeBucket}`;
+      const existing = seen.get(key);
+      if (!existing) {
+        seen.set(key, card);
+      } else {
+        // If current card is a remote ID and existing is local, prefer remote ID
+        if (!String(card.id).startsWith('local_') && String(existing.id).startsWith('local_')) {
+          seen.set(key, card);
+        }
+      }
+    }
+    return Array.from(seen.values()).sort(
+      (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalReportCard(rc: SavedReportCard, replaceLocalId?: string): void {
+  try {
+    let list = getLocalReportCards();
+    if (replaceLocalId) {
+      list = list.filter((item) => item.id !== replaceLocalId);
+    }
+    // Remove if identical test attempt already exists
+    list = list.filter((item) => {
+      if (item.id === rc.id) return false;
+      const sameTitle = item.testTitle === rc.testTitle;
+      const sameTotal = item.totalQuestions === rc.totalQuestions;
+      const sameScore = Math.abs(item.score - rc.score) < 0.01;
+      const timeDiff = Math.abs(new Date(item.submittedAt).getTime() - new Date(rc.submittedAt).getTime());
+      if (sameTitle && sameTotal && sameScore && timeDiff < 120000) {
+        return false;
+      }
+      return true;
+    });
 
     const updated = [rc, ...list];
     localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify(updated));
@@ -541,13 +577,17 @@ export async function saveReportCardApi(results: TestResults): Promise<SavedRepo
   };
 
   // 1. Immediately guarantee local persistence
+  const localId = `local_rc_${Date.now()}`;
   const localRc: SavedReportCard = {
-    id: `local_rc_${Date.now()}`,
+    id: localId,
     ...payload,
     mode: payload.mode as 'EXAM' | 'PRACTICE',
     submittedAt: new Date().toISOString(),
   };
   saveLocalReportCard(localRc);
+
+  // Auto-sync into local mistake notebook
+  syncLocalMistakesFromResults(results);
 
   // 2. Synchronize with remote server/PostgreSQL if available
   try {
@@ -561,7 +601,8 @@ export async function saveReportCardApi(results: TestResults): Promise<SavedRepo
     if (res.ok) {
       const data = await res.json();
       if (data && data.reportCard) {
-        saveLocalReportCard(data.reportCard);
+        // Replace temporary local ID with remote reportCard ID
+        saveLocalReportCard(data.reportCard, localId);
         return data.reportCard;
       }
     }
@@ -580,7 +621,6 @@ export async function fetchReportCardsApi(): Promise<SavedReportCard[]> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        // Sync local cache with remote
         data.forEach((rc) => saveLocalReportCard(rc));
         return data;
       }
@@ -608,9 +648,384 @@ export async function fetchReportCardDetailApi(id: string): Promise<SavedReportC
   return list.find((rc) => rc.id === id) || null;
 }
 
+// ─── Mistake Notebook Functions ───
+
+export function getLocalMistakes(): MistakeEntry[] {
+  try {
+    const raw = localStorage.getItem(SAVED_MISTAKES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalMistakes(mistakes: MistakeEntry[]): void {
+  try {
+    localStorage.setItem(SAVED_MISTAKES_KEY, JSON.stringify(mistakes));
+  } catch {
+    // ignore
+  }
+}
+
+export function syncLocalMistakesFromResults(results: TestResults): void {
+  const currentMistakes = getLocalMistakes();
+  const mistakeMap = new Map<string, MistakeEntry>();
+  currentMistakes.forEach((m) => mistakeMap.set(m.questionHash, m));
+
+  for (const qr of results.questionResults) {
+    if (!qr || !qr.question) continue;
+    const q = qr.question;
+    const qHash = computeQuestionHash(q);
+    const subject = q.subject || results.testData.subject || 'General / Unassigned';
+    const topic = q.topic || results.testData.topic || 'General';
+
+    if (qr.isAttempted && !qr.isCorrect) {
+      const existing = mistakeMap.get(qHash);
+      if (existing) {
+        existing.wrongCount += 1;
+        existing.status = 'NEEDS_REVIEW';
+        existing.lastWrongAt = new Date().toISOString();
+        existing.questionSnapshotJson = q;
+        existing.subject = subject;
+        existing.topic = topic;
+      } else {
+        mistakeMap.set(qHash, {
+          id: `mistake_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          userId: 'student',
+          questionHash: qHash,
+          questionSnapshotJson: q,
+          subject,
+          topic,
+          wrongCount: 1,
+          status: 'NEEDS_REVIEW',
+          lastWrongAt: new Date().toISOString(),
+          masteredAt: null,
+        });
+      }
+    } else if (qr.isCorrect) {
+      const existing = mistakeMap.get(qHash);
+      if (existing) {
+        existing.status = 'MASTERED';
+        existing.masteredAt = new Date().toISOString();
+      }
+    }
+  }
+
+  saveLocalMistakes(Array.from(mistakeMap.values()));
+}
+
+export async function fetchMistakesApi(): Promise<MistakeEntry[]> {
+  try {
+    const res = await fetch(`${API_BASE}/mistakes`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        saveLocalMistakes(data);
+        return data;
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return getLocalMistakes();
+}
+
+export async function updateMistakeStatusApi(
+  id: string,
+  status: 'NEEDS_REVIEW' | 'MASTERED'
+): Promise<boolean> {
+  const list = getLocalMistakes();
+  const item = list.find((m) => m.id === id);
+  if (item) {
+    item.status = status;
+    item.masteredAt = status === 'MASTERED' ? new Date().toISOString() : null;
+    saveLocalMistakes(list);
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/mistakes/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ status }),
+    });
+    return res.ok;
+  } catch {
+    return true;
+  }
+}
+
+// ─── Bookmark Functions ───
+
+export function getLocalBookmarks(): BookmarkItem[] {
+  try {
+    const raw = localStorage.getItem(SAVED_BOOKMARKS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalBookmarks(bookmarks: BookmarkItem[]): void {
+  try {
+    localStorage.setItem(SAVED_BOOKMARKS_KEY, JSON.stringify(bookmarks));
+  } catch {
+    // ignore
+  }
+}
+
+export async function fetchBookmarksApi(): Promise<BookmarkItem[]> {
+  try {
+    const res = await fetch(`${API_BASE}/bookmarks`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        saveLocalBookmarks(data);
+        return data;
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return getLocalBookmarks();
+}
+
+export async function toggleBookmarkApi(
+  question: Question,
+  note?: string
+): Promise<{ bookmarked: boolean; item?: BookmarkItem }> {
+  const qHash = computeQuestionHash(question);
+  const list = getLocalBookmarks();
+  const existingIdx = list.findIndex((b) => b.questionHash === qHash);
+
+  let isBookmarked = false;
+  let bookmarkedItem: BookmarkItem | undefined = undefined;
+
+  if (existingIdx >= 0) {
+    list.splice(existingIdx, 1);
+    isBookmarked = false;
+  } else {
+    bookmarkedItem = {
+      id: `bm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      userId: 'student',
+      questionHash: qHash,
+      questionSnapshotJson: question,
+      subject: question.subject || 'General / Unassigned',
+      topic: question.topic || 'General',
+      note: note || '',
+      createdAt: new Date().toISOString(),
+    };
+    list.unshift(bookmarkedItem);
+    isBookmarked = true;
+  }
+  saveLocalBookmarks(list);
+
+  try {
+    const res = await fetch(`${API_BASE}/bookmarks/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ question, note }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch {
+    // fallback
+  }
+
+  return { bookmarked: isBookmarked, item: bookmarkedItem };
+}
+
+export async function updateBookmarkNoteApi(id: string, note: string): Promise<boolean> {
+  const list = getLocalBookmarks();
+  const item = list.find((b) => b.id === id);
+  if (item) {
+    item.note = note;
+    saveLocalBookmarks(list);
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/bookmarks/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ note }),
+    });
+    return res.ok;
+  } catch {
+    return true;
+  }
+}
+
+// ─── Analytics Summary Functions ───
+
+export function computeLocalAnalyticsSummary(reportCards: SavedReportCard[]): AnalyticsSummary {
+  if (reportCards.length === 0) {
+    return {
+      totalTests: 0,
+      avgAccuracy: 0,
+      avgScorePercent: 0,
+      totalTimeSpentSeconds: 0,
+      trends: [],
+      subjectMastery: [],
+      weakTopics: [],
+    };
+  }
+
+  let totalScoreSum = 0;
+  let totalMaxMarksSum = 0;
+  let totalAccuracySum = 0;
+  let totalTime = 0;
+
+  const sorted = [...reportCards].sort(
+    (a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime()
+  );
+
+  const trends = sorted.map((rc) => {
+    const maxM = rc.maxMarks || (rc.totalQuestions ? rc.totalQuestions * 2 : 100);
+    const scorePct = maxM > 0 ? (rc.score / maxM) * 100 : 0;
+    totalScoreSum += rc.score;
+    totalMaxMarksSum += maxM;
+    totalAccuracySum += rc.accuracy || 0;
+    totalTime += rc.timeTakenSeconds || 0;
+
+    return {
+      date: new Date(rc.submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      testTitle: rc.testTitle,
+      scorePercent: Math.round(scorePct * 10) / 10,
+      accuracy: Math.round((rc.accuracy || 0) * 10) / 10,
+      score: rc.score,
+      maxMarks: maxM,
+    };
+  });
+
+  type Agg = {
+    totalQuestions: number;
+    attempted: number;
+    correct: number;
+    incorrect: number;
+    unattempted: number;
+    timeSpent: number;
+  };
+
+  const subjectMap = new Map<string, { agg: Agg; topics: Map<string, Agg> }>();
+
+  reportCards.forEach((rc) => {
+    const reviews: QuestionResult[] = rc.detailedReviewJson || [];
+    reviews.forEach((qr) => {
+      const q = qr.question;
+      const sub = (q && q.subject) || 'General / Unassigned';
+      const top = (q && q.topic) || 'General';
+
+      if (!subjectMap.has(sub)) {
+        subjectMap.set(sub, {
+          agg: { totalQuestions: 0, attempted: 0, correct: 0, incorrect: 0, unattempted: 0, timeSpent: 0 },
+          topics: new Map(),
+        });
+      }
+      const sEntry = subjectMap.get(sub)!;
+      if (!sEntry.topics.has(top)) {
+        sEntry.topics.set(top, { totalQuestions: 0, attempted: 0, correct: 0, incorrect: 0, unattempted: 0, timeSpent: 0 });
+      }
+      const tEntry = sEntry.topics.get(top)!;
+
+      [sEntry.agg, tEntry].forEach((target) => {
+        target.totalQuestions += 1;
+        target.timeSpent += qr.timeSpentSeconds || 0;
+        if (qr.isAttempted) {
+          target.attempted += 1;
+          if (qr.isCorrect) target.correct += 1;
+          else target.incorrect += 1;
+        } else {
+          target.unattempted += 1;
+        }
+      });
+    });
+  });
+
+  const getStatus = (accuracy: number): 'STRONG' | 'MODERATE' | 'WEAK' => {
+    if (accuracy >= 75) return 'STRONG';
+    if (accuracy >= 50) return 'MODERATE';
+    return 'WEAK';
+  };
+
+  const subjectMastery: SubjectMastery[] = [];
+  const weakTopics: TopicMastery[] = [];
+
+  subjectMap.forEach((val, subName) => {
+    const sAcc = val.agg.attempted > 0 ? (val.agg.correct / val.agg.attempted) * 100 : 0;
+    const sAvgTime = val.agg.attempted > 0 ? Math.round(val.agg.timeSpent / val.agg.attempted) : 0;
+
+    const topicList: TopicMastery[] = [];
+    val.topics.forEach((tAgg, topName) => {
+      const tAcc = tAgg.attempted > 0 ? (tAgg.correct / tAgg.attempted) * 100 : 0;
+      const tAvgTime = tAgg.attempted > 0 ? Math.round(tAgg.timeSpent / tAgg.attempted) : 0;
+      const status = getStatus(tAcc);
+
+      const topicItem: TopicMastery = {
+        topic: topName,
+        subject: subName,
+        totalQuestions: tAgg.totalQuestions,
+        attempted: tAgg.attempted,
+        correct: tAgg.correct,
+        incorrect: tAgg.incorrect,
+        unattempted: tAgg.unattempted,
+        accuracy: Math.round(tAcc * 10) / 10,
+        avgTimeSeconds: tAvgTime,
+        status,
+      };
+      topicList.push(topicItem);
+      if (status === 'WEAK' && tAgg.attempted > 0) {
+        weakTopics.push(topicItem);
+      }
+    });
+
+    subjectMastery.push({
+      subject: subName,
+      totalQuestions: val.agg.totalQuestions,
+      attempted: val.agg.attempted,
+      correct: val.agg.correct,
+      incorrect: val.agg.incorrect,
+      unattempted: val.agg.unattempted,
+      accuracy: Math.round(sAcc * 10) / 10,
+      scorePercent: Math.round(sAcc * 10) / 10,
+      avgTimeSeconds: sAvgTime,
+      status: getStatus(sAcc),
+      topics: topicList,
+    });
+  });
+
+  return {
+    totalTests: reportCards.length,
+    avgAccuracy: Math.round((totalAccuracySum / reportCards.length) * 10) / 10,
+    avgScorePercent: totalMaxMarksSum > 0 ? Math.round((totalScoreSum / totalMaxMarksSum) * 1000) / 10 : 0,
+    totalTimeSpentSeconds: totalTime,
+    trends,
+    subjectMastery,
+    weakTopics,
+  };
+}
+
+export async function fetchAnalyticsSummaryApi(): Promise<AnalyticsSummary> {
+  try {
+    const res = await fetch(`${API_BASE}/analytics/summary`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.totalTests > 0) {
+        return data;
+      }
+    }
+  } catch {
+    // fallback
+  }
+  const cards = getLocalReportCards();
+  return computeLocalAnalyticsSummary(cards);
+}
+
 // ─── Reset / Clear Database Function ───
 export async function clearPlatformDataApi(target: 'all' | 'questions' | 'report-cards' = 'all'): Promise<boolean> {
-  // Clear local storage targets (preserving user profile!)
   if (target === 'all' || target === 'questions') {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([]));
@@ -618,9 +1033,12 @@ export async function clearPlatformDataApi(target: 'all' | 'questions' | 'report
   if (target === 'all' || target === 'report-cards') {
     localStorage.removeItem(SAVED_REPORTS_KEY);
     localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify([]));
+    localStorage.removeItem(SAVED_MISTAKES_KEY);
+    localStorage.setItem(SAVED_MISTAKES_KEY, JSON.stringify([]));
+    localStorage.removeItem(SAVED_BOOKMARKS_KEY);
+    localStorage.setItem(SAVED_BOOKMARKS_KEY, JSON.stringify([]));
   }
 
-  // Clear server/PostgreSQL database if connected
   try {
     const res = await fetch(`${API_BASE}/admin/clear-data`, {
       method: 'POST',

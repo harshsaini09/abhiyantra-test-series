@@ -58,7 +58,7 @@ function checkNAT(question: Question, response: UserResponse): { isCorrect: bool
 }
 
 /** Grade a single question */
-export function gradeQuestion(question: Question, response: UserResponse): QuestionResult {
+export function gradeQuestion(question: Question, response: UserResponse, timeSpentSeconds: number = 0): QuestionResult {
   let checkResult: { isCorrect: boolean; isAttempted: boolean };
 
   switch (question.type) {
@@ -125,6 +125,7 @@ export function gradeQuestion(question: Question, response: UserResponse): Quest
     marksAwarded,
     correctAnswer,
     userAnswer,
+    timeSpentSeconds,
   };
 }
 
@@ -133,7 +134,8 @@ export function gradeTest(
   testData: TestData,
   responses: UserResponse[],
   mode: TestMode,
-  timeTaken: number
+  timeTaken: number,
+  timeSpentPerQuestion?: Record<number, number>
 ): TestResults {
   const responseMap = new Map(responses.map(r => [r.questionId, r]));
 
@@ -142,7 +144,8 @@ export function gradeTest(
       questionId: q.id,
       status: 'not-visited' as const,
     };
-    return gradeQuestion(q, response);
+    const spent = timeSpentPerQuestion ? (timeSpentPerQuestion[q.id] || 0) : 0;
+    return gradeQuestion(q, response, spent);
   });
 
   const totalScore = questionResults.reduce((sum, r) => sum + r.marksAwarded, 0);

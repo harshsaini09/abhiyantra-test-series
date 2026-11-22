@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma, isDbConfigured } from './db';
 import { requireAuth, AuthenticatedRequest } from './auth';
+import { computeContentHash } from './contentHash';
 
 const router = Router();
 
@@ -57,6 +58,8 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       console.warn('Could not ensure user in DB:', userErr);
     }
 
+    const reviewsArray = typeof detailedReviewJson === 'string' ? JSON.parse(detailedReviewJson) : (detailedReviewJson || []);
+
     const reportCard = await prisma.reportCard.create({
       data: {
         userId: dbUserId,
@@ -74,9 +77,68 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         timeTakenSeconds: Number(timeTakenSeconds || 0),
         allocatedSeconds: Number(allocatedSeconds || 0),
         breakdownJson: typeof breakdownJson === 'string' ? JSON.parse(breakdownJson) : (breakdownJson || {}),
-        detailedReviewJson: typeof detailedReviewJson === 'string' ? JSON.parse(detailedReviewJson) : (detailedReviewJson || []),
+        detailedReviewJson: reviewsArray,
       },
     });
+
+    // ─── Automatic Mistake Notebook Capture & Mastery Update ───
+    try {
+      for (const item of reviewsArray) {
+        if (!item || !item.question) continue;
+        const q = item.question;
+        const qHash = q.contentHash || computeContentHash(q.question, q.type, q.options);
+        const subject = q.subject || 'General / Unassigned';
+        const topic = q.topic || 'General';
+
+        if (item.isAttempted && !item.isCorrect) {
+          // Upsert mistake -> status: NEEDS_REVIEW, increment wrongCount
+          const existing = await prisma.mistakeEntry.findUnique({
+            where: { userId_questionHash: { userId: dbUserId, questionHash: qHash } },
+          });
+
+          if (existing) {
+            await prisma.mistakeEntry.update({
+              where: { id: existing.id },
+              data: {
+                wrongCount: existing.wrongCount + 1,
+                status: 'NEEDS_REVIEW',
+                lastWrongAt: new Date(),
+                questionSnapshotJson: q,
+              },
+            });
+          } else {
+            await prisma.mistakeEntry.create({
+              data: {
+                userId: dbUserId,
+                questionHash: qHash,
+                questionSnapshotJson: q,
+                subject,
+                topic,
+                wrongCount: 1,
+                status: 'NEEDS_REVIEW',
+                lastWrongAt: new Date(),
+              },
+            });
+          }
+        } else if (item.isCorrect) {
+          // If previously missed and now answered correctly -> Auto-mark MASTERED!
+          const existing = await prisma.mistakeEntry.findUnique({
+            where: { userId_questionHash: { userId: dbUserId, questionHash: qHash } },
+          });
+          if (existing && existing.status !== 'MASTERED') {
+            await prisma.mistakeEntry.update({
+              where: { id: existing.id },
+              data: {
+                status: 'MASTERED',
+                masteredAt: new Date(),
+              },
+            });
+          }
+        }
+      }
+    } catch (mistakeErr) {
+      console.warn('Could not auto-process mistakes for report card:', mistakeErr);
+    }
 
     res.status(201).json({
       success: true,

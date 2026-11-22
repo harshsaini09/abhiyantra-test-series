@@ -156,6 +156,43 @@ export default function TestPage() {
     return Array.from(map.values());
   }, [testData]);
 
+  // ─── per-question time tracking state ───
+  // Map of questionId -> accumulated seconds spent
+  const [timeSpentMap, setTimeSpentMap] = useState<Record<number, number>>({});
+  const lastActiveTimestampRef = useRef<number>(Date.now());
+  const activeQuestionIdRef = useRef<number>(testData.questions[currentIdx]?.id);
+  activeQuestionIdRef.current = testData.questions[currentIdx]?.id;
+
+  // Flush active seconds on question change or interval
+  const flushCurrentQuestionTime = useCallback(() => {
+    const qId = activeQuestionIdRef.current;
+    if (!qId || isSubmittedRef.current) return;
+    const now = Date.now();
+    const elapsedSec = Math.max(0, Math.round((now - lastActiveTimestampRef.current) / 1000));
+    lastActiveTimestampRef.current = now;
+    if (elapsedSec > 0) {
+      setTimeSpentMap((prev) => ({
+        ...prev,
+        [qId]: (prev[qId] || 0) + elapsedSec,
+      }));
+    }
+  }, []);
+
+  // Update time tracker whenever active question changes
+  useEffect(() => {
+    flushCurrentQuestionTime();
+    lastActiveTimestampRef.current = Date.now();
+  }, [currentIdx, flushCurrentQuestionTime]);
+
+  // Periodic heartbeat timer (every 1s) to record active seconds smoothly
+  useEffect(() => {
+    if (isSubmitted) return;
+    const interval = setInterval(() => {
+      flushCurrentQuestionTime();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isSubmitted, flushCurrentQuestionTime]);
+
   // Practice-mode feedback
   const [practiceResult, setPracticeResult] = useState<{
     isCorrect: boolean;
@@ -172,15 +209,25 @@ export default function TestPage() {
   // ─── submit function ───
   const submitTest = useCallback(() => {
     if (isSubmittedRef.current) return;
+    flushCurrentQuestionTime();
     setIsSubmitted(true);
     isSubmittedRef.current = true;
     clearTestState();
     const timeTaken = totalDuration - remainingSecondsRef.current;
-    const results = gradeTest(testData, responsesRef.current, mode, timeTaken);
+    
+    // Compute current accumulated times
+    const currentQId = activeQuestionIdRef.current;
+    const finalElapsed = Math.max(0, Math.round((Date.now() - lastActiveTimestampRef.current) / 1000));
+    const finalMap = { ...timeSpentMap };
+    if (currentQId && finalElapsed > 0) {
+      finalMap[currentQId] = (finalMap[currentQId] || 0) + finalElapsed;
+    }
+
+    const results = gradeTest(testData, responsesRef.current, mode, timeTaken, finalMap);
     // Guarantee instant background save so the report card exists immediately
     saveReportCardApi(results).catch(() => {});
     navigate('/report', { state: { results } });
-  }, [totalDuration, testData, mode, navigate]);
+  }, [totalDuration, testData, mode, navigate, flushCurrentQuestionTime, timeSpentMap]);
 
   // ─── timer ───
   const handleExpire = useCallback(() => {

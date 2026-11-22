@@ -6,6 +6,9 @@ import { ingestQuestions, IngestTestInput } from './ingest';
 import { computeContentHash } from './contentHash';
 import authRouter from './auth';
 import reportCardsRouter from './reportCards';
+import mistakesRouter from './mistakes';
+import bookmarksRouter from './bookmarks';
+import analyticsRouter from './analytics';
 
 const app = express();
 
@@ -18,11 +21,17 @@ app.use(
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 
-// ─── Mount Auth & Report Cards (Both with and without /api prefix for Vercel serverless safety) ───
+// ─── Mount Auth, Report Cards, Mistakes, Bookmarks, Analytics ───
 app.use('/api/auth', authRouter);
 app.use('/auth', authRouter);
 app.use('/api/report-cards', reportCardsRouter);
 app.use('/report-cards', reportCardsRouter);
+app.use('/api/mistakes', mistakesRouter);
+app.use('/mistakes', mistakesRouter);
+app.use('/api/bookmarks', bookmarksRouter);
+app.use('/bookmarks', bookmarksRouter);
+app.use('/api/analytics', analyticsRouter);
+app.use('/analytics', analyticsRouter);
 
 // ─── 1. Health Check ───
 const handleHealth = (_req: Request, res: Response) => {

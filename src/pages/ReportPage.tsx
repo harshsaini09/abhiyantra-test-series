@@ -19,10 +19,13 @@ import {
   Database,
   Wrench,
   Award,
+  Bookmark,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatDurationHuman } from '../utils/scoring';
-import type { TestResults, QuestionResult } from '../types';
+import type { TestResults, QuestionResult, Question } from '../types';
+import { toggleBookmarkApi, fetchBookmarksApi, computeQuestionHash } from '../utils/api';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
 import TikzDiagram from '../components/TikzDiagram';
@@ -39,6 +42,28 @@ export default function ReportPage() {
 
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
+  const [bookmarkedHashes, setBookmarkedHashes] = useState<Set<string>>(new Set());
+
+  // Load existing bookmarks
+  useEffect(() => {
+    fetchBookmarksApi()
+      .then((items) => {
+        setBookmarkedHashes(new Set(items.map((b) => b.questionHash)));
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleToggleBookmark = async (q: Question) => {
+    const qHash = computeQuestionHash(q);
+    const newSet = new Set(bookmarkedHashes);
+    if (newSet.has(qHash)) {
+      newSet.delete(qHash);
+    } else {
+      newSet.add(qHash);
+    }
+    setBookmarkedHashes(newSet);
+    await toggleBookmarkApi(q).catch(() => {});
+  };
 
   // Check save status from initial submission
   useEffect(() => {
@@ -111,6 +136,34 @@ export default function ReportPage() {
       ? Object.entries(results.bySubject).map(([label, data]) => ({ category: 'Subject', label, ...data }))
       : []),
   ];
+
+  // ─── Time Analysis Metrics ───
+  let timeCorrect = 0, countCorrect = 0;
+  let timeIncorrect = 0, countIncorrect = 0;
+  let timeUnattempted = 0, countUnattempted = 0;
+
+  results.questionResults.forEach((qr) => {
+    const t = qr.timeSpentSeconds || 0;
+    if (qr.isAttempted && qr.isCorrect) {
+      timeCorrect += t;
+      countCorrect += 1;
+    } else if (qr.isAttempted && !qr.isCorrect) {
+      timeIncorrect += t;
+      countIncorrect += 1;
+    } else {
+      timeUnattempted += t;
+      countUnattempted += 1;
+    }
+  });
+
+  const avgTimeCorrect = countCorrect > 0 ? Math.round(timeCorrect / countCorrect) : 0;
+  const avgTimeIncorrect = countIncorrect > 0 ? Math.round(timeIncorrect / countIncorrect) : 0;
+  const avgTimeUnattempted = countUnattempted > 0 ? Math.round(timeUnattempted / countUnattempted) : 0;
+
+  const timeSinkQuestions = results.questionResults
+    .filter((qr) => (!qr.isCorrect || !qr.isAttempted) && (qr.timeSpentSeconds || 0) >= 90)
+    .sort((a, b) => (b.timeSpentSeconds || 0) - (a.timeSpentSeconds || 0))
+    .slice(0, 4);
 
   // ================================================================
   // Render
@@ -297,6 +350,76 @@ export default function ReportPage() {
         </section>
 
         {/* ================================================================
+            Time Analysis & Time-Sink Alerts
+            ================================================================ */}
+        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              Per-Question Time Insights
+            </h2>
+            <span className="text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full font-medium">
+              GATE Benchmark: ~2.7 min / question
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+              <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Avg Time on Correct</p>
+              <p className="text-2xl font-bold text-emerald-700 mt-1">
+                {Math.floor(avgTimeCorrect / 60)}m {avgTimeCorrect % 60}s
+              </p>
+              <p className="text-[11px] text-emerald-600 mt-1">Across {countCorrect} correct questions</p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-red-50 border border-red-100">
+              <p className="text-xs font-semibold text-red-800 uppercase tracking-wide">Avg Time on Incorrect</p>
+              <p className="text-2xl font-bold text-red-700 mt-1">
+                {Math.floor(avgTimeIncorrect / 60)}m {avgTimeIncorrect % 60}s
+              </p>
+              <p className="text-[11px] text-red-600 mt-1">Across {countIncorrect} incorrect attempts</p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Avg Time on Unattempted</p>
+              <p className="text-2xl font-bold text-slate-700 mt-1">
+                {Math.floor(avgTimeUnattempted / 60)}m {avgTimeUnattempted % 60}s
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1">Across {countUnattempted} skipped questions</p>
+            </div>
+          </div>
+
+          {/* Time-Sink Alert */}
+          {timeSinkQuestions.length > 0 && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+              <div className="flex items-center gap-2 font-bold text-amber-900 text-sm mb-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>Time-Sink Alert: High-Time Questions Without Marks</span>
+              </div>
+              <p className="text-xs text-amber-800 mb-3 leading-relaxed">
+                You spent 1.5+ minutes on these questions but missed positive marks. In actual GATE exams, recognizing stuck questions early and skipping them frees up crucial minutes for easy scoring opportunities.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {timeSinkQuestions.map((ts) => (
+                  <div
+                    key={ts.questionId}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-xs font-semibold text-slate-800 shadow-xs"
+                  >
+                    <span>Q{ts.questionId}</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-bold">
+                      ⏱ {Math.floor((ts.timeSpentSeconds || 0) / 60)}m {(ts.timeSpentSeconds || 0) % 60}s
+                    </span>
+                    <span className={`text-[10px] font-bold ${ts.isAttempted ? 'text-red-600' : 'text-slate-500'}`}>
+                      {ts.isAttempted ? 'Wrong' : 'Skipped'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ================================================================
             2. Performance Breakdown Table
             ================================================================ */}
         <section>
@@ -436,6 +559,12 @@ export default function ReportPage() {
                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${marksBadgeClass}`}>
                         {qr.marksAwarded > 0 ? '+' : ''}{qr.marksAwarded} marks
                       </span>
+                      {qr.timeSpentSeconds !== undefined && qr.timeSpentSeconds > 0 && (
+                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {Math.floor(qr.timeSpentSeconds / 60)}m {qr.timeSpentSeconds % 60}s
+                        </span>
+                      )}
                       {qr.question.subject && (
                         <span className="px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
                           {qr.question.subject}
@@ -447,11 +576,31 @@ export default function ReportPage() {
                         </span>
                       )}
                     </div>
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-slate-400 shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-slate-400 shrink-0" />
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleBookmark(qr.question);
+                        }}
+                        className={`p-1.5 rounded-lg border transition cursor-pointer ${
+                          bookmarkedHashes.has(computeQuestionHash(qr.question))
+                            ? 'bg-amber-50 text-amber-600 border-amber-300'
+                            : 'bg-slate-50 text-slate-400 hover:text-slate-600 border-slate-200'
+                        }`}
+                        title={bookmarkedHashes.has(computeQuestionHash(qr.question)) ? 'Bookmarked' : 'Bookmark this question'}
+                      >
+                        <Bookmark
+                          className="w-4 h-4"
+                          fill={bookmarkedHashes.has(computeQuestionHash(qr.question)) ? 'currentColor' : 'none'}
+                        />
+                      </button>
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-slate-400" />
+                      )}
+                    </div>
                   </button>
 
                   {/* Expanded content */}

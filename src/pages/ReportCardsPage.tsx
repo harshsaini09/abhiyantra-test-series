@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Award,
   Calendar,
@@ -7,33 +7,59 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  GraduationCap,
-  MinusCircle,
   Printer,
   Search,
   Sparkles,
   Target,
   TrendingUp,
   Trophy,
-  XCircle,
   ArrowLeft,
   BookOpen,
+  Bookmark,
+  AlertTriangle,
+  BarChart3,
+  Play,
+  Flame,
+  RotateCcw,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
-import { fetchReportCardsApi, fetchReportCardDetailApi } from '../utils/api';
-import type { SavedReportCard, QuestionResult } from '../types';
+import {
+  fetchReportCardsApi,
+  fetchReportCardDetailApi,
+  fetchMistakesApi,
+  updateMistakeStatusApi,
+  fetchBookmarksApi,
+  toggleBookmarkApi,
+  updateBookmarkNoteApi,
+  fetchAnalyticsSummaryApi,
+  computeQuestionHash,
+} from '../utils/api';
+import type {
+  SavedReportCard,
+  MistakeEntry,
+  BookmarkItem,
+  AnalyticsSummary,
+  Question,
+  TestData,
+} from '../types';
 import { formatDurationHuman } from '../utils/scoring';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
-import TikzDiagram from '../components/TikzDiagram';
 
+type TabView = 'history' | 'analytics' | 'mistakes' | 'bookmarks';
 type FilterMode = 'ALL' | 'EXAM' | 'PRACTICE';
 type SortOption = 'newest' | 'oldest' | 'highest_score' | 'highest_accuracy';
-type FilterTab = 'all' | 'correct' | 'incorrect' | 'unattempted';
+type MistakeFilter = 'ALL' | 'NEEDS_REVIEW' | 'MASTERED' | 'MOST_MISSED';
 
 export default function ReportCardsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Navigation State
+  const [activeTab, setActiveTab] = useState<TabView>('history');
+
+  // Test History State
   const [reportCards, setReportCards] = useState<SavedReportCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,23 +68,46 @@ export default function ReportCardsPage() {
 
   // Detail View State
   const [selectedCard, setSelectedCard] = useState<SavedReportCard | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
 
-  // Load report cards when user is available or changed
+  // Analytics State
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+
+  // Mistakes State
+  const [mistakes, setMistakes] = useState<MistakeEntry[]>([]);
+  const [mistakeFilter, setMistakeFilter] = useState<MistakeFilter>('NEEDS_REVIEW');
+  const [selectedMistakeSubject, setSelectedMistakeSubject] = useState<string>('ALL');
+  const [expandedMistakes, setExpandedMistakes] = useState<Set<string>>(new Set());
+
+  // Bookmarks State
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [selectedBookmarkSubject, setSelectedBookmarkSubject] = useState<string>('ALL');
+  const [expandedBookmarks, setExpandedBookmarks] = useState<Set<string>>(new Set());
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState<string>('');
+
+  // Initial Data Fetch
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    fetchReportCardsApi()
-      .then((data) => {
+
+    Promise.all([
+      fetchReportCardsApi(),
+      fetchMistakesApi(),
+      fetchBookmarksApi(),
+      fetchAnalyticsSummaryApi(),
+    ])
+      .then(([cards, mList, bList, aSummary]) => {
         if (mounted) {
-          setReportCards(data);
+          setReportCards(cards);
+          setMistakes(mList);
+          setBookmarks(bList);
+          setAnalytics(aSummary);
           setLoading(false);
         }
       })
       .catch((err) => {
-        console.error('Error loading report cards:', err);
+        console.error('Error loading student data:', err);
         if (mounted) setLoading(false);
       });
 
@@ -69,11 +118,8 @@ export default function ReportCardsPage() {
 
   // Handle open full report card detail
   const handleOpenDetail = async (rc: SavedReportCard) => {
-    setDetailLoading(true);
-    // If detailedReviewJson is already present on card, use it; otherwise fetch by ID
     if (rc.detailedReviewJson && rc.detailedReviewJson.length > 0) {
       setSelectedCard(rc);
-      setDetailLoading(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       try {
@@ -82,7 +128,6 @@ export default function ReportCardsPage() {
       } catch {
         setSelectedCard(rc);
       } finally {
-        setDetailLoading(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
@@ -95,6 +140,106 @@ export default function ReportCardsPage() {
       else next.add(id);
       return next;
     });
+  };
+
+  const toggleMistakeExpand = (id: string) => {
+    setExpandedMistakes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleBookmarkExpand = (id: string) => {
+    setExpandedBookmarks((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Toggle Mistake Status (Needs Review <-> Mastered)
+  const handleToggleMistakeStatus = async (m: MistakeEntry) => {
+    const newStatus = m.status === 'MASTERED' ? 'NEEDS_REVIEW' : 'MASTERED';
+    setMistakes((prev) =>
+      prev.map((item) => (item.id === m.id ? { ...item, status: newStatus } : item))
+    );
+    await updateMistakeStatusApi(m.id, newStatus);
+  };
+
+  // Retest Mistakes
+  const handleRetestMistakes = (mistakesToTest: MistakeEntry[]) => {
+    if (mistakesToTest.length === 0) return;
+    const questions: Question[] = mistakesToTest.map((m, idx) => ({
+      ...m.questionSnapshotJson,
+      id: idx + 1,
+    }));
+
+    const testData: TestData = {
+      title: `Mistake Retest (${questions.length} Questions)`,
+      subject: mistakesToTest[0]?.subject || 'Mistake Retest',
+      topic: 'Adaptive Revision',
+      duration: Math.max(600, questions.length * 162), // ~2.7 min per question proportional GATE timing
+      questions,
+    };
+
+    navigate('/test', { state: { testData, mode: 'EXAM' } });
+  };
+
+  // Practice Bookmarks
+  const handlePracticeBookmarks = (bookmarksToTest: BookmarkItem[]) => {
+    if (bookmarksToTest.length === 0) return;
+    const questions: Question[] = bookmarksToTest.map((b, idx) => ({
+      ...b.questionSnapshotJson,
+      id: idx + 1,
+    }));
+
+    const testData: TestData = {
+      title: `Bookmarked Questions Practice (${questions.length} Qs)`,
+      subject: bookmarksToTest[0]?.subject || 'Bookmarks',
+      topic: 'Saved Review',
+      duration: Math.max(600, questions.length * 162),
+      questions,
+    };
+
+    navigate('/test', { state: { testData, mode: 'PRACTICE' } });
+  };
+
+  // Practice a specific topic
+  const handlePracticeTopic = (subjectName: string, topicName: string) => {
+    // Gather matching questions from past reviews or mistakes
+    const matchingQuestions: Question[] = [];
+    const seenHashes = new Set<string>();
+
+    reportCards.forEach((rc) => {
+      (rc.detailedReviewJson || []).forEach((qr) => {
+        const q = qr.question;
+        if (q && q.subject === subjectName && q.topic === topicName) {
+          const hash = computeQuestionHash(q);
+          if (!seenHashes.has(hash)) {
+            seenHashes.add(hash);
+            matchingQuestions.push({ ...q, id: matchingQuestions.length + 1 });
+          }
+        }
+      });
+    });
+
+    if (matchingQuestions.length === 0) {
+      alert(`No saved questions found in local bank for "${topicName}". Try custom test builder or question bank!`);
+      return;
+    }
+
+    const testData: TestData = {
+      title: `Targeted Practice: ${topicName}`,
+      subject: subjectName,
+      topic: topicName,
+      duration: Math.max(600, matchingQuestions.length * 162),
+      questions: matchingQuestions,
+    };
+
+    navigate('/test', { state: { testData, mode: 'PRACTICE' } });
   };
 
   // Filtered and sorted report cards
@@ -149,13 +294,47 @@ export default function ReportCardsPage() {
     };
   }, [reportCards]);
 
+  // Filtered Mistakes
+  const filteredMistakes = useMemo(() => {
+    return mistakes.filter((m) => {
+      if (mistakeFilter === 'NEEDS_REVIEW' && m.status !== 'NEEDS_REVIEW') return false;
+      if (mistakeFilter === 'MASTERED' && m.status !== 'MASTERED') return false;
+      if (mistakeFilter === 'MOST_MISSED' && m.wrongCount < 2) return false;
+      if (selectedMistakeSubject !== 'ALL' && m.subject !== selectedMistakeSubject) return false;
+      return true;
+    });
+  }, [mistakes, mistakeFilter, selectedMistakeSubject]);
+
+  const mistakeSubjects = useMemo(() => {
+    const set = new Set<string>();
+    mistakes.forEach((m) => {
+      if (m.subject) set.add(m.subject);
+    });
+    return Array.from(set);
+  }, [mistakes]);
+
+  // Filtered Bookmarks
+  const filteredBookmarks = useMemo(() => {
+    return bookmarks.filter((b) => {
+      if (selectedBookmarkSubject !== 'ALL' && b.subject !== selectedBookmarkSubject) return false;
+      return true;
+    });
+  }, [bookmarks, selectedBookmarkSubject]);
+
+  const bookmarkSubjects = useMemo(() => {
+    const set = new Set<string>();
+    bookmarks.forEach((b) => {
+      if (b.subject) set.add(b.subject);
+    });
+    return Array.from(set);
+  }, [bookmarks]);
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
 
       {/* ─────────────────────────────────────────────────────────────
-          SIGNED OUT STATE: Clean Call-to-Action with Google Sign-In
-          (Only shown if user has zero local test attempts)
+          SIGNED OUT ZERO STATE
           ───────────────────────────────────────────────────────────── */}
       {!user && reportCards.length === 0 ? (
         <main className="flex-1 max-w-5xl mx-auto px-4 py-12 w-full flex flex-col items-center justify-center">
@@ -178,7 +357,6 @@ export default function ReportCardsPage() {
               solutions, and sync your results securely across all your devices.
             </p>
 
-            {/* Google Sign In Button */}
             <div className="flex justify-center mb-8">
               <button
                 type="button"
@@ -202,7 +380,6 @@ export default function ReportCardsPage() {
               </button>
             </div>
 
-            {/* Feature highlights grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left border-t border-slate-100 pt-8">
               <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
@@ -214,22 +391,8 @@ export default function ReportCardsPage() {
               <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
                 <Target className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-xs font-bold text-slate-800">Accuracy & Time Analytics</h4>
-                  <p className="text-[11px] text-slate-500">Track negative marking impact and time per question.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <BookOpen className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">Full Question Solutions</h4>
-                  <p className="text-[11px] text-slate-500">Never lose access to detailed solutions and answer keys.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <GraduationCap className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">GATE Standard Scoring</h4>
-                  <p className="text-[11px] text-slate-500">1/3 negative marking for 1-mark & 2/3 for 2-mark MCQs.</p>
+                  <h4 className="text-xs font-bold text-slate-800">Smart Weakness Analytics</h4>
+                  <p className="text-[11px] text-slate-500">Auto-identifies weak topics and tracks score progression.</p>
                 </div>
               </div>
             </div>
@@ -240,25 +403,22 @@ export default function ReportCardsPage() {
             FULL REPORT CARD DETAIL VIEW (When an attempt is clicked)
             ───────────────────────────────────────────────────────────── */
         <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full space-y-8">
-          {/* Detail View Navigation & Actions Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs print:hidden">
             <button
               onClick={() => setSelectedCard(null)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-sm font-semibold transition"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-sm font-semibold transition cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to All Report Cards
             </button>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-semibold transition"
-              >
-                <Printer className="w-4 h-4" />
-                Print Report Card
-              </button>
-            </div>
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-semibold transition cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              Print Report Card
+            </button>
           </div>
 
           {/* Test Header */}
@@ -280,7 +440,7 @@ export default function ReportCardsPage() {
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{selectedCard.testTitle}</h1>
-                <p className="text-indigo-100 text-xs mt-1">Student: {user?.name || 'Local Student'} {user?.email ? `(${user.email})` : ''}</p>
+                <p className="text-indigo-100 text-xs mt-1">Student: {user?.name || 'Student'} {user?.email ? `(${user.email})` : ''}</p>
               </div>
 
               <div className="text-right sm:border-l sm:border-white/20 sm:pl-6">
@@ -293,254 +453,79 @@ export default function ReportCardsPage() {
             </div>
           </div>
 
-          {/* KPI Summary Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <p className="text-xs text-slate-500 font-medium">Accuracy</p>
-              <p className="text-xl font-bold text-indigo-600 mt-1">{selectedCard.accuracy.toFixed(1)}%</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <p className="text-xs text-slate-500 font-medium">Correct</p>
-              <p className="text-xl font-bold text-emerald-600 mt-1">{selectedCard.correctCount}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <p className="text-xs text-slate-500 font-medium">Incorrect</p>
-              <p className="text-xl font-bold text-red-600 mt-1">{selectedCard.incorrectCount}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <p className="text-xs text-slate-500 font-medium">Unattempted</p>
-              <p className="text-xl font-bold text-slate-600 mt-1">{selectedCard.unattemptedCount}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <p className="text-xs text-slate-500 font-medium">Negative Marks</p>
-              <p className="text-xl font-bold text-rose-600 mt-1">-{selectedCard.negativeMarks.toFixed(2)}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <p className="text-xs text-slate-500 font-medium">Time Taken</p>
-              <p className="text-xl font-bold text-slate-800 mt-1">{formatDurationHuman(selectedCard.timeTakenSeconds)}</p>
-            </div>
-          </div>
-
-          {/* Solutions & Detailed Review */}
-          <section className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-indigo-600" />
-                  Solutions & Question Review
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Complete snapshot of every question, your response, and detailed GATE explanations.
-                </p>
-              </div>
-
-              {/* Filter Tabs */}
-              {selectedCard.detailedReviewJson && (
-                <div className="flex rounded-lg bg-slate-200/80 p-1 text-xs font-semibold">
-                  {(['all', 'correct', 'incorrect', 'unattempted'] as FilterTab[]).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveFilter(tab)}
-                      className={`px-3 py-1.5 rounded-md capitalize transition ${
-                        activeFilter === tab
-                          ? 'bg-white text-indigo-700 shadow-xs font-bold'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+          {/* Detailed Question Review List */}
+          <section className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-indigo-600" />
+              Detailed Solutions & Answers Review
+            </h2>
 
             {selectedCard.detailedReviewJson && selectedCard.detailedReviewJson.length > 0 ? (
               <div className="space-y-4">
-                {selectedCard.detailedReviewJson
-                  .filter((qr: QuestionResult) => {
-                    if (activeFilter === 'correct') return qr.isCorrect;
-                    if (activeFilter === 'incorrect') return qr.isAttempted && !qr.isCorrect;
-                    if (activeFilter === 'unattempted') return !qr.isAttempted;
-                    return true;
-                  })
-                  .map((qr: QuestionResult, idx: number) => {
-                    const isExpanded = expandedQuestions.has(qr.questionId);
-                    return (
-                      <div
-                        key={qr.questionId || idx}
-                        className={`bg-white rounded-2xl border transition-all ${
-                          qr.isCorrect
-                            ? 'border-emerald-200 shadow-xs'
-                            : qr.isAttempted
-                              ? 'border-red-200 shadow-xs'
-                              : 'border-slate-200'
-                        }`}
+                {selectedCard.detailedReviewJson.map((qr) => {
+                  const isExpanded = expandedQuestions.has(qr.questionId);
+                  return (
+                    <div
+                      key={qr.questionId}
+                      className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50"
+                    >
+                      <button
+                        onClick={() => toggleQuestion(qr.questionId)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-slate-100/60 transition text-left cursor-pointer"
                       >
-                        {/* Header */}
-                        <div
-                          onClick={() => toggleQuestion(qr.questionId)}
-                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/50 rounded-2xl transition"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700">
-                              Q{qr.question?.id || idx + 1}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="font-extrabold text-slate-700 text-xs">Q{qr.questionId}</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700">
+                            {qr.question?.type || 'MCQ'}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              qr.isCorrect
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : qr.isAttempted
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {qr.isCorrect ? '✓ Correct' : qr.isAttempted ? '✗ Incorrect' : '○ Unattempted'}
+                          </span>
+                          {qr.timeSpentSeconds !== undefined && qr.timeSpentSeconds > 0 && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {Math.floor(qr.timeSpentSeconds / 60)}m {qr.timeSpentSeconds % 60}s
                             </span>
-                            <span
-                              className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                                qr.question?.type === 'MCQ'
-                                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                  : qr.question?.type === 'MSQ'
-                                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              }`}
-                            >
-                              {qr.question?.type || 'MCQ'} ({qr.question?.marks || 1}M)
-                            </span>
-                            {(qr.question?.subject || qr.question?.topic) && (
-                              <span className="hidden sm:inline-block text-xs text-slate-500 font-medium">
-                                {[qr.question?.subject, qr.question?.topic].filter(Boolean).join(' • ')}
-                              </span>
-                            )}
+                          )}
+                        </div>
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="p-4 sm:p-5 border-t border-slate-200 bg-white space-y-4">
+                          <div className="text-sm font-medium text-slate-800">
+                            <RichContent content={qr.question?.question || ''} />
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            {qr.isCorrect ? (
-                              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-                                <CheckCircle className="w-3.5 h-3.5" />
-                                +{qr.marksAwarded} Marks
-                              </span>
-                            ) : qr.isAttempted ? (
-                              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-full">
-                                <XCircle className="w-3.5 h-3.5" />
-                                {qr.marksAwarded} Marks
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                                <MinusCircle className="w-3.5 h-3.5" />
-                                Unattempted (0)
-                              </span>
-                            )}
-                            {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                          <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-xs space-y-2">
+                            <span className="font-bold text-indigo-900 block">Official Solution:</span>
+                            <RichContent content={qr.question?.solution || 'Solution provided in assessment.'} />
                           </div>
                         </div>
-
-                        {/* Collapsible Content */}
-                        {isExpanded && (
-                          <div className="p-5 border-t border-slate-100 bg-slate-50/30 space-y-4">
-                            {qr.question?.imageUrl && (
-                              <div className="max-w-md">
-                                <QuestionImage src={qr.question.imageUrl} alt="Question Visual" />
-                              </div>
-                            )}
-
-                            {qr.question?.tikzCode && (
-                              <div className="max-w-md">
-                                <TikzDiagram code={qr.question.tikzCode} caption="Question Diagram" />
-                              </div>
-                            )}
-
-                            <div className="text-sm font-semibold text-slate-800 leading-relaxed">
-                              <RichContent content={qr.question?.question || ''} />
-                            </div>
-
-                            {/* Options if MCQ/MSQ */}
-                            {qr.question?.options && (
-                              <div className="grid grid-cols-1 gap-2 pt-1">
-                                {qr.question.options.map((opt: string, optIdx: number) => {
-                                  const optLetter = String.fromCharCode(65 + optIdx);
-                                  const isUserAnswer =
-                                    qr.userResponse?.selectedOptions?.includes(optIdx) ||
-                                    qr.userAnswer?.includes(optLetter);
-                                  const isCorrectOption =
-                                    Array.isArray(qr.question.answer)
-                                      ? qr.question.answer.includes(optIdx)
-                                      : qr.question.answer === optIdx;
-
-                                  let optStyle = 'border-slate-200 bg-white text-slate-700';
-                                  if (isCorrectOption) {
-                                    optStyle = 'border-emerald-300 bg-emerald-50 text-emerald-900 font-semibold';
-                                  } else if (isUserAnswer && !isCorrectOption) {
-                                    optStyle = 'border-red-300 bg-red-50 text-red-900 font-medium';
-                                  }
-
-                                  return (
-                                    <div
-                                      key={optIdx}
-                                      className={`flex items-center justify-between p-3 rounded-xl border text-xs ${optStyle}`}
-                                    >
-                                      <div className="flex items-start gap-2.5 flex-1">
-                                        <span className="font-bold shrink-0">{optLetter}.</span>
-                                        <div className="flex-1">
-                                          <RichContent content={opt} />
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-1.5 font-bold text-[11px] shrink-0 ml-2">
-                                        {isUserAnswer && (
-                                          <span className="text-slate-500 font-medium">(Your Choice)</span>
-                                        )}
-                                        {isCorrectOption && (
-                                          <span className="text-emerald-700">✓ Correct</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {/* NAT Answer details */}
-                            {qr.question?.type === 'NAT' && (
-                              <div className="flex flex-wrap gap-4 p-3 bg-white rounded-xl border border-slate-200 text-xs">
-                                <div>
-                                  <span className="text-slate-500 block">Your Answer:</span>
-                                  <span className="font-bold text-slate-800">{qr.userAnswer || 'None'}</span>
-                                </div>
-                                <div className="border-l border-slate-200 pl-4">
-                                  <span className="text-slate-500 block">Correct Range:</span>
-                                  <span className="font-bold text-emerald-700">{qr.correctAnswer}</span>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Solution Box */}
-                            <div className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 space-y-2">
-                              <h5 className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
-                                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                                Official Abhiyantra Solution:
-                              </h5>
-                              {qr.question?.solutionImageUrl && (
-                                <div className="max-w-md">
-                                  <QuestionImage src={qr.question.solutionImageUrl} alt="Solution Visual" />
-                                </div>
-                              )}
-                              {qr.question?.solutionTikzCode && (
-                                <div className="max-w-md">
-                                  <TikzDiagram code={qr.question.solutionTikzCode} caption="Solution Diagram" />
-                                </div>
-                              )}
-                              <div className="text-xs text-indigo-950 leading-relaxed">
-                                <RichContent content={qr.question?.solution || 'Solution provided during assessment.'} />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
-              <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
-                <p className="text-xs text-slate-500">Summary preserved. Question-by-question review snapshot was not attached.</p>
-              </div>
+              <p className="text-xs text-slate-500">Summary preserved.</p>
             )}
           </section>
         </main>
       ) : (
         /* ─────────────────────────────────────────────────────────────
-            SIGNED IN MAIN VIEW: Overall Stats & History Table
+            SIGNED IN MAIN VIEW: 4 Tabs Suite
             ───────────────────────────────────────────────────────────── */
         <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full space-y-8">
-          {/* Welcome & Overview Header */}
+          {/* Welcome Header */}
           <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
@@ -549,12 +534,10 @@ export default function ReportCardsPage() {
                   Official Student Portal
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                  {user ? `Welcome back, ${user.name}` : 'GATE Mock Test Report Cards'}
+                  {user ? `Welcome back, ${user.name}` : 'Student Revision & Analytics'}
                 </h1>
                 <p className="text-slate-300 text-xs sm:text-sm mt-1">
-                  {user
-                    ? 'All your past GATE mock tests, scores, solutions, and analytics are synced in real-time with PostgreSQL.'
-                    : 'Your completed test attempts are saved locally on this browser. Sign in with Google to sync them permanently.'}
+                  Track your tests, revise past mistakes with one-click retests, and target your weak topics.
                 </p>
               </div>
 
@@ -575,199 +558,816 @@ export default function ReportCardsPage() {
             </div>
           </div>
 
-          {/* Overall Stats Banner */}
-          {overallStats && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0">
-                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Total Tests</p>
-                  <p className="text-lg sm:text-2xl font-extrabold text-slate-900">{overallStats.totalTests}</p>
-                </div>
-              </div>
+          {/* Tab Navigation Bar */}
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'history'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+              }`}
+            >
+              <Trophy className="w-4 h-4" />
+              <span>Test History ({reportCards.length})</span>
+            </button>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-                  <Target className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Avg Accuracy</p>
-                  <p className="text-lg sm:text-2xl font-extrabold text-emerald-600">{overallStats.avgAccuracy}%</p>
-                </div>
-              </div>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'analytics'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Weakness & Analytics</span>
+            </button>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center font-bold shrink-0">
-                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Avg Score %</p>
-                  <p className="text-lg sm:text-2xl font-extrabold text-purple-600">{overallStats.avgScorePercent}%</p>
-                </div>
-              </div>
+            <button
+              onClick={() => setActiveTab('mistakes')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'mistakes'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+              }`}
+            >
+              <Flame className="w-4 h-4 text-amber-400" />
+              <span>Mistake Notebook ({mistakes.filter((m) => m.status === 'NEEDS_REVIEW').length})</span>
+            </button>
 
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-bold shrink-0">
-                  <Award className="w-5 h-5 sm:w-6 sm:h-6" />
+            <button
+              onClick={() => setActiveTab('bookmarks')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'bookmarks'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+              }`}
+            >
+              <Bookmark className="w-4 h-4" />
+              <span>Bookmarks ({bookmarks.length})</span>
+            </button>
+          </div>
+
+          {/* ─────────────────────────────────────────────────────────────
+              TAB 1: TEST HISTORY
+              ───────────────────────────────────────────────────────────── */}
+          {activeTab === 'history' && (
+            <div className="space-y-6">
+              {overallStats && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                      <Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Total Tests</p>
+                      <p className="text-lg sm:text-2xl font-extrabold text-slate-900">{overallStats.totalTests}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                      <Target className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Avg Accuracy</p>
+                      <p className="text-lg sm:text-2xl font-extrabold text-emerald-600">{overallStats.avgAccuracy}%</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center font-bold shrink-0">
+                      <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Avg Score %</p>
+                      <p className="text-lg sm:text-2xl font-extrabold text-purple-600">{overallStats.avgScorePercent}%</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-5 shadow-xs flex items-center gap-2.5 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                      <Award className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Highest Score</p>
+                      <p className="text-lg sm:text-2xl font-extrabold text-amber-600">{overallStats.highestScore}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">Highest Score</p>
-                  <p className="text-lg sm:text-2xl font-extrabold text-amber-600">{overallStats.highestScore}</p>
+              )}
+
+              {/* Search & List */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search past tests by title..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-bold">
+                      {(['ALL', 'EXAM', 'PRACTICE'] as FilterMode[]).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setSelectedMode(mode)}
+                          className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                            selectedMode === mode
+                              ? 'bg-white text-indigo-700 shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as SortOption)}
+                      className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium rounded-xl px-3 py-2.5 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="highest_score">Highest Score</option>
+                      <option value="highest_accuracy">Highest Accuracy</option>
+                    </select>
+                  </div>
                 </div>
+
+                {loading ? (
+                  <div className="py-16 text-center space-y-3">
+                    <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-xs font-medium text-slate-500">Loading your report card history...</p>
+                  </div>
+                ) : filteredReportCards.length === 0 ? (
+                  <div className="py-16 text-center border-2 border-dashed border-slate-200 rounded-2xl p-6">
+                    <Trophy className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <h3 className="text-base font-bold text-slate-800">No report cards found</h3>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">
+                      {searchQuery || selectedMode !== 'ALL'
+                        ? 'No past test attempts match the selected filters.'
+                        : 'You haven’t completed any GATE tests yet. Take a sample or custom test to see your report cards here!'}
+                    </p>
+                    <Link
+                      to="/"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition"
+                    >
+                      Take Your First Mock Test
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {filteredReportCards.map((rc) => {
+                      const percent = rc.maxMarks > 0 ? (rc.score / rc.maxMarks) * 100 : 0;
+                      const avgQTime =
+                        rc.totalQuestions > 0 ? Math.round(rc.timeTakenSeconds / rc.totalQuestions) : 0;
+
+                      return (
+                        <div
+                          key={rc.id}
+                          className="py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-slate-50/60 p-3 rounded-2xl transition"
+                        >
+                          <div className="space-y-1.5 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide ${
+                                  rc.mode === 'EXAM'
+                                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                    : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                }`}
+                              >
+                                {rc.mode}
+                              </span>
+                              <span className="text-xs text-slate-400 flex items-center gap-1 font-medium">
+                                <Calendar className="w-3.5 h-3.5" />
+                                {new Date(rc.submittedAt).toLocaleDateString(undefined, {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                              <span className="text-slate-300">•</span>
+                              <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                                <Clock className="w-3.5 h-3.5" />
+                                {formatDurationHuman(rc.timeTakenSeconds)}
+                              </span>
+                              {avgQTime > 0 && (
+                                <>
+                                  <span className="text-slate-300">•</span>
+                                  <span className="text-xs text-blue-600 font-medium">
+                                    ⏱ ~{Math.floor(avgQTime / 60)}m {avgQTime % 60}s / Q
+                                  </span>
+                                </>
+                              )}
+                            </div>
+
+                            <h3 className="text-base font-bold text-slate-900 truncate">
+                              {rc.testTitle}
+                            </h3>
+
+                            <div className="flex items-center gap-3 text-xs font-medium pt-1">
+                              <span className="text-emerald-700 font-bold">{rc.correctCount} Correct</span>
+                              <span className="text-slate-300">/</span>
+                              <span className="text-red-600 font-bold">{rc.incorrectCount} Incorrect</span>
+                              <span className="text-slate-300">/</span>
+                              <span className="text-slate-500">{rc.unattemptedCount} Unattempted</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
+                            <div className="text-right">
+                              <span className="text-xl font-extrabold text-slate-900 block">
+                                {rc.score.toFixed(2)}
+                                <span className="text-xs font-semibold text-slate-400"> / {rc.maxMarks}</span>
+                              </span>
+                              <span
+                                className={`text-xs font-bold ${
+                                  percent >= 60 ? 'text-emerald-600' : percent >= 35 ? 'text-amber-600' : 'text-red-500'
+                                }`}
+                              >
+                                {percent.toFixed(1)}% Score • {rc.accuracy.toFixed(0)}% Acc
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => handleOpenDetail(rc)}
+                              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                            >
+                              View Report & Solutions →
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Search, Filter & History Section */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search past tests by title..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
-                />
+          {/* ─────────────────────────────────────────────────────────────
+              TAB 2: WEAKNESS & ANALYTICS
+              ───────────────────────────────────────────────────────────── */}
+          {activeTab === 'analytics' && (
+            <div className="space-y-6">
+              {/* Trend Chart Section */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-indigo-600" />
+                      Score & Accuracy Progression Trend
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Track your performance improvement across consecutive test attempts.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs font-semibold">
+                    <span className="flex items-center gap-1.5 text-indigo-600">
+                      <span className="w-3 h-3 rounded-full bg-indigo-600" /> Score %
+                    </span>
+                    <span className="flex items-center gap-1.5 text-emerald-600">
+                      <span className="w-3 h-3 rounded-full bg-emerald-500" /> Accuracy %
+                    </span>
+                  </div>
+                </div>
+
+                {analytics && analytics.trends.length > 0 ? (
+                  <div className="mt-4">
+                    <div className="h-48 w-full relative flex items-end gap-3 pt-6 pb-2 border-b border-slate-200">
+                      {analytics.trends.map((pt, idx) => {
+                        const scoreHeight = Math.max(8, Math.min(100, pt.scorePercent));
+                        const accHeight = Math.max(8, Math.min(100, pt.accuracy));
+                        return (
+                          <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                            {/* Hover Tooltip */}
+                            <div className="absolute -top-12 bg-slate-900 text-white text-[10px] rounded-lg p-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none z-20 shadow-lg">
+                              <p className="font-bold">{pt.testTitle}</p>
+                              <p>Score: {pt.scorePercent}% • Acc: {pt.accuracy}%</p>
+                            </div>
+
+                            <div className="w-full flex items-end justify-center gap-1 h-full">
+                              <div
+                                style={{ height: `${scoreHeight}%` }}
+                                className="w-3 sm:w-5 bg-indigo-600 rounded-t-md transition-all group-hover:bg-indigo-500"
+                              />
+                              <div
+                                style={{ height: `${accHeight}%` }}
+                                className="w-3 sm:w-5 bg-emerald-500 rounded-t-md transition-all group-hover:bg-emerald-400"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-400 mt-2 truncate w-full text-center">
+                              {pt.date}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-xs text-slate-400">
+                    Complete at least one test to visualize your score progression.
+                  </div>
+                )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Mode Filter */}
-                <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-bold">
-                  {(['ALL', 'EXAM', 'PRACTICE'] as FilterMode[]).map((mode) => (
+              {/* Priority Revision Topics Callout */}
+              {analytics && analytics.weakTopics.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 text-amber-900 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                    <h3 className="font-bold text-sm sm:text-base">
+                      Priority Revision Required ({analytics.weakTopics.length} Weak Topics &lt; 50% Accuracy)
+                    </h3>
+                  </div>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Based on your test attempts, you are dropping marks frequently in these topics. Launch a targeted practice session right now to build mastery:
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {analytics.weakTopics.map((wt, i) => (
+                      <div
+                        key={i}
+                        className="p-3.5 bg-white rounded-2xl border border-amber-200 shadow-xs flex items-center justify-between gap-3"
+                      >
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block truncate">
+                            {wt.subject}
+                          </span>
+                          <h4 className="text-xs font-bold text-slate-900 truncate">{wt.topic}</h4>
+                          <span className="text-[11px] font-bold text-red-600">
+                            {wt.accuracy}% Accuracy ({wt.correct}/{wt.attempted} correct)
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handlePracticeTopic(wt.subject, wt.topic)}
+                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shrink-0 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          Practice
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Subject & Topic Mastery Table */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-indigo-600" />
+                  Subject & Topic Mastery Breakdown
+                </h2>
+
+                {analytics && analytics.subjectMastery.length > 0 ? (
+                  <div className="space-y-4">
+                    {analytics.subjectMastery.map((sub) => (
+                      <div key={sub.subject} className="border border-slate-200 rounded-2xl overflow-hidden">
+                        <div className="bg-slate-50 p-4 flex items-center justify-between flex-wrap gap-3 border-b border-slate-200">
+                          <div>
+                            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Subject</span>
+                            <h3 className="text-base font-bold text-slate-900">{sub.subject}</h3>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                sub.status === 'STRONG'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : sub.status === 'MODERATE'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {sub.status}: {sub.accuracy}% Accuracy
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="divide-y divide-slate-100">
+                          {sub.topics.map((top) => (
+                            <div
+                              key={top.topic}
+                              className="p-3.5 sm:px-5 flex items-center justify-between flex-wrap gap-3 hover:bg-slate-50/50"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-xs font-bold text-slate-800">{top.topic}</h4>
+                                <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+                                  <span>{top.attempted} attempted</span>
+                                  <span>•</span>
+                                  <span className="text-emerald-700 font-semibold">{top.correct} correct</span>
+                                  <span>•</span>
+                                  <span className="text-red-600 font-semibold">{top.incorrect} wrong</span>
+                                  {top.avgTimeSeconds > 0 && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-blue-600 font-medium">⏱ ~{top.avgTimeSeconds}s / Q</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 shrink-0">
+                                <span
+                                  className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                                    top.status === 'STRONG'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : top.status === 'MODERATE'
+                                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                      : 'bg-red-50 text-red-700 border border-red-200'
+                                  }`}
+                                >
+                                  {top.accuracy}%
+                                </span>
+                                <button
+                                  onClick={() => handlePracticeTopic(sub.subject, top.topic)}
+                                  className="px-3 py-1 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Play className="w-3 h-3 fill-current" />
+                                  Practice
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 text-center py-8">
+                    Take tests to see subject & topic mastery analysis.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              TAB 3: MISTAKE NOTEBOOK
+              ───────────────────────────────────────────────────────────── */}
+          {activeTab === 'mistakes' && (
+            <div className="space-y-6">
+              {/* Action & Filter Header */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-amber-500" />
+                    Automatic Mistake Notebook
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Questions answered incorrectly in tests are captured here. Retest and master them to cement your concepts.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <button
+                    onClick={() => handleRetestMistakes(filteredMistakes.filter((m) => m.status === 'NEEDS_REVIEW'))}
+                    disabled={filteredMistakes.filter((m) => m.status === 'NEEDS_REVIEW').length === 0}
+                    className="w-full md:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Retest My Mistakes ({filteredMistakes.filter((m) => m.status === 'NEEDS_REVIEW').length})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters row */}
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {(['ALL', 'NEEDS_REVIEW', 'MASTERED', 'MOST_MISSED'] as MistakeFilter[]).map((f) => (
                     <button
-                      key={mode}
-                      onClick={() => setSelectedMode(mode)}
-                      className={`px-3 py-1.5 rounded-lg transition ${
-                        selectedMode === mode
-                          ? 'bg-white text-indigo-700 shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900'
+                      key={f}
+                      onClick={() => setMistakeFilter(f)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        mistakeFilter === f
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
-                      {mode}
+                      {f === 'ALL'
+                        ? 'All Mistakes'
+                        : f === 'NEEDS_REVIEW'
+                        ? 'Needs Review'
+                        : f === 'MASTERED'
+                        ? 'Mastered'
+                        : 'Most Missed (2+)'}
                     </button>
                   ))}
                 </div>
 
-                {/* Sort Option */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium rounded-xl px-3 py-2.5 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="highest_score">Highest Score</option>
-                  <option value="highest_accuracy">Highest Accuracy</option>
-                </select>
+                {mistakeSubjects.length > 0 && (
+                  <select
+                    value={selectedMistakeSubject}
+                    onChange={(e) => setSelectedMistakeSubject(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium rounded-xl px-3 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="ALL">All Subjects</option>
+                    {mistakeSubjects.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                )}
               </div>
+
+              {/* Mistakes List */}
+              {filteredMistakes.length === 0 ? (
+                <div className="py-16 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-white p-6">
+                  <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                  <h3 className="text-base font-bold text-slate-800">No mistakes in this filter!</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                    {mistakeFilter === 'NEEDS_REVIEW'
+                      ? 'Awesome work! You have no pending mistakes needing review.'
+                      : 'No questions match the current filter.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredMistakes.map((m) => {
+                    const isExpanded = expandedMistakes.has(m.id);
+                    const q = m.questionSnapshotJson;
+
+                    return (
+                      <div
+                        key={m.id}
+                        className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden"
+                      >
+                        <div className="p-4 sm:p-5 flex items-start justify-between gap-4">
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  m.status === 'MASTERED'
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    : 'bg-red-100 text-red-800 border border-red-200'
+                                }`}
+                              >
+                                {m.status === 'MASTERED' ? '✓ Mastered' : 'Needs Review'}
+                              </span>
+
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                                <RotateCcw className="w-3 h-3" />
+                                Missed {m.wrongCount} time{m.wrongCount > 1 ? 's' : ''}
+                              </span>
+
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                {m.subject}
+                              </span>
+
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
+                                {m.topic}
+                              </span>
+                            </div>
+
+                            <div className="text-sm font-medium text-slate-800 leading-relaxed pt-1">
+                              <RichContent content={q.question} />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => handleToggleMistakeStatus(m)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                m.status === 'MASTERED'
+                                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                              }`}
+                            >
+                              {m.status === 'MASTERED' ? 'Mark Needs Review' : '✓ Mark Mastered'}
+                            </button>
+
+                            <button
+                              onClick={() => toggleMistakeExpand(m.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                            >
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Collapsible Solution Box */}
+                        {isExpanded && (
+                          <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 space-y-4">
+                            {/* Visuals */}
+                            {q.imageUrl && (
+                              <div className="max-w-md">
+                                <QuestionImage src={q.imageUrl} alt="Diagram" />
+                              </div>
+                            )}
+
+                            {q.options && q.options.length > 0 && (
+                              <div className="space-y-1.5">
+                                <span className="text-xs font-bold text-slate-500 block">Options:</span>
+                                {q.options.map((opt, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="p-2 rounded-lg bg-white border border-slate-200 text-xs flex items-start gap-2"
+                                  >
+                                    <span className="font-bold">{String.fromCharCode(65 + idx)}.</span>
+                                    <RichContent content={opt} />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-1.5 text-xs text-indigo-950">
+                              <span className="font-bold text-indigo-900 block">Official Solution:</span>
+                              <RichContent content={q.solution || 'No detailed solution stored.'} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+          )}
 
-            {/* List of Report Cards */}
-            {loading || detailLoading ? (
-              <div className="py-16 text-center space-y-3">
-                <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-xs font-medium text-slate-500">Loading your report card history...</p>
+          {/* ─────────────────────────────────────────────────────────────
+              TAB 4: BOOKMARKS
+              ───────────────────────────────────────────────────────────── */}
+          {activeTab === 'bookmarks' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <Bookmark className="w-5 h-5 text-indigo-600" />
+                    Bookmarked Revision Bank
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Questions you pinned for quick revision from test reviews or the question bank.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <button
+                    onClick={() => handlePracticeBookmarks(filteredBookmarks)}
+                    disabled={filteredBookmarks.length === 0}
+                    className="w-full md:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Practice Bookmarked Questions ({filteredBookmarks.length})</span>
+                  </button>
+                </div>
               </div>
-            ) : filteredReportCards.length === 0 ? (
-              <div className="py-16 text-center border-2 border-dashed border-slate-200 rounded-2xl p-6">
-                <Trophy className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <h3 className="text-base font-bold text-slate-800">No report cards found</h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">
-                  {searchQuery || selectedMode !== 'ALL'
-                    ? 'No past test attempts match the selected filters.'
-                    : 'You haven’t completed any GATE tests yet. Take a sample or custom test to see your report cards here!'}
-                </p>
-                <Link
-                  to="/"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition"
-                >
-                  Take Your First Mock Test
-                </Link>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {filteredReportCards.map((rc) => {
-                  const percent = rc.maxMarks > 0 ? (rc.score / rc.maxMarks) * 100 : 0;
-                  return (
-                    <div
-                      key={rc.id}
-                      className="py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-slate-50/60 p-3 rounded-2xl transition"
-                    >
-                      <div className="space-y-1.5 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide ${
-                              rc.mode === 'EXAM'
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                : 'bg-purple-50 text-purple-700 border border-purple-200'
-                            }`}
-                          >
-                            {rc.mode}
-                          </span>
-                          <span className="text-xs text-slate-400 flex items-center gap-1 font-medium">
-                            <Calendar className="w-3.5 h-3.5" />
-                            {new Date(rc.submittedAt).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                          <span className="text-slate-300">•</span>
-                          <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-                            <Clock className="w-3.5 h-3.5" />
-                            {formatDurationHuman(rc.timeTakenSeconds)}
-                          </span>
+
+              {bookmarkSubjects.length > 0 && (
+                <div className="flex items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+                  <span className="text-xs font-bold text-slate-700">Filter by Subject:</span>
+                  <select
+                    value={selectedBookmarkSubject}
+                    onChange={(e) => setSelectedBookmarkSubject(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium rounded-xl px-3 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="ALL">All Subjects</option>
+                    {bookmarkSubjects.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {bookmarks.length === 0 ? (
+                <div className="py-16 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-white p-6">
+                  <Bookmark className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <h3 className="text-base font-bold text-slate-800">No bookmarked questions yet</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                    Click the bookmark icon on any question in the Question Bank or after completing a test to save it here for fast revision.
+                  </p>
+                  <Link
+                    to="/question-bank"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition"
+                  >
+                    Browse Question Bank
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredBookmarks.map((b) => {
+                    const isExpanded = expandedBookmarks.has(b.id);
+                    const q = b.questionSnapshotJson;
+
+                    return (
+                      <div
+                        key={b.id}
+                        className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden"
+                      >
+                        <div className="p-4 sm:p-5 flex items-start justify-between gap-4">
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                {b.subject}
+                              </span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
+                                {b.topic}
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                Saved {new Date(b.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            <div className="text-sm font-medium text-slate-800 leading-relaxed pt-1">
+                              <RichContent content={q.question} />
+                            </div>
+
+                            {/* Note snippet or editor */}
+                            {editingNoteId === b.id ? (
+                              <div className="flex items-center gap-2 mt-2">
+                                <input
+                                  type="text"
+                                  value={noteDraft}
+                                  onChange={(e) => setNoteDraft(e.target.value)}
+                                  placeholder="Add a short personal note..."
+                                  className="text-xs px-3 py-1.5 border border-slate-300 rounded-lg flex-1"
+                                />
+                                <button
+                                  onClick={async () => {
+                                    await updateBookmarkNoteApi(b.id, noteDraft);
+                                    setBookmarks((prev) =>
+                                      prev.map((item) => (item.id === b.id ? { ...item, note: noteDraft } : item))
+                                    );
+                                    setEditingNoteId(null);
+                                  }}
+                                  className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg cursor-pointer"
+                                >
+                                  Save Note
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-xs text-slate-600 mt-2">
+                                <span className="italic">
+                                  {b.note ? `Note: "${b.note}"` : 'No note attached.'}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setEditingNoteId(b.id);
+                                    setNoteDraft(b.note || '');
+                                  }}
+                                  className="text-indigo-600 hover:underline text-[11px] font-bold cursor-pointer"
+                                >
+                                  {b.note ? 'Edit Note' : '+ Add Note'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={async () => {
+                                await toggleBookmarkApi(q);
+                                setBookmarks((prev) => prev.filter((item) => item.id !== b.id));
+                              }}
+                              className="p-1.5 rounded-lg text-amber-600 hover:text-red-600 hover:bg-slate-100 transition cursor-pointer"
+                              title="Remove Bookmark"
+                            >
+                              <Bookmark className="w-4 h-4 fill-current" />
+                            </button>
+
+                            <button
+                              onClick={() => toggleBookmarkExpand(b.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                            >
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
+                          </div>
                         </div>
 
-                        <h3 className="text-base font-bold text-slate-900 truncate">
-                          {rc.testTitle}
-                        </h3>
-
-                        {/* Breakdown Pills */}
-                        <div className="flex items-center gap-3 text-xs font-medium pt-1">
-                          <span className="text-emerald-700 font-bold">{rc.correctCount} Correct</span>
-                          <span className="text-slate-300">/</span>
-                          <span className="text-red-600 font-bold">{rc.incorrectCount} Incorrect</span>
-                          <span className="text-slate-300">/</span>
-                          <span className="text-slate-500">{rc.unattemptedCount} Unattempted</span>
-                        </div>
+                        {/* Collapsible Solution */}
+                        {isExpanded && (
+                          <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 space-y-3 text-xs">
+                            {q.options && (
+                              <div className="space-y-1">
+                                <span className="font-bold text-slate-500">Options:</span>
+                                {q.options.map((opt, idx) => (
+                                  <div key={idx} className="p-2 bg-white rounded border border-slate-200">
+                                    <span className="font-bold mr-1">{String.fromCharCode(65 + idx)}.</span>
+                                    <RichContent content={opt} />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-950 space-y-1">
+                              <span className="font-bold text-indigo-900 block">Solution:</span>
+                              <RichContent content={q.solution || 'No detailed solution stored.'} />
+                            </div>
+                          </div>
+                        )}
                       </div>
-
-                      {/* Score & Action Button */}
-                      <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
-                        <div className="text-right">
-                          <span className="text-xl font-extrabold text-slate-900 block">
-                            {rc.score.toFixed(2)}
-                            <span className="text-xs font-semibold text-slate-400"> / {rc.maxMarks}</span>
-                          </span>
-                          <span
-                            className={`text-xs font-bold ${
-                              percent >= 60 ? 'text-emerald-600' : percent >= 35 ? 'text-amber-600' : 'text-red-500'
-                            }`}
-                          >
-                            {percent.toFixed(1)}% Score • {rc.accuracy.toFixed(0)}% Acc
-                          </span>
-                        </div>
-
-                        <button
-                          onClick={() => handleOpenDetail(rc)}
-                          className="px-4 py-2 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white rounded-xl text-xs font-bold transition shadow-xs"
-                        >
-                          View Report & Solutions →
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </main>
       )}
     </div>

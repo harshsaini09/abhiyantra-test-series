@@ -30,6 +30,7 @@ export interface Question {
   solutionImageUrl?: string | null;
   solutionTikzCode?: string | null;
   section?: 'GA' | 'SUBJECT' | string;
+  contentHash?: string;
 }
 
 /** The root test JSON schema */
@@ -41,6 +42,7 @@ export interface TestData {
   topic?: string;
   defaultSubject?: string;
   defaultTopic?: string;
+  duration?: number;
   sections?: Array<{
     id: string;
     name: string;
@@ -156,6 +158,7 @@ export interface QuestionResult {
   marksAwarded: number;
   correctAnswer: string;
   userAnswer: string;
+  timeSpentSeconds?: number;
 }
 
 /** Aggregated test results */
@@ -225,4 +228,77 @@ export interface SavedReportCard {
   breakdownJson?: Record<string, unknown>;
   detailedReviewJson?: QuestionResult[];
   submittedAt: string;
+}
+
+// ─── Mistake Notebook Types ───
+export interface MistakeEntry {
+  id: string;
+  userId: string;
+  questionHash: string;
+  questionSnapshotJson: Question;
+  subject: string;
+  topic: string;
+  wrongCount: number;
+  status: 'NEEDS_REVIEW' | 'MASTERED';
+  lastWrongAt: string;
+  masteredAt?: string | null;
+}
+
+// ─── Bookmark Types ───
+export interface BookmarkItem {
+  id: string;
+  userId: string;
+  questionHash: string;
+  questionSnapshotJson: Question;
+  subject: string;
+  topic: string;
+  note?: string | null;
+  createdAt: string;
+}
+
+// ─── Performance & Weakness Analytics Summary Types ───
+export interface SubjectMastery {
+  subject: string;
+  totalQuestions: number;
+  attempted: number;
+  correct: number;
+  incorrect: number;
+  unattempted: number;
+  accuracy: number;
+  scorePercent: number;
+  avgTimeSeconds: number;
+  status: 'STRONG' | 'MODERATE' | 'WEAK';
+  topics: TopicMastery[];
+}
+
+export interface TopicMastery {
+  topic: string;
+  subject: string;
+  totalQuestions: number;
+  attempted: number;
+  correct: number;
+  incorrect: number;
+  unattempted: number;
+  accuracy: number;
+  avgTimeSeconds: number;
+  status: 'STRONG' | 'MODERATE' | 'WEAK';
+}
+
+export interface AttemptTrendPoint {
+  date: string;
+  testTitle: string;
+  scorePercent: number;
+  accuracy: number;
+  score: number;
+  maxMarks: number;
+}
+
+export interface AnalyticsSummary {
+  totalTests: number;
+  avgAccuracy: number;
+  avgScorePercent: number;
+  totalTimeSpentSeconds: number;
+  trends: AttemptTrendPoint[];
+  subjectMastery: SubjectMastery[];
+  weakTopics: TopicMastery[];
 }

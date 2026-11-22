@@ -7,6 +7,9 @@ import {
   archiveQuestion,
   createQuestion,
   getExportUrl,
+  fetchBookmarksApi,
+  toggleBookmarkApi,
+  computeQuestionHash,
 } from '../utils/api';
 import type {
   SubjectWithTopics,
@@ -14,6 +17,7 @@ import type {
   QuestionBankStats,
   QuestionType,
   MarkValue,
+  Question,
 } from '../types';
 import {
   Database,
@@ -33,6 +37,7 @@ import {
   FileQuestion,
   X,
   AlertCircle,
+  Bookmark,
 } from 'lucide-react';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
@@ -58,6 +63,45 @@ export default function QuestionBankPage() {
 
   // Solution toggle state
   const [expandedSolutions, setExpandedSolutions] = useState<Set<number>>(new Set());
+
+  // Bookmarks state
+  const [bookmarkedHashes, setBookmarkedHashes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetchBookmarksApi()
+      .then((items) => {
+        setBookmarkedHashes(new Set(items.map((b) => b.questionHash)));
+      })
+      .catch(() => {});
+  }, []);
+
+  const toQuestionObj = (q: QuestionBankItem): Question => ({
+    id: q.id,
+    type: q.type,
+    question: q.questionText,
+    options: q.options || undefined,
+    answer: q.answer,
+    solution: q.solution,
+    marks: q.marks,
+    subject: q.subject.name,
+    topic: q.topic.name,
+    imageUrl: q.imageUrl,
+    tikzCode: q.tikzCode,
+    contentHash: q.contentHash,
+  });
+
+  const handleToggleBookmark = async (q: QuestionBankItem) => {
+    const qObj = toQuestionObj(q);
+    const qHash = computeQuestionHash(qObj);
+    const newSet = new Set(bookmarkedHashes);
+    if (newSet.has(qHash)) {
+      newSet.delete(qHash);
+    } else {
+      newSet.add(qHash);
+    }
+    setBookmarkedHashes(newSet);
+    await toggleBookmarkApi(qObj).catch(() => {});
+  };
 
   // Add Question Modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -564,7 +608,22 @@ export default function QuestionBankPage() {
                       </div>
 
                       {/* Action buttons */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleBookmark(q)}
+                          title={bookmarkedHashes.has(computeQuestionHash(toQuestionObj(q))) ? 'Remove Bookmark' : 'Bookmark Question'}
+                          className={`p-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                            bookmarkedHashes.has(computeQuestionHash(toQuestionObj(q)))
+                              ? 'text-amber-600 bg-amber-50 hover:bg-amber-100'
+                              : 'text-slate-400 hover:text-amber-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          <Bookmark
+                            className="w-4 h-4"
+                            fill={bookmarkedHashes.has(computeQuestionHash(toQuestionObj(q))) ? 'currentColor' : 'none'}
+                          />
+                        </button>
                         <button
                           onClick={() => handleArchiveToggle(q)}
                           title={q.isArchived ? 'Restore question' : 'Archive (soft-delete)'}
