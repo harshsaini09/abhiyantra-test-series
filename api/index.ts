@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import app from '../server/app';
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   // Check if DATABASE_URL is set and valid
@@ -79,13 +80,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   // When database IS connected, forward to Express server app
   try {
-    const appModule = await import('../server/app.js').catch(() => import('../server/app.ts'));
-    const app = appModule.default || appModule;
     return (app as any)(req, res);
   } catch (err: any) {
     console.error('Server app error:', err);
-    res.statusCode = 200;
+    res.statusCode = 500;
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ fallback: true, error: err?.message, user: null }));
+    res.end(JSON.stringify({ error: err?.message, user: null }));
   }
 }
