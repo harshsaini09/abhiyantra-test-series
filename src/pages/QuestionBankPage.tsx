@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
+import { useAuth } from '../context/AuthContext';
 import {
   fetchHierarchy,
   fetchQuestions,
@@ -46,6 +47,14 @@ import { QuestionImage } from '../components/ImageLightbox';
 import TikzDiagram from '../components/TikzDiagram';
 
 export default function QuestionBankPage() {
+  const { user } = useAuth();
+  const isMasterAdmin = Boolean(
+    user?.email &&
+      (user.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
+        user.email.toLowerCase().trim() === 'harshsaini0912@gmail' ||
+        user.email.toLowerCase().startsWith('harshsaini0912@'))
+  );
+
   const [stats, setStats] = useState<QuestionBankStats | null>(null);
   const [hierarchy, setHierarchy] = useState<SubjectWithTopics[]>([]);
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
@@ -307,15 +316,17 @@ export default function QuestionBankPage() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
-            <button
-              onClick={handleClearBank}
-              disabled={isClearing || !stats || stats.totalQuestions === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs sm:text-sm font-semibold border border-rose-500/30 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Clear question bank to zero questions"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-              <span>{isClearing ? 'Clearing...' : 'Clear Bank'}</span>
-            </button>
+            {isMasterAdmin && (
+              <button
+                onClick={handleClearBank}
+                disabled={isClearing || !stats || stats.totalQuestions === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs sm:text-sm font-semibold border border-rose-500/30 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Clear question bank to zero questions (Admin Only)"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <span>{isClearing ? 'Clearing...' : 'Clear Bank'}</span>
+              </button>
+            )}
 
             <a
               href={getExportUrl(selectedSubjectId, selectedTopicId)}

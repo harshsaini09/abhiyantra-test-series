@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser';
 import { prisma, isDbConfigured } from './db.js';
 import { ingestQuestions, IngestTestInput } from './ingest.js';
 import { computeContentHash } from './contentHash.js';
-import authRouter from './auth.js';
+import authRouter, { verifyUserToken } from './auth.js';
 import reportCardsRouter from './reportCards.js';
 import mistakesRouter from './mistakes.js';
 import bookmarksRouter from './bookmarks.js';
@@ -506,6 +506,20 @@ app.post('/custom-test/generate', handleCustomTest);
 const handleClearData = async (req: Request, res: Response) => {
   try {
     const { target } = req.body || {}; // 'all' | 'questions' | 'report-cards'
+
+    // Restrict clear data operation to harshsaini0912
+    const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+    const authUser = token ? verifyUserToken(token) : null;
+    const isMasterAdmin = authUser && (
+      authUser.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
+      authUser.email.toLowerCase().trim() === 'harshsaini0912@gmail' ||
+      authUser.email.toLowerCase().startsWith('harshsaini0912@')
+    );
+
+    if (authUser && !isMasterAdmin) {
+      res.status(403).json({ error: 'Access denied: Only harshsaini0912@gmail has permission to clear database data.' });
+      return;
+    }
 
     if (!isDbConfigured || !prisma) {
       res.json({
