@@ -10,6 +10,7 @@ import {
   fetchBookmarksApi,
   toggleBookmarkApi,
   computeQuestionHash,
+  clearPlatformDataApi,
 } from '../utils/api';
 import type {
   SubjectWithTopics,
@@ -38,6 +39,7 @@ import {
   X,
   AlertCircle,
   Bookmark,
+  Trash2,
 } from 'lucide-react';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
@@ -184,6 +186,25 @@ export default function QuestionBankPage() {
     }
   };
 
+  // State and Handler to Clear Entire Question Bank
+  const [isClearing, setIsClearing] = useState(false);
+  const handleClearBank = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to clear the entire Question Bank to 0 questions? All questions in the cloud database and local cache will be permanently deleted.'
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsClearing(true);
+      await clearPlatformDataApi('questions');
+      await loadData();
+    } catch (err) {
+      console.error('Failed to clear bank:', err);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   // Handle Add Question Submit
   const handleCreateQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,7 +297,7 @@ export default function QuestionBankPage() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold mb-1 border border-indigo-400/30">
                 <Database className="w-3.5 h-3.5" />
-                <span className="capitalize">abhiyantra</span> • SQLite + Prisma Repository
+                <span className="capitalize">abhiyantra</span> • PostgreSQL + Prisma Repository
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Abhiyantra Question Bank</h1>
               <p className="mt-0.5 text-xs text-slate-400 max-w-2xl">
@@ -285,11 +306,21 @@ export default function QuestionBankPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              onClick={handleClearBank}
+              disabled={isClearing || !stats || stats.totalQuestions === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs sm:text-sm font-semibold border border-rose-500/30 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Clear question bank to zero questions"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+              <span>{isClearing ? 'Clearing...' : 'Clear Bank'}</span>
+            </button>
+
             <a
               href={getExportUrl(selectedSubjectId, selectedTopicId)}
               download
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold border border-white/20 backdrop-blur-xs transition-all shadow-xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold border border-white/20 backdrop-blur-xs transition-all shadow-xs"
             >
               <Download className="w-4 h-4 text-indigo-300" />
               Export Full Bank (.json)
@@ -297,7 +328,7 @@ export default function QuestionBankPage() {
 
             <button
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all shadow-sm"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold transition-all shadow-sm"
             >
               <Plus className="w-4 h-4" />
               Add Question
