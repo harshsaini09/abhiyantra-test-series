@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
-import { prisma, isDbConfigured } from './db';
-import { requireAuth, AuthenticatedRequest } from './auth';
+import { prisma, isDbConfigured } from './db.js';
+import { requireAuth, AuthenticatedRequest } from './auth.js';
 
 const router = Router();
 router.use(requireAuth);

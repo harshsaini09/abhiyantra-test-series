@@ -1,14 +1,14 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { prisma, isDbConfigured } from './db';
-import { ingestQuestions, IngestTestInput } from './ingest';
-import { computeContentHash } from './contentHash';
-import authRouter from './auth';
-import reportCardsRouter from './reportCards';
-import mistakesRouter from './mistakes';
-import bookmarksRouter from './bookmarks';
-import analyticsRouter from './analytics';
+import { prisma, isDbConfigured } from './db.js';
+import { ingestQuestions, IngestTestInput } from './ingest.js';
+import { computeContentHash } from './contentHash.js';
+import authRouter from './auth.js';
+import reportCardsRouter from './reportCards.js';
+import mistakesRouter from './mistakes.js';
+import bookmarksRouter from './bookmarks.js';
+import analyticsRouter from './analytics.js';
 
 const app = express();
 

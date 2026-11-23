@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import app from '../server/app';
+import app from '../server/app.js';
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   // Check if DATABASE_URL is set and valid

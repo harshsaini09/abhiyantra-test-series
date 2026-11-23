@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
-import { prisma, isDbConfigured } from './db';
+import { prisma, isDbConfigured } from './db.js';
 
 const router = Router();
 

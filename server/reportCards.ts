@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
-import { prisma, isDbConfigured } from './db';
-import { requireAuth, AuthenticatedRequest } from './auth';
-import { computeContentHash } from './contentHash';
+import { prisma, isDbConfigured } from './db.js';
+import { requireAuth, AuthenticatedRequest } from './auth.js';
+import { computeContentHash } from './contentHash.js';
 
 const router = Router();
 

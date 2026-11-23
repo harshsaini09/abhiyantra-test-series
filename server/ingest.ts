@@ -1,5 +1,5 @@
-import { prisma } from './db';
-import { computeContentHash } from './contentHash';
+import { prisma } from './db.js';
+import { computeContentHash } from './contentHash.js';
 
 export interface IngestQuestionInput {
   id?: number;
