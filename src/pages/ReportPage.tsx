@@ -29,6 +29,7 @@ import { toggleBookmarkApi, fetchBookmarksApi, computeQuestionHash } from '../ut
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
 import TikzDiagram from '../components/TikzDiagram';
+import Navbar from '../components/Navbar';
 
 type FilterTab = 'all' | 'correct' | 'incorrect' | 'unattempted';
 
@@ -78,19 +79,22 @@ export default function ReportPage() {
   // ---- No results guard ----
   if (!results) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Trophy className="w-16 h-16 text-slate-300 mx-auto" />
-          <h2 className="text-2xl font-semibold text-slate-700">No test results found</h2>
-          <p className="text-slate-500">
-            It looks like you haven't taken a test yet or the results have expired.
-          </p>
-          <Link
-            to="/"
-            className="inline-block mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-          >
-            Go to Home
-          </Link>
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center space-y-4">
+            <Trophy className="w-16 h-16 text-slate-300 mx-auto" />
+            <h2 className="text-2xl font-semibold text-slate-700">No test results found</h2>
+            <p className="text-slate-500">
+              It looks like you haven't taken a test yet or the results have expired.
+            </p>
+            <Link
+              to="/"
+              className="inline-block mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              Go to Home
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -169,7 +173,10 @@ export default function ReportPage() {
   // Render
   // ================================================================
   return (
-    <div className="min-h-screen bg-slate-50 print:bg-white">
+    <div className="min-h-screen bg-slate-50 print:bg-white flex flex-col">
+      <div className="print:hidden">
+        <Navbar />
+      </div>
       {/* ---- Header ---- */}
       <header className="bg-gradient-to-r from-indigo-800 via-indigo-700 to-blue-700 text-white py-8 px-4 print:py-4 print:bg-white print:text-slate-900 border-b print:border-slate-300">
         <div className="max-w-6xl mx-auto text-center space-y-3">

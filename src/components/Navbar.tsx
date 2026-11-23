@@ -28,6 +28,12 @@ export default function Navbar() {
     { to: '/report-cards', label: 'Report Cards', shortLabel: 'Reports', icon: <Award className="w-4 h-4" /> },
   ];
 
+  const isLinkActive = (to: string) => {
+    if (location.pathname === to) return true;
+    if (to === '/report-cards' && location.pathname === '/report') return true;
+    return false;
+  };
+
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
@@ -52,7 +58,7 @@ export default function Navbar() {
           {/* Center Navigation Links (Tablet landscape & Desktop) */}
           <div className="hidden md:flex items-center gap-1">
             {links.map((link) => {
-              const isActive = location.pathname === link.to;
+              const isActive = isLinkActive(link.to);
               return (
                 <Link
                   key={link.to}
@@ -171,7 +177,7 @@ export default function Navbar() {
         {/* Mobile & Small Tablet Navigation Bar */}
         <div className="flex md:hidden items-center justify-around py-2 border-t border-slate-100">
           {links.map((link) => {
-            const isActive = location.pathname === link.to;
+            const isActive = isLinkActive(link.to);
             return (
               <Link
                 key={link.to}
