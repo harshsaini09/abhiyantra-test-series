@@ -188,6 +188,51 @@ export default function ReportCardsPage() {
     navigate('/test', { state: { testData, mode: 'EXAM' } });
   };
 
+  // Retest Full Test from Report Card
+  const handleRetestFullTest = async (rc: SavedReportCard) => {
+    let questions: Question[] = [];
+
+    if (rc.detailedReviewJson && rc.detailedReviewJson.length > 0) {
+      questions = rc.detailedReviewJson
+        .map((qr, idx) => ({
+          ...qr.question,
+          id: idx + 1,
+        }))
+        .filter((q) => q && q.question);
+    }
+
+    if (questions.length === 0) {
+      try {
+        const fullDetail = await fetchReportCardDetailApi(rc.id);
+        if (fullDetail?.detailedReviewJson && fullDetail.detailedReviewJson.length > 0) {
+          questions = fullDetail.detailedReviewJson
+            .map((qr, idx) => ({
+              ...qr.question,
+              id: idx + 1,
+            }))
+            .filter((q) => q && q.question);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (questions.length === 0) {
+      alert('Could not retrieve questions for this test attempt.');
+      return;
+    }
+
+    const testData: TestData = {
+      title: rc.testTitle,
+      subject: questions[0]?.subject || 'GATE Test',
+      topic: questions[0]?.topic || 'Retest',
+      duration: rc.allocatedSeconds || Math.max(600, questions.length * 162),
+      questions,
+    };
+
+    navigate('/test', { state: { testData, mode: rc.mode || 'EXAM' } });
+  };
+
   // Practice Bookmarks
   const handlePracticeBookmarks = (bookmarksToTest: BookmarkItem[]) => {
     if (bookmarksToTest.length === 0) return;
@@ -412,13 +457,22 @@ export default function ReportCardsPage() {
               Back to All Report Cards
             </button>
 
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-semibold transition cursor-pointer"
-            >
-              <Printer className="w-4 h-4" />
-              Print Report Card
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleRetestFullTest(selectedCard)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition cursor-pointer shadow-sm"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Retest
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-semibold transition cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                Print Report Card
+              </button>
+            </div>
           </div>
 
           {/* Test Header */}
@@ -799,12 +853,22 @@ export default function ReportCardsPage() {
                               </span>
                             </div>
 
-                            <button
-                              onClick={() => handleOpenDetail(rc)}
-                              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
-                            >
-                              View Report & Solutions →
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleOpenDetail(rc)}
+                                className="px-3.5 py-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                              >
+                                View Report & Solutions →
+                              </button>
+
+                              <button
+                                onClick={() => handleRetestFullTest(rc)}
+                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span>Retest</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
