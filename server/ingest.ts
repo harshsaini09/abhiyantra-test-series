@@ -3,18 +3,21 @@ import { computeContentHash } from './contentHash.js';
 
 export interface IngestQuestionInput {
   id?: number;
-  type: 'MCQ' | 'MSQ' | 'NAT';
-  marks: 1 | 2;
+  type?: 'MCQ' | 'MSQ' | 'NAT' | string;
+  marks?: 1 | 2 | number;
   subject?: string;
   topic?: string;
-  question: string;
+  question?: string;
+  questionText?: string;
+  text?: string;
   options?: string[];
-  answer: unknown;
-  solution: string;
-  imageUrl?: string;
-  tikzCode?: string;
-  solutionImageUrl?: string;
-  solutionTikzCode?: string;
+  answer?: unknown;
+  solution?: string;
+  explanation?: string;
+  imageUrl?: string | null;
+  tikzCode?: string | null;
+  solutionImageUrl?: string | null;
+  solutionTikzCode?: string | null;
 }
 
 export interface IngestTestInput {
@@ -43,8 +46,15 @@ export async function ingestQuestions(data: IngestTestInput): Promise<IngestResu
   const defaultTop = data.defaultTopic?.trim() || data.topic?.trim() || 'General';
 
   for (const q of data.questions) {
+    const rawQuestionText = (q.question || q.questionText || q.text || '').trim();
+    if (!rawQuestionText) continue;
+
     const subjectName = q.subject?.trim() || defaultSub;
     const topicName = q.topic?.trim() || defaultTop;
+    const rawType = (q.type || 'MCQ').toString().trim().toUpperCase();
+    const qType = (['MCQ', 'MSQ', 'NAT'].includes(rawType) ? rawType : 'MCQ') as 'MCQ' | 'MSQ' | 'NAT';
+    const qMarks = (q.marks === 2 ? 2 : 1) as 1 | 2;
+    const solutionText = (q.solution || q.explanation || '').trim();
 
     // 1. Upsert Subject
     const subject = await prisma.subject.upsert({
@@ -69,7 +79,7 @@ export async function ingestQuestions(data: IngestTestInput): Promise<IngestResu
     });
 
     // 3. Compute Content Hash
-    const contentHash = computeContentHash(q.question, q.type, q.options);
+    const contentHash = computeContentHash(rawQuestionText, qType, q.options);
 
     // 4. Check if question already exists
     const existing = await prisma.question.findUnique({
@@ -92,12 +102,12 @@ export async function ingestQuestions(data: IngestTestInput): Promise<IngestResu
           contentHash,
           subjectId: subject.id,
           topicId: topic.id,
-          type: q.type,
-          marks: q.marks,
-          questionText: q.question.trim(),
+          type: qType,
+          marks: qMarks,
+          questionText: rawQuestionText,
           optionsJson: q.options ? JSON.stringify(q.options) : null,
-          answerJson: JSON.stringify(q.answer),
-          solution: q.solution.trim(),
+          answerJson: q.answer !== undefined ? JSON.stringify(q.answer) : '0',
+          solution: solutionText,
           imageUrl: q.imageUrl || null,
           tikzCode: q.tikzCode || null,
           solutionImageUrl: q.solutionImageUrl || null,

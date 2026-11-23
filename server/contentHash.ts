@@ -11,13 +11,13 @@ export function computeContentHash(
   type: string,
   options?: string[] | null
 ): string {
-  // Normalize whitespace and case in question text
-  const normText = questionText.trim().toLowerCase().replace(/\s+/g, ' ');
-  const normType = type.trim().toUpperCase();
+  // Normalize whitespace and case in question text safely
+  const normText = (questionText || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const normType = (type || 'MCQ').trim().toUpperCase();
 
   // Normalize options: trim, lowercase, sort alphabetically so option order doesn't affect hash
   const normOptions = (options || [])
-    .map((o) => o.trim().toLowerCase().replace(/\s+/g, ' '))
+    .map((o) => (o || '').trim().toLowerCase().replace(/\s+/g, ' '))
     .sort()
     .join('|||');
 

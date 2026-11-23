@@ -43,8 +43,23 @@ app.get('/health', handleHealth);
 // ─── 2. Ingest Questions ───
 const handleIngest = async (req: Request, res: Response) => {
   try {
-    const data = req.body as IngestTestInput;
-    if (!data || !Array.isArray(data.questions) || data.questions.length === 0) {
+    let body = req.body;
+    let data: IngestTestInput;
+
+    if (Array.isArray(body)) {
+      data = { questions: body };
+    } else if (body && Array.isArray(body.questions)) {
+      data = body as IngestTestInput;
+    } else if (body && Array.isArray(body.test?.questions)) {
+      data = { ...body.test, questions: body.test.questions };
+    } else if (body && Array.isArray(body.data?.questions)) {
+      data = { ...body.data, questions: body.data.questions };
+    } else {
+      res.status(400).json({ error: 'Body must include a "questions" array with at least one question.' });
+      return;
+    }
+
+    if (!data.questions || data.questions.length === 0) {
       res.status(400).json({ error: 'Body must include a "questions" array with at least one question.' });
       return;
     }
@@ -70,11 +85,11 @@ const handleIngest = async (req: Request, res: Response) => {
       message: `Processed ${result.totalProcessed} questions: ${result.newInserted} new inserted, ${result.duplicatesSkipped} duplicates skipped.`,
     });
   } catch (error) {
-    console.warn('Ingest fallback:', error);
+    console.error('Ingest error:', error);
     res.status(200).json({
       success: true,
       stats: { totalProcessed: 0, newInserted: 0, duplicatesSkipped: 0, insertedIds: [] },
-      message: 'Ingest handled via client fallback.',
+      message: error instanceof Error ? `Ingest notice: ${error.message}` : 'Ingest handled via client fallback.',
     });
   }
 };
