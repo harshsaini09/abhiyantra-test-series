@@ -151,13 +151,6 @@ export async function requireTeacherOrAdmin(req: AuthenticatedRequest, res: Resp
     }
   });
 }
-    } catch (e) {
-      console.warn('Fallback email auth error:', e);
-    }
-  }
-
-  res.status(401).json({ error: 'Authentication required. Please sign in.' });
-}
 
 // ─── 1. Google OAuth Sign-In / Token Verification ───
 router.post('/google', async (req: Request, res: Response): Promise<void> => {
