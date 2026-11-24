@@ -91,7 +91,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       const keyId =
         orderData.key_id ||
         (import.meta as any).env?.VITE_RAZORPAY_KEY_ID ||
-        'rzp_test_U3uRd6RDOL1ftn';
+        'rzp_live_U3v62oDNcKSdvL';
 
       // 3. Open Razorpay Standard Checkout modal
       const options = {
