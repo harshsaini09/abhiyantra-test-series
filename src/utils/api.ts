@@ -53,6 +53,18 @@ export function getAuthHeaders(extraHeaders: Record<string, string> = {}): Recor
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
+  try {
+    const raw = localStorage.getItem('abhiyantra_user_profile');
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u && u.email) {
+        headers['x-user-email'] = u.email;
+        if (u.name) headers['x-user-name'] = u.name;
+      }
+    }
+  } catch {
+    // ignore
+  }
   return headers;
 }
 
@@ -630,14 +642,28 @@ export async function saveReportCardApi(results: TestResults): Promise<SavedRepo
 
   // 2. Synchronize with remote server/PostgreSQL if available
   try {
+    const userProfileRaw = localStorage.getItem('abhiyantra_user_profile');
+    let userEmail: string | undefined = undefined;
+    let userName: string | undefined = undefined;
+    if (userProfileRaw) {
+      try {
+        const u = JSON.parse(userProfileRaw);
+        userEmail = u?.email;
+        userName = u?.name;
+      } catch {}
+    }
+
     const res = await fetch(`${API_BASE}/report-cards`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, userEmail, userName }),
     });
 
     if (res.ok) {
+      const authHeader = res.headers.get('x-auth-token');
+      if (authHeader) setStoredAuthToken(authHeader);
+
       const data = await res.json();
       if (data && data.reportCard) {
         // Replace temporary local ID with remote reportCard ID
@@ -654,19 +680,48 @@ export async function saveReportCardApi(results: TestResults): Promise<SavedRepo
 
 export async function syncLocalReportCardsToCloud(): Promise<void> {
   const token = getStoredAuthToken();
-  if (!token) return;
+  let userEmail: string | undefined = undefined;
+  let userName: string | undefined = undefined;
+  try {
+    const raw = localStorage.getItem('abhiyantra_user_profile');
+    if (raw) {
+      const u = JSON.parse(raw);
+      userEmail = u?.email;
+      userName = u?.name;
+    }
+  } catch {}
+
+  // If neither token nor userEmail exists, user is truly not logged in
+  if (!token && !userEmail) return;
 
   const localCards = getLocalReportCards();
   const unsynced = localCards.filter((c) => String(c.id).startsWith('local_'));
   if (unsynced.length === 0) return;
 
   try {
-    await fetch(`${API_BASE}/report-cards/sync`, {
+    const res = await fetch(`${API_BASE}/report-cards/sync`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
-      body: JSON.stringify({ reportCards: unsynced }),
+      body: JSON.stringify({ reportCards: unsynced, userEmail, userName }),
     });
+
+    if (res.ok) {
+      const authHeader = res.headers.get('x-auth-token');
+      if (authHeader) setStoredAuthToken(authHeader);
+
+      // Re-fetch cloud report cards to sync local storage completely
+      const remoteRes = await fetch(`${API_BASE}/report-cards`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (remoteRes.ok) {
+        const cloudCards = await remoteRes.json();
+        if (Array.isArray(cloudCards) && cloudCards.length > 0) {
+          localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify(cloudCards));
+        }
+      }
+    }
   } catch {
     // ignore
   }
@@ -679,6 +734,9 @@ export async function fetchReportCardsApi(): Promise<SavedReportCard[]> {
       credentials: 'include',
     });
     if (res.ok) {
+      const authHeader = res.headers.get('x-auth-token');
+      if (authHeader) setStoredAuthToken(authHeader);
+
       const data = await res.json();
       if (Array.isArray(data)) {
         if (data.length > 0) {

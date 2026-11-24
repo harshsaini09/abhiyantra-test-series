@@ -16,6 +16,7 @@ app.use(
   cors({
     origin: true, // Allow frontend origin dynamically
     credentials: true, // Support httpOnly cookie sessions
+    exposedHeaders: ['x-auth-token'],
   })
 );
 app.use(cookieParser());
