@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Database, Wrench, Home, Award, LogOut, ChevronDown, Sparkles, ShieldCheck } from 'lucide-react';
+import { Database, Wrench, Home, Award, LogOut, ChevronDown, Sparkles, ShieldCheck, Layers } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 
@@ -27,6 +27,7 @@ export default function Navbar() {
 
   const baseLinks = [
     { to: '/', label: 'Home', shortLabel: 'Home', icon: <Home className="w-4 h-4" /> },
+    { to: '/test-series', label: 'Test Series', shortLabel: 'Series', icon: <Layers className="w-4 h-4" /> },
     { to: '/pricing', label: 'GATE Pass', shortLabel: 'Pass', icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
     { to: '/report-cards', label: 'Report Cards', shortLabel: 'Reports', icon: <Award className="w-4 h-4" /> },
   ];
@@ -37,7 +38,7 @@ export default function Navbar() {
   ];
 
   const links = isTeacherOrAdmin
-    ? [baseLinks[0], baseLinks[1], ...facultyLinks, baseLinks[2]]
+    ? [baseLinks[0], baseLinks[1], ...facultyLinks, baseLinks[2], baseLinks[3]]
     : baseLinks;
 
   const isLinkActive = (to: string) => {
@@ -191,6 +192,14 @@ export default function Navbar() {
                           Admin Console (Payments & Users)
                         </Link>
                       )}
+                      <Link
+                        to="/test-series"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                      >
+                        <Layers className="w-4 h-4 text-indigo-600" />
+                        GATE Test Series
+                      </Link>
                       <Link
                         to="/pricing"
                         onClick={() => setDropdownOpen(false)}
