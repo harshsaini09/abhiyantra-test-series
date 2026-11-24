@@ -320,9 +320,25 @@ export default function ReportCardsPage() {
     navigate('/test', { state: { testData, mode: 'PRACTICE' } });
   };
 
+  // Deduplicate identical submissions within 2 minutes
+  const uniqueReportCards = useMemo(() => {
+    const deduped: SavedReportCard[] = [];
+    for (const item of reportCards) {
+      const isDupe = deduped.some((d) => {
+        if (d.testTitle !== item.testTitle) return false;
+        if (d.mode !== item.mode) return false;
+        if (Math.abs(d.score - item.score) > 0.01) return false;
+        const diff = Math.abs(new Date(d.submittedAt).getTime() - new Date(item.submittedAt).getTime());
+        return diff < 120000;
+      });
+      if (!isDupe) deduped.push(item);
+    }
+    return deduped;
+  }, [reportCards]);
+
   // Filtered and sorted report cards
   const filteredReportCards = useMemo(() => {
-    let list = [...reportCards];
+    let list = [...uniqueReportCards];
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -561,7 +577,7 @@ export default function ReportCardsPage() {
               }`}
             >
               <Trophy className="w-4 h-4" />
-              <span>Test History ({reportCards.length})</span>
+              <span>Test History ({uniqueReportCards.length})</span>
             </button>
 
             <button

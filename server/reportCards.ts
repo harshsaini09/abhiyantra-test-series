@@ -60,6 +60,27 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
 
     const reviewsArray = typeof detailedReviewJson === 'string' ? JSON.parse(detailedReviewJson) : (detailedReviewJson || []);
 
+    // ─── Deduplication Guard: Check for identical submission within 2 minutes ───
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const existingDuplicate = await prisma.reportCard.findFirst({
+      where: {
+        userId: dbUserId,
+        testTitle: String(testTitle).trim(),
+        mode: String(mode || 'EXAM').toUpperCase(),
+        totalQuestions: Number(totalQuestions),
+        submittedAt: { gte: twoMinutesAgo },
+      },
+    });
+
+    if (existingDuplicate && Math.abs(existingDuplicate.score - Number(score)) < 0.01) {
+      res.status(200).json({
+        success: true,
+        reportCard: existingDuplicate,
+        message: 'Duplicate submission suppressed; existing report card preserved.',
+      });
+      return;
+    }
+
     const reportCard = await prisma.reportCard.create({
       data: {
         userId: dbUserId,
@@ -185,17 +206,22 @@ router.post('/sync', async (req: AuthenticatedRequest, res: Response): Promise<v
     // Pre-fetch user's existing report cards to prevent duplicates
     const existing = await prisma.reportCard.findMany({
       where: { userId: dbUserId },
-      select: { testTitle: true, score: true, submittedAt: true },
+      select: { testTitle: true, mode: true, score: true, submittedAt: true },
     });
-    const existingKeys = new Set(
-      existing.map((e) => `${e.testTitle}_${e.score}_${Math.round(new Date(e.submittedAt).getTime() / 60000)}`)
-    );
 
     let synced = 0;
     for (const card of reportCards) {
-      const timeMinute = Math.round(new Date(card.submittedAt || Date.now()).getTime() / 60000);
-      const key = `${card.testTitle}_${card.score}_${timeMinute}`;
-      if (existingKeys.has(key)) continue;
+      const cardTitle = String(card.testTitle || 'GATE Mock Test').trim();
+      const cardScore = Number(card.score || 0);
+      const cardTime = new Date(card.submittedAt || Date.now()).getTime();
+
+      const isDupe = existing.some((e) => {
+        if (e.testTitle !== cardTitle) return false;
+        if (Math.abs(e.score - cardScore) > 0.01) return false;
+        const eTime = new Date(e.submittedAt).getTime();
+        return Math.abs(eTime - cardTime) < 180000; // within 3 minutes
+      });
+      if (isDupe) continue;
 
       await prisma.reportCard.create({
         data: {
@@ -271,7 +297,22 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
       },
     });
 
-    res.json(reportCards);
+    // Deduplicate any accidental duplicate rows
+    const deduplicated: typeof reportCards = [];
+    for (const rc of reportCards) {
+      const isDupe = deduplicated.some((d) => {
+        if (d.testTitle !== rc.testTitle) return false;
+        if (d.mode !== rc.mode) return false;
+        if (Math.abs(d.score - rc.score) > 0.01) return false;
+        const diff = Math.abs(new Date(d.submittedAt).getTime() - new Date(rc.submittedAt).getTime());
+        return diff < 120000; // within 2 minutes
+      });
+      if (!isDupe) {
+        deduplicated.push(rc);
+      }
+    }
+
+    res.json(deduplicated);
   } catch (error) {
     console.warn('Error fetching report cards (returning empty list):', error);
     res.status(200).json([]);

@@ -739,9 +739,22 @@ export async function fetchReportCardsApi(): Promise<SavedReportCard[]> {
 
       const data = await res.json();
       if (Array.isArray(data)) {
+        // Deduplicate any duplicates within 2 minutes
+        const deduped: SavedReportCard[] = [];
+        for (const item of data) {
+          const isDupe = deduped.some((d) => {
+            if (d.testTitle !== item.testTitle) return false;
+            if (d.mode !== item.mode) return false;
+            if (Math.abs(d.score - item.score) > 0.01) return false;
+            const diff = Math.abs(new Date(d.submittedAt).getTime() - new Date(item.submittedAt).getTime());
+            return diff < 120000;
+          });
+          if (!isDupe) deduped.push(item);
+        }
+
         // Cloud is authoritative for authenticated session: sync local cache with cloud state
-        localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify(data));
-        return data;
+        localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify(deduped));
+        return deduped;
       }
     }
   } catch {
