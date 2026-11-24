@@ -151,6 +151,88 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
   }
 });
 
+// ─── 1.5 Batch Sync Local Report Cards (POST /api/report-cards/sync) ───
+router.post('/sync', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  if (!isDbConfigured || !prisma) {
+    res.json({ success: true, count: 0, message: 'Database not connected.' });
+    return;
+  }
+  try {
+    const user = req.user!;
+    const { reportCards } = req.body;
+    if (!Array.isArray(reportCards) || reportCards.length === 0) {
+      res.json({ success: true, count: 0 });
+      return;
+    }
+
+    // Ensure user exists in DB
+    let dbUserId = user.id;
+    const existingUser = await prisma.user.findUnique({ where: { email: user.email } });
+    if (!existingUser) {
+      const created = await prisma.user.create({
+        data: {
+          googleId: user.id,
+          email: user.email,
+          name: user.name,
+          avatarUrl: user.avatarUrl,
+        },
+      });
+      dbUserId = created.id;
+    } else {
+      dbUserId = existingUser.id;
+    }
+
+    // Pre-fetch user's existing report cards to prevent duplicates
+    const existing = await prisma.reportCard.findMany({
+      where: { userId: dbUserId },
+      select: { testTitle: true, score: true, submittedAt: true },
+    });
+    const existingKeys = new Set(
+      existing.map((e) => `${e.testTitle}_${e.score}_${Math.round(new Date(e.submittedAt).getTime() / 60000)}`)
+    );
+
+    let synced = 0;
+    for (const card of reportCards) {
+      const timeMinute = Math.round(new Date(card.submittedAt || Date.now()).getTime() / 60000);
+      const key = `${card.testTitle}_${card.score}_${timeMinute}`;
+      if (existingKeys.has(key)) continue;
+
+      await prisma.reportCard.create({
+        data: {
+          userId: dbUserId,
+          testTitle: String(card.testTitle || 'GATE Mock Test').trim(),
+          mode: String(card.mode || 'EXAM').toUpperCase(),
+          totalQuestions: Number(card.totalQuestions || 0),
+          maxMarks: Number(card.maxMarks || 0),
+          score: Number(card.score || 0),
+          accuracy: Number(card.accuracy || 0),
+          correctCount: Number(card.correctCount || 0),
+          incorrectCount: Number(card.incorrectCount || 0),
+          unattemptedCount: Number(card.unattemptedCount || 0),
+          positiveMarks: Number(card.positiveMarks || 0),
+          negativeMarks: Number(card.negativeMarks || 0),
+          timeTakenSeconds: Number(card.timeTakenSeconds || 0),
+          allocatedSeconds: Number(card.allocatedSeconds || 0),
+          breakdownJson: card.breakdownJson || {},
+          detailedReviewJson: card.detailedReviewJson || [],
+          submittedAt: card.submittedAt ? new Date(card.submittedAt) : new Date(),
+        },
+      });
+      existingKeys.add(key);
+      synced++;
+    }
+
+    res.json({
+      success: true,
+      count: synced,
+      message: `Synced ${synced} report cards to your cloud account.`,
+    });
+  } catch (error) {
+    console.error('Error syncing report cards:', error);
+    res.status(500).json({ error: 'Failed to sync report cards.' });
+  }
+});
+
 // ─── 2. List Past Report Cards (GET /api/report-cards) ───
 router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!isDbConfigured || !prisma) {

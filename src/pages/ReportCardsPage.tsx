@@ -34,6 +34,7 @@ import {
   updateBookmarkNoteApi,
   fetchAnalyticsSummaryApi,
   computeQuestionHash,
+  syncLocalReportCardsToCloud,
 } from '../utils/api';
 import type {
   SavedReportCard,
@@ -91,13 +92,18 @@ export default function ReportCardsPage() {
     let mounted = true;
     setLoading(true);
 
-    Promise.all([
-      fetchReportCardsApi(),
-      fetchMistakesApi(),
-      fetchBookmarksApi(),
-      fetchAnalyticsSummaryApi(),
-    ])
-      .then(([cards, mList, bList, aSummary]) => {
+    // If user is authenticated, sync any device-local tests up to cloud Neon DB
+    const loadStudentData = async () => {
+      try {
+        if (user) {
+          await syncLocalReportCardsToCloud().catch(() => {});
+        }
+        const [cards, mList, bList, aSummary] = await Promise.all([
+          fetchReportCardsApi(),
+          fetchMistakesApi(),
+          fetchBookmarksApi(),
+          fetchAnalyticsSummaryApi(),
+        ]);
         if (mounted) {
           setReportCards(cards);
           setMistakes(mList);
@@ -105,11 +111,13 @@ export default function ReportCardsPage() {
           setAnalytics(aSummary);
           setLoading(false);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Error loading student data:', err);
         if (mounted) setLoading(false);
-      });
+      }
+    };
+
+    loadStudentData();
 
     return () => {
       mounted = false;

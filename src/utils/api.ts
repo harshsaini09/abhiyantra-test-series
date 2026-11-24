@@ -22,6 +22,39 @@ const LOCAL_STORAGE_KEY = 'abhiyantra-local-question-bank';
 const SAVED_REPORTS_KEY = 'abhiyantra_saved_report_cards';
 const SAVED_MISTAKES_KEY = 'abhiyantra_saved_mistakes';
 const SAVED_BOOKMARKS_KEY = 'abhiyantra_saved_bookmarks';
+const AUTH_TOKEN_KEY = 'abhiyantra_auth_token';
+
+export function getStoredAuthToken(): string | null {
+  try {
+    return localStorage.getItem(AUTH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredAuthToken(token: string | null): void {
+  try {
+    if (token) {
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function getAuthHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  const token = getStoredAuthToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...extraHeaders,
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 export interface IngestResponse {
   success: boolean;
@@ -400,9 +433,10 @@ export async function fetchCurrentUser(): Promise<UserProfile | null> {
     // ignore
   }
 
-  // 2. Query server session to sync
+  // 2. Query server session to sync with Bearer token & cookies
   try {
     const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     if (res.ok) {
@@ -430,6 +464,9 @@ export async function loginWithGoogleApi(credential: string): Promise<UserProfil
 
     if (res.ok) {
       const data = await res.json();
+      if (data.token) {
+        setStoredAuthToken(data.token);
+      }
       if (data.user) {
         localStorage.setItem('abhiyantra_user_profile', JSON.stringify(data.user));
         return data.user;
@@ -467,11 +504,13 @@ export async function logoutUserApi(): Promise<void> {
   try {
     await fetch(`${API_BASE}/auth/logout`, {
       method: 'POST',
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
   } catch {
     // ignore
   }
+  setStoredAuthToken(null);
   localStorage.removeItem('abhiyantra_user_profile');
 }
 
@@ -593,7 +632,7 @@ export async function saveReportCardApi(results: TestResults): Promise<SavedRepo
   try {
     const res = await fetch(`${API_BASE}/report-cards`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       credentials: 'include',
       body: JSON.stringify(payload),
     });
@@ -613,16 +652,41 @@ export async function saveReportCardApi(results: TestResults): Promise<SavedRepo
   return localRc;
 }
 
+export async function syncLocalReportCardsToCloud(): Promise<void> {
+  const token = getStoredAuthToken();
+  if (!token) return;
+
+  const localCards = getLocalReportCards();
+  const unsynced = localCards.filter((c) => String(c.id).startsWith('local_'));
+  if (unsynced.length === 0) return;
+
+  try {
+    await fetch(`${API_BASE}/report-cards/sync`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ reportCards: unsynced }),
+    });
+  } catch {
+    // ignore
+  }
+}
+
 export async function fetchReportCardsApi(): Promise<SavedReportCard[]> {
   try {
     const res = await fetch(`${API_BASE}/report-cards`, {
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        data.forEach((rc) => saveLocalReportCard(rc));
-        return data;
+      if (Array.isArray(data)) {
+        if (data.length > 0) {
+          data.forEach((rc) => saveLocalReportCard(rc));
+        }
+        // Auto-sync any remaining local reports to cloud
+        syncLocalReportCardsToCloud().catch(() => {});
+        return data.length > 0 ? data : getLocalReportCards();
       }
     }
   } catch {
@@ -635,6 +699,7 @@ export async function fetchReportCardsApi(): Promise<SavedReportCard[]> {
 export async function fetchReportCardDetailApi(id: string): Promise<SavedReportCard | null> {
   try {
     const res = await fetch(`${API_BASE}/report-cards/${id}`, {
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     if (res.ok) {
@@ -716,7 +781,10 @@ export function syncLocalMistakesFromResults(results: TestResults): void {
 
 export async function fetchMistakesApi(): Promise<MistakeEntry[]> {
   try {
-    const res = await fetch(`${API_BASE}/mistakes`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/mistakes`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -745,7 +813,7 @@ export async function updateMistakeStatusApi(
   try {
     const res = await fetch(`${API_BASE}/mistakes/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       credentials: 'include',
       body: JSON.stringify({ status }),
     });
@@ -776,7 +844,10 @@ export function saveLocalBookmarks(bookmarks: BookmarkItem[]): void {
 
 export async function fetchBookmarksApi(): Promise<BookmarkItem[]> {
   try {
-    const res = await fetch(`${API_BASE}/bookmarks`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/bookmarks`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -823,7 +894,7 @@ export async function toggleBookmarkApi(
   try {
     const res = await fetch(`${API_BASE}/bookmarks/toggle`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       credentials: 'include',
       body: JSON.stringify({ question, note }),
     });
@@ -849,7 +920,7 @@ export async function updateBookmarkNoteApi(id: string, note: string): Promise<b
   try {
     const res = await fetch(`${API_BASE}/bookmarks/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       credentials: 'include',
       body: JSON.stringify({ note }),
     });
@@ -1010,7 +1081,10 @@ export function computeLocalAnalyticsSummary(reportCards: SavedReportCard[]): An
 
 export async function fetchAnalyticsSummaryApi(): Promise<AnalyticsSummary> {
   try {
-    const res = await fetch(`${API_BASE}/analytics/summary`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/analytics/summary`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
     if (res.ok) {
       const data = await res.json();
       if (data && data.totalTests > 0) {
@@ -1042,7 +1116,7 @@ export async function clearPlatformDataApi(target: 'all' | 'questions' | 'report
   try {
     const res = await fetch(`${API_BASE}/admin/clear-data`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       credentials: 'include',
       body: JSON.stringify({ target }),
     });
