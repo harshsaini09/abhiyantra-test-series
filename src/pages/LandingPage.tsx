@@ -157,8 +157,7 @@ export default function LandingPage() {
     if (!validatedData) return;
 
     // Freemium Gatekeeper: full mock tests (> 15 questions) require active pass
-    const isMasterAdmin = user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
-    if (validatedData.questions.length > 15 && !user?.isSubscribed && !isMasterAdmin) {
+    if (validatedData.questions.length > 15 && !user?.isSubscribed) {
       setShowPaymentModal(true);
       return;
     }

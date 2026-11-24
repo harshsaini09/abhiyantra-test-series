@@ -323,8 +323,7 @@ export default function CustomTestBuilderPage() {
       const testData = await buildTestData();
 
       // Freemium Gatekeeper: tests with > 15 questions or full mock tests require active pass
-      const isMasterAdmin = user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
-      if ((builderMode === 'full-mock' || testData.questions.length > 15) && !user?.isSubscribed && !isMasterAdmin) {
+      if ((builderMode === 'full-mock' || testData.questions.length > 15) && !user?.isSubscribed) {
         setShowPaymentModal(true);
         setGenerating(false);
         return;
