@@ -10,7 +10,8 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isMasterAdmin = user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
+  const isMasterAdmin = user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
+  const isTeacher = user?.role === 'TEACHER';
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -103,12 +104,24 @@ export default function Navbar() {
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="text-left hidden sm:block max-w-[110px] lg:max-w-[140px]">
+                  <div className="text-left hidden sm:block max-w-[120px] lg:max-w-[150px]">
                     <div className="flex items-center gap-1">
                       <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
-                      {user.isSubscribed && (
+                      {isMasterAdmin ? (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-600 text-white shrink-0">
+                          ADMIN
+                        </span>
+                      ) : isTeacher ? (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-blue-600 text-white shrink-0">
+                          TEACHER
+                        </span>
+                      ) : user.isSubscribed ? (
                         <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shrink-0">
                           PRO
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 shrink-0">
+                          STUDENT
                         </span>
                       )}
                     </div>
@@ -122,7 +135,15 @@ export default function Navbar() {
                     <div className="px-4 py-2 border-b border-slate-100">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-slate-900">{user.name}</p>
-                        {user.isSubscribed ? (
+                        {isMasterAdmin ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-200">
+                            PLATFORM ADMIN
+                          </span>
+                        ) : isTeacher ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                            FACULTY / TEACHER
+                          </span>
+                        ) : user.isSubscribed ? (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
                             PRO PASS
                           </span>
@@ -140,7 +161,13 @@ export default function Navbar() {
                       <div className="mt-1 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                         <span className="text-[10px] font-semibold text-emerald-700">
-                          {user.isSubscribed ? 'Active Subscriber' : 'Google Verified Student'}
+                          {isMasterAdmin
+                            ? 'Master Administrator'
+                            : isTeacher
+                            ? 'Faculty / Teacher Access'
+                            : user.isSubscribed
+                            ? 'Pro Student (Active Pass)'
+                            : 'Registered Student'}
                         </span>
                       </div>
                     </div>
@@ -153,7 +180,7 @@ export default function Navbar() {
                           className="flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 transition-colors"
                         >
                           <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                          Admin Payments Portal
+                          Admin Console (Payments & Users)
                         </Link>
                       )}
                       <Link

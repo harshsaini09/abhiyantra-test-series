@@ -207,9 +207,28 @@ export interface UserProfile {
   email: string;
   name: string;
   avatarUrl?: string | null;
+  role?: 'STUDENT' | 'TEACHER' | 'ADMIN';
   isSubscribed?: boolean;
   subscriptionTier?: string | null;
   subscriptionUntil?: string | null;
+}
+
+export interface PlatformUser {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl?: string | null;
+  role: 'STUDENT' | 'TEACHER' | 'ADMIN';
+  isSubscribed?: boolean;
+  subscriptionTier?: string | null;
+  subscriptionUntil?: string | null;
+  createdAt: string;
+  _count?: {
+    reportCards: number;
+    mistakes: number;
+    bookmarks: number;
+    payments: number;
+  };
 }
 
 export interface PaymentRecord {

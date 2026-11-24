@@ -17,6 +17,7 @@ export interface AuthUser {
   email: string;
   name: string;
   avatarUrl?: string | null;
+  role?: 'STUDENT' | 'TEACHER' | 'ADMIN' | string;
   isSubscribed?: boolean;
   subscriptionTier?: string | null;
   subscriptionUntil?: string | null;
@@ -34,6 +35,7 @@ export function signUserToken(user: AuthUser): string {
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl,
+      role: user.role || (user.email.toLowerCase() === 'harshsaini0912@gmail.com' ? 'ADMIN' : 'STUDENT'),
     },
     JWT_SECRET,
     { expiresIn: '30d' }
@@ -56,6 +58,9 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
   if (token) {
     const user = verifyUserToken(token);
     if (user) {
+      if (user.email.toLowerCase() === 'harshsaini0912@gmail.com') {
+        user.role = 'ADMIN';
+      }
       req.user = user;
       next();
       return;
@@ -67,16 +72,18 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
   if (userEmail && typeof userEmail === 'string' && userEmail.includes('@')) {
     const email = userEmail.toLowerCase().trim();
     const userName = (req.headers['x-user-name'] as string) || req.body?.userName || email.split('@')[0];
+    const isAdminUser = email === 'harshsaini0912@gmail.com';
 
     try {
       if (isDbConfigured && prisma) {
         const dbUser = await prisma.user.upsert({
           where: { email },
-          update: {},
+          update: isAdminUser ? { role: 'ADMIN' } : {},
           create: {
             googleId: `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`,
             email,
             name: userName,
+            role: isAdminUser ? 'ADMIN' : 'STUDENT',
           },
         });
         const isSubActive = Boolean(
@@ -88,6 +95,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
           email: dbUser.email,
           name: dbUser.name,
           avatarUrl: dbUser.avatarUrl,
+          role: dbUser.role || (isAdminUser ? 'ADMIN' : 'STUDENT'),
           isSubscribed: isSubActive,
           subscriptionTier: dbUser.subscriptionTier,
           subscriptionUntil: dbUser.subscriptionUntil?.toISOString() || null,
@@ -97,6 +105,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
           id: `usr_${email.split('@')[0]}`,
           email,
           name: userName,
+          role: isAdminUser ? 'ADMIN' : 'STUDENT',
         };
       }
 
@@ -113,6 +122,35 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
 
       next();
       return;
+    } catch (e) {
+      console.warn('Fallback email auth error:', e);
+    }
+  }
+
+  res.status(401).json({ error: 'Authentication required. Please sign in.' });
+}
+
+export async function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  await requireAuth(req, res, () => {
+    const user = req.user;
+    if (user && (user.role === 'ADMIN' || user.email.toLowerCase() === 'harshsaini0912@gmail.com')) {
+      next();
+    } else {
+      res.status(403).json({ error: 'Access denied. Master Admin privileges required.' });
+    }
+  });
+}
+
+export async function requireTeacherOrAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  await requireAuth(req, res, () => {
+    const user = req.user;
+    if (user && (user.role === 'ADMIN' || user.role === 'TEACHER' || user.email.toLowerCase() === 'harshsaini0912@gmail.com')) {
+      next();
+    } else {
+      res.status(403).json({ error: 'Access denied. Teacher or Admin privileges required.' });
+    }
+  });
+}
     } catch (e) {
       console.warn('Fallback email auth error:', e);
     }
@@ -180,6 +218,8 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
     let user: AuthUser;
 
     // Upsert user in PostgreSQL if database is connected
+    const isAdminUser = email === 'harshsaini0912@gmail.com';
+
     if (isDbConfigured && prisma) {
       try {
         const dbUser = await prisma.user.upsert({
@@ -188,12 +228,14 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
             name,
             avatarUrl,
             googleId,
+            ...(isAdminUser ? { role: 'ADMIN' } : {}),
           },
           create: {
             googleId,
             email,
             name,
             avatarUrl,
+            role: isAdminUser ? 'ADMIN' : 'STUDENT',
           },
         });
         const isSubActive = Boolean(
@@ -205,6 +247,7 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
           email: dbUser.email,
           name: dbUser.name,
           avatarUrl: dbUser.avatarUrl,
+          role: dbUser.role || (isAdminUser ? 'ADMIN' : 'STUDENT'),
           isSubscribed: isSubActive,
           subscriptionTier: dbUser.subscriptionTier,
           subscriptionUntil: dbUser.subscriptionUntil?.toISOString() || null,
@@ -216,6 +259,7 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
           email,
           name,
           avatarUrl,
+          role: isAdminUser ? 'ADMIN' : 'STUDENT',
         };
       }
     } else {
@@ -224,6 +268,7 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
         email,
         name,
         avatarUrl,
+        role: isAdminUser ? 'ADMIN' : 'STUDENT',
       };
     }
 
@@ -277,12 +322,14 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
             dbUser.isSubscribed &&
             (!dbUser.subscriptionUntil || new Date(dbUser.subscriptionUntil) > new Date())
           );
+          const isAdminUser = dbUser.email === 'harshsaini0912@gmail.com';
           res.status(200).json({
             user: {
               id: dbUser.id,
               email: dbUser.email,
               name: dbUser.name,
               avatarUrl: dbUser.avatarUrl,
+              role: dbUser.role || (isAdminUser ? 'ADMIN' : 'STUDENT'),
               isSubscribed: isSubActive,
               subscriptionTier: dbUser.subscriptionTier,
               subscriptionUntil: dbUser.subscriptionUntil?.toISOString() || null,
@@ -311,6 +358,94 @@ router.post('/logout', (_req: Request, res: Response): void => {
     path: '/',
   });
   res.json({ success: true, message: 'Logged out successfully.' });
+});
+
+// ─── 4. Admin: Get All Users & Roles (GET /api/auth/admin/users) ───
+router.get('/admin/users', requireAdmin, async (_req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    if (!isDbConfigured || !prisma) {
+      res.json({ success: true, users: [] });
+      return;
+    }
+
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatarUrl: true,
+        role: true,
+        isSubscribed: true,
+        subscriptionTier: true,
+        subscriptionUntil: true,
+        createdAt: true,
+        _count: {
+          select: {
+            reportCards: true,
+            mistakes: true,
+            bookmarks: true,
+            payments: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ success: true, users });
+  } catch (error) {
+    console.error('Admin users fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch platform users.' });
+  }
+});
+
+// ─── 5. Admin: Update User Role (POST /api/auth/admin/users/:id/role) ───
+router.post('/admin/users/:id/role', requireAdmin, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!id || !['STUDENT', 'TEACHER', 'ADMIN'].includes(role)) {
+      res.status(400).json({ error: 'Valid user ID and role (STUDENT | TEACHER | ADMIN) are required.' });
+      return;
+    }
+
+    if (!isDbConfigured || !prisma) {
+      res.status(500).json({ error: 'Database not available.' });
+      return;
+    }
+
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    // Safety guard: prevent removing ADMIN role from the primary master email
+    if (targetUser.email.toLowerCase() === 'harshsaini0912@gmail.com' && role !== 'ADMIN') {
+      res.status(400).json({ error: 'Cannot demote the primary master admin account.' });
+      return;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { role },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `User role successfully updated to ${role}.`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error('Update role error:', error);
+    res.status(500).json({ error: 'Failed to update user role.' });
+  }
 });
 
 export default router;

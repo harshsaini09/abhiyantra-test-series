@@ -1383,3 +1383,31 @@ export async function verifyAdminPaymentApi(
   }
   return await res.json();
 }
+
+// ─── Admin User & Role Management APIs ───
+
+export async function fetchAdminUsersApi(): Promise<any> {
+  const res = await fetch(`${API_BASE}/auth/admin/users`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch platform users.');
+  }
+  return await res.json();
+}
+
+export async function updateUserRoleApi(userId: string, role: 'STUDENT' | 'TEACHER' | 'ADMIN'): Promise<any> {
+  const res = await fetch(`${API_BASE}/auth/admin/users/${userId}/role`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to update user role.');
+  }
+  return await res.json();
+}

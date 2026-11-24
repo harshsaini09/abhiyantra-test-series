@@ -286,7 +286,7 @@ router.get('/status', requireAuth, async (req: AuthenticatedRequest, res: Respon
 router.get('/admin/all', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
-    if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    if (user.role !== 'ADMIN' && user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       res.status(403).json({ error: 'Access denied. Master Admin privileges required.' });
       return;
     }
@@ -339,7 +339,7 @@ router.get('/admin/all', requireAuth, async (req: AuthenticatedRequest, res: Res
 router.post('/admin/verify', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const user = req.user!;
-    if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    if (user.role !== 'ADMIN' && user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       res.status(403).json({ error: 'Access denied. Master Admin privileges required.' });
       return;
     }
