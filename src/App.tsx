@@ -5,6 +5,8 @@ import ReportPage from './pages/ReportPage';
 import QuestionBankPage from './pages/QuestionBankPage';
 import CustomTestBuilderPage from './pages/CustomTestBuilderPage';
 import ReportCardsPage from './pages/ReportCardsPage';
+import PricingPage from './pages/PricingPage';
+import AdminPaymentsPage from './pages/AdminPaymentsPage';
 
 export default function App() {
   return (
@@ -16,6 +18,8 @@ export default function App() {
         <Route path="/report-cards" element={<ReportCardsPage />} />
         <Route path="/question-bank" element={<QuestionBankPage />} />
         <Route path="/custom-builder" element={<CustomTestBuilderPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/admin/payments" element={<AdminPaymentsPage />} />
       </Routes>
     </div>
   );

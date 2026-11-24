@@ -9,6 +9,7 @@ import reportCardsRouter from './reportCards.js';
 import mistakesRouter from './mistakes.js';
 import bookmarksRouter from './bookmarks.js';
 import analyticsRouter from './analytics.js';
+import paymentsRouter from './payments.js';
 
 const app = express();
 
@@ -22,7 +23,7 @@ app.use(
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 
-// ─── Mount Auth, Report Cards, Mistakes, Bookmarks, Analytics ───
+// ─── Mount Auth, Report Cards, Mistakes, Bookmarks, Analytics, Payments ───
 app.use('/api/auth', authRouter);
 app.use('/auth', authRouter);
 app.use('/api/report-cards', reportCardsRouter);
@@ -33,6 +34,8 @@ app.use('/api/bookmarks', bookmarksRouter);
 app.use('/bookmarks', bookmarksRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/analytics', analyticsRouter);
+app.use('/api/payment', paymentsRouter);
+app.use('/payment', paymentsRouter);
 
 // ─── 1. Health Check ───
 const handleHealth = (_req: Request, res: Response) => {

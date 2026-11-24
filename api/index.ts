@@ -33,7 +33,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       );
       return;
     }
-    if (url.includes('/questions') || url.includes('/hierarchy') || url.includes('/report-cards') || url.includes('/mistakes') || url.includes('/bookmarks')) {
+    if (url.includes('/questions') || url.includes('/hierarchy') || url.includes('/report-cards') || url.includes('/mistakes') || url.includes('/bookmarks') || url.includes('/payment')) {
       res.end(JSON.stringify([]));
       return;
     }

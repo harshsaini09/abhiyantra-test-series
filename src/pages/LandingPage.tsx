@@ -29,11 +29,15 @@ import { parseJSON, validateTestJSON } from '../utils/validation';
 import { calculateDuration, formatDurationHuman } from '../utils/scoring';
 import { hasInProgressTest } from '../utils/storage';
 import { ingestTestData } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import { PaymentModal } from '../components/PaymentModal';
 
 type InputTab = 'paste' | 'upload';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Resume banner
   const [showResumeBanner, setShowResumeBanner] = useState(false);
@@ -151,6 +155,14 @@ export default function LandingPage() {
   // Start test
   const handleStartTest = () => {
     if (!validatedData) return;
+
+    // Freemium Gatekeeper: full mock tests (> 15 questions) require active pass
+    const isMasterAdmin = user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
+    if (validatedData.questions.length > 15 && !user?.isSubscribed && !isMasterAdmin) {
+      setShowPaymentModal(true);
+      return;
+    }
+
     ingestTestData(validatedData).catch(() => {});
     navigate('/test', { state: { testData: validatedData, mode } });
   };
@@ -227,6 +239,13 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-6 flex flex-col sm:flex-row flex-wrap justify-center gap-3 w-full sm:w-auto max-w-sm sm:max-w-none">
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-sm font-black rounded-xl shadow-md transition-all cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-slate-950 fill-current" />
+              Get Full Pass (₹499)
+            </button>
             <a
               href="#loader"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-indigo-700 text-sm font-semibold rounded-xl shadow-md hover:shadow-lg hover:bg-indigo-50 transition-all"
@@ -719,6 +738,16 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+
+      {/* 0% Fee UPI Paywall Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => {
+          setShowPaymentModal(false);
+          handleStartTest();
+        }}
+      />
     </div>
   );
 }

@@ -1235,3 +1235,150 @@ export async function clearPlatformDataApi(target: 'all' | 'questions' | 'report
     return true;
   }
 }
+
+// ─── Payment & Subscription APIs ───
+
+export async function fetchPricingPlansApi(): Promise<{ plans: any[]; upi: { payeeId: string; payeeName: string } }> {
+  try {
+    const res = await fetch(`${API_BASE}/payment/plans`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch {
+    // fallback
+  }
+  return {
+    plans: [
+      {
+        id: 'gate-complete-pass',
+        name: 'GATE Complete Mock Test Series (2026/2027)',
+        price: 499,
+        originalPrice: 1999,
+        discountBadge: '75% OFF - Launch Special',
+        durationDays: 365,
+        popular: true,
+        features: [
+          'Full 65-Question Authentic GATE CBT Mock Tests',
+          'GATE Authentic Marking Scheme (+1, -1/3 & +2, -2/3)',
+          'Step-by-Step Solutions with Mathematical Formulations',
+          'Mistake Notebook & 1-Click Retest on Missed Questions',
+          'AI-Powered Weak Topic Diagnosis & Ranking Insights',
+          'Unlimited Retakes on all Mock & Subject Papers',
+          'Valid for 1 Full Year (Through GATE 2027)',
+        ],
+      },
+      {
+        id: 'gate-booster-pass',
+        name: 'Subject & Topic-Wise Booster Pass',
+        price: 199,
+        originalPrice: 799,
+        discountBadge: 'Special Offer',
+        durationDays: 180,
+        popular: false,
+        features: [
+          'All Chapter-Wise & Subject-Wise Practice Papers',
+          'Custom Test Builder with 100+ Question Pool',
+          'Detailed Explanations & Virtual Calculator Practice',
+          'Personal Question Bookmarks & Error Notes',
+          'Valid for 6 Months',
+        ],
+      },
+    ],
+    upi: {
+      payeeId: 'harshsaini0912@axl',
+      payeeName: 'Abhiyantra Test Series',
+    },
+  };
+}
+
+export async function createPaymentIntentApi(planId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/payment/create-intent`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ planId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to create payment intent');
+  }
+  return await res.json();
+}
+
+export async function submitUtrPaymentApi(planId: string, utrNumber: string, orderId?: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/payment/submit-utr`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ planId, utrNumber, orderId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to submit UTR verification.');
+  }
+
+  // Update local user profile state so frontend unlocks instantly
+  try {
+    const raw = localStorage.getItem('abhiyantra_user_profile');
+    if (raw) {
+      const u = JSON.parse(raw);
+      u.isSubscribed = true;
+      u.subscriptionTier = data.tier || planId;
+      u.subscriptionUntil = data.subscriptionUntil;
+      localStorage.setItem('abhiyantra_user_profile', JSON.stringify(u));
+    }
+  } catch {
+    // ignore
+  }
+
+  return data;
+}
+
+export async function fetchSubscriptionStatusApi(): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE}/payment/status`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // ignore
+  }
+  return { isSubscribed: false, payments: [] };
+}
+
+export async function fetchAdminPaymentsApi(): Promise<any> {
+  const res = await fetch(`${API_BASE}/payment/admin/all`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch admin payments.');
+  }
+  return await res.json();
+}
+
+export async function verifyAdminPaymentApi(
+  paymentId: string,
+  status: 'VERIFIED' | 'REJECTED' | 'PENDING',
+  adminNote?: string
+): Promise<any> {
+  const res = await fetch(`${API_BASE}/payment/admin/verify`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ paymentId, status, adminNote }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to update payment status.');
+  }
+  return await res.json();
+}

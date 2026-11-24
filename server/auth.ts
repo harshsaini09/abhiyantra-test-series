@@ -17,6 +17,9 @@ export interface AuthUser {
   email: string;
   name: string;
   avatarUrl?: string | null;
+  isSubscribed?: boolean;
+  subscriptionTier?: string | null;
+  subscriptionUntil?: string | null;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -76,11 +79,18 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
             name: userName,
           },
         });
+        const isSubActive = Boolean(
+          dbUser.isSubscribed &&
+          (!dbUser.subscriptionUntil || new Date(dbUser.subscriptionUntil) > new Date())
+        );
         req.user = {
           id: dbUser.id,
           email: dbUser.email,
           name: dbUser.name,
           avatarUrl: dbUser.avatarUrl,
+          isSubscribed: isSubActive,
+          subscriptionTier: dbUser.subscriptionTier,
+          subscriptionUntil: dbUser.subscriptionUntil?.toISOString() || null,
         };
       } else {
         req.user = {
@@ -186,11 +196,18 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
             avatarUrl,
           },
         });
+        const isSubActive = Boolean(
+          dbUser.isSubscribed &&
+          (!dbUser.subscriptionUntil || new Date(dbUser.subscriptionUntil) > new Date())
+        );
         user = {
           id: dbUser.id,
           email: dbUser.email,
           name: dbUser.name,
           avatarUrl: dbUser.avatarUrl,
+          isSubscribed: isSubActive,
+          subscriptionTier: dbUser.subscriptionTier,
+          subscriptionUntil: dbUser.subscriptionUntil?.toISOString() || null,
         };
       } catch (dbErr) {
         console.warn('Database user upsert warning (falling back to memory session):', dbErr);
@@ -256,12 +273,19 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
           where: { email: decoded.email },
         });
         if (dbUser) {
+          const isSubActive = Boolean(
+            dbUser.isSubscribed &&
+            (!dbUser.subscriptionUntil || new Date(dbUser.subscriptionUntil) > new Date())
+          );
           res.status(200).json({
             user: {
               id: dbUser.id,
               email: dbUser.email,
               name: dbUser.name,
               avatarUrl: dbUser.avatarUrl,
+              isSubscribed: isSubActive,
+              subscriptionTier: dbUser.subscriptionTier,
+              subscriptionUntil: dbUser.subscriptionUntil?.toISOString() || null,
             },
           });
           return;

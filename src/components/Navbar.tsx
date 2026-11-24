@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Database, Wrench, Home, Award, LogOut, ChevronDown } from 'lucide-react';
+import { Database, Wrench, Home, Award, LogOut, ChevronDown, Sparkles, ShieldCheck } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,6 +9,8 @@ export default function Navbar() {
   const { user, login, logout, loading } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isMasterAdmin = user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -23,6 +25,7 @@ export default function Navbar() {
 
   const links = [
     { to: '/', label: 'Home', shortLabel: 'Home', icon: <Home className="w-4 h-4" /> },
+    { to: '/pricing', label: 'GATE Pass', shortLabel: 'Pass', icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
     { to: '/question-bank', label: 'Question Bank', shortLabel: 'Q-Bank', icon: <Database className="w-4 h-4" /> },
     { to: '/custom-builder', label: 'Custom Builder', shortLabel: 'Builder', icon: <Wrench className="w-4 h-4" /> },
     { to: '/report-cards', label: 'Report Cards', shortLabel: 'Reports', icon: <Award className="w-4 h-4" /> },
@@ -101,7 +104,14 @@ export default function Navbar() {
                     </div>
                   )}
                   <div className="text-left hidden sm:block max-w-[110px] lg:max-w-[140px]">
-                    <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
+                      {user.isSubscribed && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shrink-0">
+                          PRO
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -110,15 +120,50 @@ export default function Navbar() {
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-xs font-bold text-slate-900">{user.name}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-slate-900">{user.name}</p>
+                        {user.isSubscribed ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            PRO PASS
+                          </span>
+                        ) : (
+                          <Link
+                            to="/pricing"
+                            onClick={() => setDropdownOpen(false)}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800"
+                          >
+                            Upgrade &rarr;
+                          </Link>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500 truncate">{user.email}</p>
                       <div className="mt-1 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span className="text-[10px] font-semibold text-emerald-700">Google Verified Student</span>
+                        <span className="text-[10px] font-semibold text-emerald-700">
+                          {user.isSubscribed ? 'Active Subscriber' : 'Google Verified Student'}
+                        </span>
                       </div>
                     </div>
 
                     <div className="py-1">
+                      {isMasterAdmin && (
+                        <Link
+                          to="/admin/payments"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 transition-colors"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                          Admin Payments Portal
+                        </Link>
+                      )}
+                      <Link
+                        to="/pricing"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                      >
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        GATE Test Series Passes
+                      </Link>
                       <Link
                         to="/report-cards"
                         onClick={() => setDropdownOpen(false)}

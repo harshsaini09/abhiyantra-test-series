@@ -207,6 +207,42 @@ export interface UserProfile {
   email: string;
   name: string;
   avatarUrl?: string | null;
+  isSubscribed?: boolean;
+  subscriptionTier?: string | null;
+  subscriptionUntil?: string | null;
+}
+
+export interface PaymentRecord {
+  id: string;
+  userId: string;
+  planId: string;
+  planName: string;
+  amount: number;
+  utrNumber: string;
+  upiIdUsed?: string | null;
+  status: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  adminNote?: string | null;
+  createdAt: string;
+  verifiedAt?: string | null;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    isSubscribed?: boolean;
+    subscriptionUntil?: string | null;
+  };
+}
+
+export interface PricingPlan {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice: number;
+  discountBadge: string;
+  durationDays: number;
+  popular?: boolean;
+  features: string[];
 }
 
 export interface SavedReportCard {

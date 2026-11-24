@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   login: (credential: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<UserProfile | null>;
   pendingResults: TestResults | null;
   stagePendingResults: (results: TestResults) => void;
   clearPendingResults: () => void;
@@ -104,6 +105,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  const refreshUser = async (): Promise<UserProfile | null> => {
+    try {
+      const u = await fetchCurrentUser();
+      setUser(u);
+      return u;
+    } catch {
+      return user;
+    }
+  };
+
   const logout = async () => {
     await logoutUserApi();
     setUser(null);
@@ -116,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         login,
         logout,
+        refreshUser,
         pendingResults,
         stagePendingResults,
         clearPendingResults,

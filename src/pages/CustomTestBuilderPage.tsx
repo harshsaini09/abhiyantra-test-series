@@ -27,6 +27,8 @@ import {
   Trash2,
   AlertCircle,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { PaymentModal } from '../components/PaymentModal';
 
 type BuilderMode = 'manual' | 'rules' | 'full-mock';
 
@@ -41,6 +43,8 @@ interface MixRule {
 
 export default function CustomTestBuilderPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const [builderMode, setBuilderMode] = useState<BuilderMode>('manual');
   const [hierarchy, setHierarchy] = useState<SubjectWithTopics[]>([]);
@@ -317,6 +321,15 @@ export default function CustomTestBuilderPage() {
     try {
       setGenerating(true);
       const testData = await buildTestData();
+
+      // Freemium Gatekeeper: tests with > 15 questions or full mock tests require active pass
+      const isMasterAdmin = user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
+      if ((builderMode === 'full-mock' || testData.questions.length > 15) && !user?.isSubscribed && !isMasterAdmin) {
+        setShowPaymentModal(true);
+        setGenerating(false);
+        return;
+      }
+
       navigate('/test', { state: { testData, mode: testMode } });
     } catch (err: unknown) {
       setErrorMsg((err as Error).message || 'Failed to generate test.');
@@ -1037,6 +1050,17 @@ export default function CustomTestBuilderPage() {
           </div>
         </aside>
       </div>
+
+      {/* 0% Fee UPI Paywall Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => {
+          setShowPaymentModal(false);
+          // auto launch test on successful activation
+          handleLaunchTest();
+        }}
+      />
     </div>
   );
 }

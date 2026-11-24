@@ -19,6 +19,7 @@ import {
   Flame,
   RotateCcw,
   Trash2,
+  ShieldCheck,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import ReportCardTestReview from '../components/ReportCardTestReview';
@@ -545,6 +546,30 @@ export default function ReportCardsPage() {
               </div>
 
               <div className="flex items-center gap-2.5 flex-wrap">
+                {isMasterAdmin && (
+                  <button
+                    onClick={() => navigate('/admin/payments')}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-200 text-xs font-bold border border-indigo-400/30 transition-all shadow-xs cursor-pointer"
+                    title="Master Admin Payments Dashboard"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-300" />
+                    <span>Admin Payments</span>
+                  </button>
+                )}
+                {user?.isSubscribed ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-400/30">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>PRO PASS ACTIVE</span>
+                  </span>
+                ) : (
+                  <Link
+                    to="/pricing"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black transition-all shadow-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 fill-current text-slate-950" />
+                    <span>Get GATE Pass</span>
+                  </Link>
+                )}
                 {isMasterAdmin && (
                   <button
                     onClick={handleClearReportCards}

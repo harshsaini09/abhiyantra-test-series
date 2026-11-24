@@ -20,9 +20,32 @@ model User {
   name        String
   avatarUrl   String?
   createdAt   DateTime       @default(now())
+  isSubscribed      Boolean         @default(false)
+  subscriptionTier  String?         // "GATE_FULL_PASS" | "PREMIUM"
+  subscriptionUntil DateTime?
+  payments          PaymentRecord[]
   reportCards ReportCard[]
   mistakes    MistakeEntry[]
   bookmarks   Bookmark[]
+}
+
+model PaymentRecord {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId          String    // e.g. "gate-full-pass"
+  planName        String    // "GATE Complete Mock Test Series"
+  amount          Float     // e.g. 499.00
+  utrNumber       String    @unique // 12-digit Indian Bank UTR
+  upiIdUsed       String?
+  status          String    @default("PENDING") // "VERIFIED" | "PENDING" | "REJECTED"
+  adminNote       String?
+  createdAt       DateTime  @default(now())
+  verifiedAt      DateTime?
+
+  @@index([userId])
+  @@index([utrNumber])
+  @@index([status])
 }
 
 model ReportCard {
