@@ -21,6 +21,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import ReportCardTestReview from '../components/ReportCardTestReview';
 import { useAuth } from '../context/AuthContext';
 import {
   fetchReportCardsApi,
@@ -46,7 +47,6 @@ import type {
 import { formatDurationHuman } from '../utils/scoring';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
-import SolutionTestViewer from '../components/SolutionTestViewer';
 
 type TabView = 'history' | 'analytics' | 'mistakes' | 'bookmarks';
 type FilterMode = 'ALL' | 'EXAM' | 'PRACTICE';
@@ -266,29 +266,6 @@ export default function ReportCardsPage() {
     navigate('/test', { state: { testData, mode: rc.mode || 'EXAM' } });
   };
 
-  // Retest Mistakes from a specific Report Card
-  const handleRetestMistakesFromCard = (rc: SavedReportCard) => {
-    if (!rc.detailedReviewJson) return;
-    const wrongQs = rc.detailedReviewJson
-      .filter((item) => item.isAttempted && !item.isCorrect)
-      .map((item, idx) => ({
-        ...item.question,
-        id: idx + 1,
-      }));
-    if (wrongQs.length === 0) {
-      alert('No incorrect questions found in this report card.');
-      return;
-    }
-    const testData: TestData = {
-      title: `${rc.testTitle} — Retest Mistakes (${wrongQs.length} Qs)`,
-      subject: wrongQs[0]?.subject || 'Mistakes Retest',
-      topic: 'Targeted Review',
-      duration: Math.max(600, wrongQs.length * 162),
-      questions: wrongQs,
-    };
-    navigate('/test', { state: { testData, mode: rc.mode || 'EXAM' } });
-  };
-
   // Practice Bookmarks
   const handlePracticeBookmarks = (bookmarksToTest: BookmarkItem[]) => {
     if (bookmarksToTest.length === 0) return;
@@ -430,6 +407,31 @@ export default function ReportCardsPage() {
     return Array.from(set);
   }, [bookmarks]);
 
+  if (selectedCard) {
+    return (
+      <ReportCardTestReview
+        reportCard={selectedCard}
+        user={user}
+        onBack={() => setSelectedCard(null)}
+        onRetest={handleRetestFullTest}
+        bookmarks={bookmarks}
+        onToggleBookmark={async (question) => {
+          try {
+            const res = await toggleBookmarkApi(question);
+            if (res.bookmarked && res.item) {
+              setBookmarks((prev) => [res.item!, ...prev]);
+            } else {
+              const qHash = computeQuestionHash(question);
+              setBookmarks((prev) => prev.filter((b) => b.questionHash !== qHash));
+            }
+          } catch (err) {
+            console.error('Failed to toggle bookmark:', err);
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
@@ -499,16 +501,6 @@ export default function ReportCardsPage() {
             </div>
           </div>
         </main>
-      ) : selectedCard ? (
-        /* ─────────────────────────────────────────────────────────────
-            AUTHENTIC TEST FORMAT SOLUTION REVIEWER (Real Exam UI)
-            ───────────────────────────────────────────────────────────── */
-        <SolutionTestViewer
-          reportCard={selectedCard}
-          onBack={() => setSelectedCard(null)}
-          onRetest={handleRetestFullTest}
-          onRetestMistakes={handleRetestMistakesFromCard}
-        />
       ) : (
         /* ─────────────────────────────────────────────────────────────
             SIGNED IN MAIN VIEW: 4 Tabs Suite
