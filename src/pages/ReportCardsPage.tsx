@@ -7,14 +7,11 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  Printer,
   Search,
   Sparkles,
   Target,
   TrendingUp,
   Trophy,
-  ArrowLeft,
-  BookOpen,
   Bookmark,
   AlertTriangle,
   BarChart3,
@@ -49,6 +46,7 @@ import type {
 import { formatDurationHuman } from '../utils/scoring';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
+import SolutionTestViewer from '../components/SolutionTestViewer';
 
 type TabView = 'history' | 'analytics' | 'mistakes' | 'bookmarks';
 type FilterMode = 'ALL' | 'EXAM' | 'PRACTICE';
@@ -71,7 +69,6 @@ export default function ReportCardsPage() {
 
   // Detail View State
   const [selectedCard, setSelectedCard] = useState<SavedReportCard | null>(null);
-  const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
 
   // Analytics State
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
@@ -178,15 +175,6 @@ export default function ReportCardsPage() {
     }
   };
 
-  const toggleQuestion = (id: number) => {
-    setExpandedQuestions((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
   const toggleMistakeExpand = (id: string) => {
     setExpandedMistakes((prev) => {
       const next = new Set(prev);
@@ -275,6 +263,29 @@ export default function ReportCardsPage() {
       questions,
     };
 
+    navigate('/test', { state: { testData, mode: rc.mode || 'EXAM' } });
+  };
+
+  // Retest Mistakes from a specific Report Card
+  const handleRetestMistakesFromCard = (rc: SavedReportCard) => {
+    if (!rc.detailedReviewJson) return;
+    const wrongQs = rc.detailedReviewJson
+      .filter((item) => item.isAttempted && !item.isCorrect)
+      .map((item, idx) => ({
+        ...item.question,
+        id: idx + 1,
+      }));
+    if (wrongQs.length === 0) {
+      alert('No incorrect questions found in this report card.');
+      return;
+    }
+    const testData: TestData = {
+      title: `${rc.testTitle} — Retest Mistakes (${wrongQs.length} Qs)`,
+      subject: wrongQs[0]?.subject || 'Mistakes Retest',
+      topic: 'Targeted Review',
+      duration: Math.max(600, wrongQs.length * 162),
+      questions: wrongQs,
+    };
     navigate('/test', { state: { testData, mode: rc.mode || 'EXAM' } });
   };
 
@@ -490,135 +501,14 @@ export default function ReportCardsPage() {
         </main>
       ) : selectedCard ? (
         /* ─────────────────────────────────────────────────────────────
-            FULL REPORT CARD DETAIL VIEW (When an attempt is clicked)
+            AUTHENTIC TEST FORMAT SOLUTION REVIEWER (Real Exam UI)
             ───────────────────────────────────────────────────────────── */
-        <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full space-y-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs print:hidden">
-            <button
-              onClick={() => setSelectedCard(null)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-sm font-semibold transition cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to All Report Cards
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleRetestFullTest(selectedCard)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition cursor-pointer shadow-sm"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Retest
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-semibold transition cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                Print Report Card
-              </button>
-            </div>
-          </div>
-
-          {/* Test Header */}
-          <div className="bg-gradient-to-r from-indigo-800 via-indigo-700 to-blue-700 text-white rounded-3xl p-6 sm:p-8 shadow-lg">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold tracking-wide uppercase">
-                    {selectedCard.mode} MODE
-                  </span>
-                  <span className="text-indigo-200 text-xs font-medium">
-                    {new Date(selectedCard.submittedAt).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{selectedCard.testTitle}</h1>
-                <p className="text-indigo-100 text-xs mt-1">Student: {user?.name || 'Student'} {user?.email ? `(${user.email})` : ''}</p>
-              </div>
-
-              <div className="text-right sm:border-l sm:border-white/20 sm:pl-6">
-                <span className="text-xs uppercase font-bold text-indigo-200 block">Total Score</span>
-                <span className="text-3xl sm:text-4xl font-extrabold text-white">
-                  {selectedCard.score.toFixed(2)}
-                  <span className="text-lg font-medium text-indigo-200"> / {selectedCard.maxMarks}</span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Detailed Question Review List */}
-          <section className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-6">
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-indigo-600" />
-              Detailed Solutions & Answers Review
-            </h2>
-
-            {selectedCard.detailedReviewJson && selectedCard.detailedReviewJson.length > 0 ? (
-              <div className="space-y-4">
-                {selectedCard.detailedReviewJson.map((qr) => {
-                  const isExpanded = expandedQuestions.has(qr.questionId);
-                  return (
-                    <div
-                      key={qr.questionId}
-                      className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50"
-                    >
-                      <button
-                        onClick={() => toggleQuestion(qr.questionId)}
-                        className="w-full flex items-center justify-between p-4 hover:bg-slate-100/60 transition text-left cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span className="font-extrabold text-slate-700 text-xs">Q{qr.questionId}</span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700">
-                            {qr.question?.type || 'MCQ'}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              qr.isCorrect
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : qr.isAttempted
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-slate-200 text-slate-600'
-                            }`}
-                          >
-                            {qr.isCorrect ? '✓ Correct' : qr.isAttempted ? '✗ Incorrect' : '○ Unattempted'}
-                          </span>
-                          {qr.timeSpentSeconds !== undefined && qr.timeSpentSeconds > 0 && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {Math.floor(qr.timeSpentSeconds / 60)}m {qr.timeSpentSeconds % 60}s
-                            </span>
-                          )}
-                        </div>
-                        {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                      </button>
-
-                      {isExpanded && (
-                        <div className="p-4 sm:p-5 border-t border-slate-200 bg-white space-y-4">
-                          <div className="text-sm font-medium text-slate-800">
-                            <RichContent content={qr.question?.question || ''} />
-                          </div>
-
-                          <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-xs space-y-2">
-                            <span className="font-bold text-indigo-900 block">Official Solution:</span>
-                            <RichContent content={qr.question?.solution || 'Solution provided in assessment.'} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500">Summary preserved.</p>
-            )}
-          </section>
-        </main>
+        <SolutionTestViewer
+          reportCard={selectedCard}
+          onBack={() => setSelectedCard(null)}
+          onRetest={handleRetestFullTest}
+          onRetestMistakes={handleRetestMistakesFromCard}
+        />
       ) : (
         /* ─────────────────────────────────────────────────────────────
             SIGNED IN MAIN VIEW: 4 Tabs Suite
