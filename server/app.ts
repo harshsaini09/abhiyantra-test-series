@@ -10,6 +10,7 @@ import mistakesRouter from './mistakes.js';
 import bookmarksRouter from './bookmarks.js';
 import analyticsRouter from './analytics.js';
 import paymentsRouter from './payments.js';
+import razorpayRouter from './razorpay.js';
 
 const app = express();
 
@@ -36,6 +37,10 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/analytics', analyticsRouter);
 app.use('/api/payment', paymentsRouter);
 app.use('/payment', paymentsRouter);
+
+// ─── Razorpay Standard Checkout Routes (POST /api/create-order & /api/verify-payment) ───
+app.use('/api', razorpayRouter);
+app.use('/', razorpayRouter);
 
 // ─── 1. Health Check ───
 const handleHealth = (_req: Request, res: Response) => {

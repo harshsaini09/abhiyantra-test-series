@@ -1411,3 +1411,72 @@ export async function updateUserRoleApi(userId: string, role: 'STUDENT' | 'TEACH
   }
   return await res.json();
 }
+
+// ─── Razorpay Standard Checkout APIs ───
+
+export async function createRazorpayOrderApi(amountInPaise: number, receipt?: string, notes?: Record<string, any>): Promise<{
+  order_id: string;
+  amount: number;
+  currency: string;
+  key_id?: string;
+}> {
+  const res = await fetch(`${API_BASE}/create-order`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      amount: amountInPaise,
+      currency: 'INR',
+      receipt,
+      notes,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to create Razorpay order.');
+  }
+  return data;
+}
+
+export async function verifyRazorpayPaymentApi(payload: {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  planId?: string;
+  planName?: string;
+  amount?: number;
+}): Promise<{ success: boolean; message: string; payment_id?: string; order_id?: string }> {
+  const res = await fetch(`${API_BASE}/verify-payment`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Razorpay payment verification failed.');
+  }
+
+  // Update local profile state so UI updates immediately
+  try {
+    const raw = localStorage.getItem('abhiyantra_user_profile');
+    if (raw) {
+      const u = JSON.parse(raw);
+      u.isSubscribed = true;
+      u.subscriptionTier = payload.planId || 'gate-complete-pass';
+      localStorage.setItem('abhiyantra_user_profile', JSON.stringify(u));
+    }
+  } catch {
+    // ignore
+  }
+
+  return data;
+}
