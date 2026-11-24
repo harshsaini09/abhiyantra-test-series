@@ -23,6 +23,7 @@ import {
   verifyAdminPaymentApi,
   fetchAdminUsersApi,
   updateUserRoleApi,
+  syncRazorpayPaymentsApi,
 } from '../utils/api';
 import type { PaymentRecord, PlatformUser } from '../types';
 
@@ -46,6 +47,21 @@ export const AdminPaymentsPage: React.FC = () => {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncRazorpay = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await syncRazorpayPaymentsApi();
+      await loadPayments();
+      await loadUsers();
+      alert(`Razorpay Sync Complete!\n${res.syncedCount} new captured payment(s) synchronized.\nChecked ${res.totalChecked} recent Razorpay transactions.`);
+    } catch (err: any) {
+      alert(`Sync Error: ${err.message || 'Failed to sync with Razorpay.'}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const isMasterAdmin =
     user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
@@ -231,11 +247,20 @@ export const AdminPaymentsPage: React.FC = () => {
                 if (activeTab === 'PAYMENTS') loadPayments();
                 else loadUsers();
               }}
-              disabled={loading || loadingUsers}
+              disabled={loading || loadingUsers || isSyncing}
               className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all"
-              title="Refresh"
+              title="Refresh local database records"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading || loadingUsers ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={handleSyncRazorpay}
+              disabled={isSyncing}
+              className="px-3 py-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold rounded-lg text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+              title="Pull captured transactions from Razorpay and auto-verify user accounts"
+            >
+              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync Razorpay'}</span>
             </button>
           </div>
         </div>

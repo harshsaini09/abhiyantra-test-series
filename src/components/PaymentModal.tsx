@@ -124,6 +124,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               planId: plan.id,
               planName: plan.name,
               amount: plan.price,
+              userEmail: user.email,
+              userName: user.name,
             });
 
             setVerifiedPaymentId(response.razorpay_payment_id || verifyRes.payment_id || '');

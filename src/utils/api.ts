@@ -1449,6 +1449,8 @@ export async function verifyRazorpayPaymentApi(payload: {
   planId?: string;
   planName?: string;
   amount?: number;
+  userEmail?: string;
+  userName?: string;
 }): Promise<{ success: boolean; message: string; payment_id?: string; order_id?: string }> {
   const res = await fetch(`${API_BASE}/verify-payment`, {
     method: 'POST',
@@ -1480,3 +1482,27 @@ export async function verifyRazorpayPaymentApi(payload: {
 
   return data;
 }
+
+export async function syncRazorpayPaymentsApi(): Promise<{
+  success: boolean;
+  message: string;
+  syncedCount: number;
+  totalChecked: number;
+  syncedPayments: string[];
+}> {
+  const res = await fetch(`${API_BASE}/razorpay/sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to sync Razorpay payments.');
+  }
+  return data;
+}
+

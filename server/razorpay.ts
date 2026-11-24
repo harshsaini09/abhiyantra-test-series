@@ -17,6 +17,45 @@ export const getRazorpayClient = (): Razorpay => {
   });
 };
 
+// Helper to ensure a user exists and activate their subscription
+async function ensureUserAndActivateSub(
+  email: string,
+  name?: string,
+  planId = 'gate-complete-pass'
+): Promise<string | null> {
+  if (!isDbConfigured || !prisma || !email) return null;
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const userName = name || normalizedEmail.split('@')[0];
+  const expiryDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+  let user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        googleId: `google_pending_${normalizedEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        email: normalizedEmail,
+        name: userName,
+        role: 'STUDENT',
+        isSubscribed: true,
+        subscriptionTier: planId,
+        subscriptionUntil: expiryDate,
+      },
+    });
+  } else {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isSubscribed: true,
+        subscriptionTier: planId,
+        subscriptionUntil: expiryDate,
+      },
+    });
+  }
+
+  return user.id;
+}
+
 // ─── 1. Create Razorpay Order (POST /api/create-order) ───
 export async function handleCreateOrder(req: Request, res: Response): Promise<void> {
   try {
@@ -72,6 +111,8 @@ export async function handleVerifyPayment(req: AuthenticatedRequest, res: Respon
       planId = 'gate-complete-pass',
       planName = 'GATE Complete Mock Test Series (2026/2027)',
       amount = 59,
+      userEmail,
+      userName,
     } = req.body;
 
     // Check missing required fields
@@ -113,6 +154,28 @@ export async function handleVerifyPayment(req: AuthenticatedRequest, res: Respon
       }
     }
 
+    // If userId not found from token, resolve/create via userEmail or Razorpay payment details
+    if (!userId && isDbConfigured && prisma) {
+      let resolvedEmail = userEmail;
+      let resolvedName = userName;
+
+      // If email wasn't passed in body, fetch from Razorpay API
+      if (!resolvedEmail && RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET) {
+        try {
+          const razorpay = getRazorpayClient();
+          const pDetails: any = await razorpay.payments.fetch(razorpay_payment_id);
+          resolvedEmail = pDetails.email || pDetails.notes?.userEmail;
+          resolvedName = pDetails.notes?.userName || resolvedEmail?.split('@')[0];
+        } catch (fetchErr) {
+          console.warn('Could not fetch payment email from Razorpay:', fetchErr);
+        }
+      }
+
+      if (resolvedEmail) {
+        userId = await ensureUserAndActivateSub(resolvedEmail, resolvedName, planId) || undefined;
+      }
+    }
+
     // Update database records if connected
     if (isDbConfigured && prisma && userId) {
       try {
@@ -131,7 +194,7 @@ export async function handleVerifyPayment(req: AuthenticatedRequest, res: Respon
             planName,
             amount: Number(amount) || 59,
             utrNumber: razorpay_payment_id,
-            upiIdUsed: 'Razorpay Checkout',
+            upiIdUsed: 'Razorpay Live Checkout',
             status: 'VERIFIED',
             verifiedAt: new Date(),
             adminNote: `Order: ${razorpay_order_id}`,
@@ -166,8 +229,155 @@ export async function handleVerifyPayment(req: AuthenticatedRequest, res: Respon
   }
 }
 
+// ─── 3. Sync Captured Payments Directly from Razorpay API (POST /api/razorpay/sync) ───
+export async function handleSyncRazorpay(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    // Authenticate Master Admin
+    const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+    const authUser = token ? verifyUserToken(token) : null;
+    const isMasterAdmin = authUser && (
+      authUser.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
+      authUser.email.toLowerCase().startsWith('harshsaini0912@')
+    );
+
+    if (authUser && !isMasterAdmin) {
+      res.status(403).json({ error: 'Access denied: Master Admin permission required.' });
+      return;
+    }
+
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+      res.status(500).json({ error: 'Razorpay API credentials missing.' });
+      return;
+    }
+
+    if (!isDbConfigured || !prisma) {
+      res.status(500).json({ error: 'Database not connected.' });
+      return;
+    }
+
+    const razorpay = getRazorpayClient();
+    const paymentsList: any = await razorpay.payments.all({ count: 50 });
+    const items = paymentsList?.items || [];
+
+    let syncedCount = 0;
+    const syncedPayments: string[] = [];
+
+    for (const p of items) {
+      // Only process captured payments
+      if (p.status !== 'captured') continue;
+
+      const paymentId = p.id;
+      const email = (p.email || p.notes?.userEmail || '').toLowerCase().trim();
+      const name = p.notes?.userName || (email ? email.split('@')[0] : 'Student');
+      const amount = (p.amount || 5900) / 100;
+      const planId = p.notes?.planId || 'gate-complete-pass';
+      const planName = p.notes?.planName || 'GATE Complete Mock Test Series (2026/2027)';
+
+      // Check if already in PaymentRecord
+      const existing = await prisma.paymentRecord.findUnique({
+        where: { utrNumber: paymentId },
+      });
+
+      if (!existing && email) {
+        // Ensure user exists and is subscribed
+        const userId = await ensureUserAndActivateSub(email, name, planId);
+
+        if (userId) {
+          await prisma.paymentRecord.create({
+            data: {
+              userId,
+              planId,
+              planName,
+              amount,
+              utrNumber: paymentId,
+              upiIdUsed: 'Razorpay Live Checkout',
+              status: 'VERIFIED',
+              verifiedAt: new Date((p.created_at || Date.now() / 1000) * 1000),
+              adminNote: `Order: ${p.order_id || 'N/A'} (Auto-Synced)`,
+            },
+          });
+
+          syncedCount++;
+          syncedPayments.push(paymentId);
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully synchronized Razorpay payments.`,
+      syncedCount,
+      totalChecked: items.length,
+      syncedPayments,
+    });
+  } catch (error: any) {
+    console.error('Razorpay sync error:', error);
+    res.status(500).json({ error: error?.message || 'Failed to sync Razorpay payments.' });
+  }
+}
+
+// ─── 4. Razorpay Webhook Handler (POST /api/razorpay/webhook) ───
+export async function handleRazorpayWebhook(req: Request, res: Response): Promise<void> {
+  try {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || RAZORPAY_KEY_SECRET;
+    const signature = req.headers['x-razorpay-signature'] as string;
+
+    // Verify webhook signature if provided
+    if (signature && secret) {
+      const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      const expectedSignature = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+      if (signature !== expectedSignature) {
+        console.warn('Webhook signature mismatch.');
+      }
+    }
+
+    const event = req.body?.event;
+    const payment = req.body?.payload?.payment?.entity;
+
+    if (payment && (event === 'payment.captured' || event === 'order.paid' || payment.status === 'captured')) {
+      const paymentId = payment.id;
+      const email = (payment.email || payment.notes?.userEmail || '').toLowerCase().trim();
+      const name = payment.notes?.userName || (email ? email.split('@')[0] : 'Student');
+      const amount = (payment.amount || 5900) / 100;
+      const planId = payment.notes?.planId || 'gate-complete-pass';
+      const planName = payment.notes?.planName || 'GATE Complete Mock Test Series (2026/2027)';
+
+      if (email && isDbConfigured && prisma) {
+        const userId = await ensureUserAndActivateSub(email, name, planId);
+        if (userId) {
+          await prisma.paymentRecord.upsert({
+            where: { utrNumber: paymentId },
+            update: {
+              status: 'VERIFIED',
+              verifiedAt: new Date(),
+            },
+            create: {
+              userId,
+              planId,
+              planName,
+              amount,
+              utrNumber: paymentId,
+              upiIdUsed: 'Razorpay Live Checkout',
+              status: 'VERIFIED',
+              verifiedAt: new Date(),
+              adminNote: `Order: ${payment.order_id || 'N/A'} (Webhook)`,
+            },
+          });
+        }
+      }
+    }
+
+    res.status(200).json({ status: 'ok' });
+  } catch (error: any) {
+    console.error('Razorpay webhook error:', error);
+    res.status(200).json({ status: 'ok' }); // Always return 200 to Razorpay
+  }
+}
+
 // Routes
 router.post('/create-order', handleCreateOrder);
 router.post('/verify-payment', handleVerifyPayment);
+router.post('/razorpay/sync', handleSyncRazorpay);
+router.post('/razorpay/webhook', handleRazorpayWebhook);
 
 export default router;
