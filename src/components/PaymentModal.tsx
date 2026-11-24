@@ -51,7 +51,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [loadingIntent, setLoadingIntent] = useState(false);
   const [upiUri, setUpiUri] = useState('');
   const [qrDataUrl, setQrDataUrl] = useState('');
-  const [payeeId, setPayeeId] = useState('harshsaini0912@axl');
+  const [payeeId, setPayeeId] = useState('harshsaini0912@okhdfcbank');
   const [orderId, setOrderId] = useState('');
   const [copiedUpi, setCopiedUpi] = useState(false);
 
@@ -78,7 +78,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       .then(async (data) => {
         if (!isMounted) return;
         setUpiUri(data.upiUri || '');
-        setPayeeId(data.payeeId || 'harshsaini0912@axl');
+        setPayeeId(data.payeeId || 'harshsaini0912@okhdfcbank');
         setOrderId(data.orderId || '');
 
         if (data.upiUri) {
@@ -104,9 +104,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         setLoadingIntent(false);
         // Fallback default intent
         const fallbackOrderId = `ABH_${Date.now().toString().slice(-6)}`;
-        const fallbackUri = `upi://pay?pa=harshsaini0912@axl&pn=Abhiyantra%20Test%20Series&am=${plan.price}&cu=INR&tn=Abhiyantra%20GATE%20Pass&tr=${fallbackOrderId}`;
+        const fallbackUri = `upi://pay?pa=harshsaini0912@okhdfcbank&pn=Abhiyantra%20Test%20Series&am=${plan.price}&cu=INR&tn=Abhiyantra%20GATE%20Pass&tr=${fallbackOrderId}`;
         setUpiUri(fallbackUri);
         setOrderId(fallbackOrderId);
+        setPayeeId('harshsaini0912@okhdfcbank');
         QRCode.toDataURL(fallbackUri, { width: 256, margin: 1.5 })
           .then((url) => {
             if (isMounted) setQrDataUrl(url);
@@ -279,18 +280,28 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 </div>
 
                 {/* QR Code Container */}
-                <div className="bg-white border-2 border-dashed border-indigo-200 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                  <div className="relative w-36 h-36 bg-slate-100 rounded-lg flex items-center justify-center p-1 border border-slate-200 shrink-0">
+                <div className="bg-white border-2 border-indigo-200 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left shadow-xs">
+                  <div className="relative w-40 h-40 bg-white rounded-xl flex items-center justify-center p-1.5 border border-slate-200 shadow-sm shrink-0">
                     {loadingIntent ? (
                       <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-                    ) : qrDataUrl ? (
-                      <img src={qrDataUrl} alt="UPI Payment QR Code" className="w-full h-full object-contain rounded" />
                     ) : (
-                      <div className="text-xs text-slate-400">Loading QR...</div>
+                      <img
+                        src="/payment-qr.jpg"
+                        onError={(e) => {
+                          // fallback to dynamic QR code if image fails to load
+                          if (qrDataUrl) (e.target as HTMLImageElement).src = qrDataUrl;
+                        }}
+                        alt="Official Google Pay UPI QR Code"
+                        className="w-full h-full object-contain rounded-lg"
+                      />
                     )}
                   </div>
 
                   <div className="space-y-2 text-xs flex-1">
+                    <div className="flex items-center gap-1.5 justify-center sm:justify-start">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="text-[11px] font-bold text-emerald-700">Official Google Pay QR</span>
+                    </div>
                     <p className="font-semibold text-slate-800">
                       Scan using Google Pay, PhonePe, Paytm, BHIM, or any banking app.
                     </p>

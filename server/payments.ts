@@ -8,8 +8,9 @@ const router = Router();
 export const ADMIN_EMAIL = 'harshsaini0912@gmail.com';
 
 // Configurable UPI details (0% fee, direct payment to owner)
-export const UPI_PAYEE_ID = process.env.UPI_PAYEE_ID || 'harshsaini0912@axl';
+export const UPI_PAYEE_ID = process.env.UPI_PAYEE_ID || 'harshsaini0912@okhdfcbank';
 export const UPI_PAYEE_NAME = process.env.UPI_PAYEE_NAME || 'Abhiyantra Test Series';
+export const UPI_QR_IMAGE = '/payment-qr.jpg';
 
 export interface PlanDefinition {
   id: string;
@@ -88,6 +89,7 @@ router.get('/plans', (_req, res: Response) => {
     upi: {
       payeeId: UPI_PAYEE_ID,
       payeeName: UPI_PAYEE_NAME,
+      qrImageUrl: UPI_QR_IMAGE,
     },
   });
 });
@@ -111,6 +113,7 @@ router.post('/create-intent', (req: AuthenticatedRequest, res: Response): void =
       upiUri,
       payeeId: UPI_PAYEE_ID,
       payeeName: UPI_PAYEE_NAME,
+      qrImageUrl: UPI_QR_IMAGE,
       amount: plan.price,
       note,
       user: {

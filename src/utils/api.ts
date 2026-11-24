@@ -1238,7 +1238,7 @@ export async function clearPlatformDataApi(target: 'all' | 'questions' | 'report
 
 // ─── Payment & Subscription APIs ───
 
-export async function fetchPricingPlansApi(): Promise<{ plans: any[]; upi: { payeeId: string; payeeName: string } }> {
+export async function fetchPricingPlansApi(): Promise<{ plans: any[]; upi: { payeeId: string; payeeName: string; qrImageUrl?: string } }> {
   try {
     const res = await fetch(`${API_BASE}/payment/plans`, {
       headers: getAuthHeaders(),
@@ -1289,8 +1289,9 @@ export async function fetchPricingPlansApi(): Promise<{ plans: any[]; upi: { pay
       },
     ],
     upi: {
-      payeeId: 'harshsaini0912@axl',
+      payeeId: 'harshsaini0912@okhdfcbank',
       payeeName: 'Abhiyantra Test Series',
+      qrImageUrl: '/payment-qr.jpg',
     },
   };
 }
