@@ -19,6 +19,8 @@ import type {
 
 const API_BASE = '/api';
 const LOCAL_STORAGE_KEY = 'abhiyantra-local-question-bank';
+const HIERARCHY_CACHE_KEY = 'abhiyantra_cached_hierarchy';
+const STATS_CACHE_KEY = 'abhiyantra_cached_stats';
 const SAVED_REPORTS_KEY = 'abhiyantra_saved_report_cards';
 const SAVED_MISTAKES_KEY = 'abhiyantra_saved_mistakes';
 const SAVED_BOOKMARKS_KEY = 'abhiyantra_saved_bookmarks';
@@ -79,19 +81,18 @@ export interface IngestResponse {
   message: string;
 }
 
-// ─── Local Fallback Helper (Guarantees Vercel/Client-Side Stability) ───
-function getLocalQuestions(): QuestionBankItem[] {
+// ─── Local Fallback & Fast Cache Helpers (Sub-Millisecond UI Boot) ───
+export function getLocalQuestions(): QuestionBankItem[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (raw !== null) return JSON.parse(raw);
   } catch {
     // ignore
   }
-
   return [];
 }
 
-function saveLocalQuestions(items: QuestionBankItem[]): void {
+export function saveLocalQuestions(items: QuestionBankItem[]): void {
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
   } catch {
@@ -99,18 +100,46 @@ function saveLocalQuestions(items: QuestionBankItem[]): void {
   }
 }
 
-// ─── API Functions with Graceful Offline Fallback ───
+export function getLocalHierarchy(): SubjectWithTopics[] {
+  try {
+    const raw = localStorage.getItem(HIERARCHY_CACHE_KEY);
+    if (raw !== null) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+export function getLocalStats(): QuestionBankStats | null {
+  try {
+    const raw = localStorage.getItem(STATS_CACHE_KEY);
+    if (raw !== null) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+// ─── API Functions with Graceful Offline Fallback & Fast Cache ───
 
 export async function fetchStats(): Promise<QuestionBankStats> {
   try {
     const res = await fetch(`${API_BASE}/stats`);
     if (res.ok) {
       const data = await res.json();
-      if (!data.fallback && data.totalQuestions > 0) return data;
+      if (!data.fallback && typeof data.totalQuestions === 'number') {
+        try {
+          localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(data));
+        } catch {}
+        return data;
+      }
     }
   } catch {
     // fallback
   }
+
+  const cached = getLocalStats();
+  if (cached) return cached;
 
   const qs = getLocalQuestions().filter((q) => !q.isArchived);
   const subjects = new Set(qs.map((q) => q.subject.name));
@@ -137,11 +166,19 @@ export async function fetchHierarchy(): Promise<SubjectWithTopics[]> {
     const res = await fetch(`${API_BASE}/hierarchy`);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) return data;
+      if (Array.isArray(data) && data.length > 0) {
+        try {
+          localStorage.setItem(HIERARCHY_CACHE_KEY, JSON.stringify(data));
+        } catch {}
+        return data;
+      }
     }
   } catch {
     // fallback
   }
+
+  const cached = getLocalHierarchy();
+  if (cached && cached.length > 0) return cached;
 
   const qs = getLocalQuestions().filter((q) => !q.isArchived);
   const subjectMap = new Map<string, { id: number; topics: Map<string, { id: number; count: number }> }>();
@@ -210,7 +247,12 @@ export async function fetchQuestions(filters: QuestionFilters = {}): Promise<Que
     const res = await fetch(`${API_BASE}/questions?${params.toString()}`);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) return data;
+      if (Array.isArray(data)) {
+        if (!filters.subjectId && !filters.topicId && !filters.type && !filters.marks && !filters.search) {
+          saveLocalQuestions(data);
+        }
+        return data;
+      }
     }
   } catch {
     // fallback

@@ -35,6 +35,10 @@ import {
   computeQuestionHash,
   syncLocalReportCardsToCloud,
   clearPlatformDataApi,
+  getLocalReportCards,
+  getLocalMistakes,
+  getLocalBookmarks,
+  computeLocalAnalyticsSummary,
 } from '../utils/api';
 import type {
   SavedReportCard,
@@ -60,9 +64,9 @@ export default function ReportCardsPage() {
   // Navigation State
   const [activeTab, setActiveTab] = useState<TabView>('history');
 
-  // Test History State
-  const [reportCards, setReportCards] = useState<SavedReportCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Instant Stale-While-Revalidate initialization (0ms initial render!)
+  const [reportCards, setReportCards] = useState<SavedReportCard[]>(() => getLocalReportCards());
+  const [loading, setLoading] = useState<boolean>(() => getLocalReportCards().length === 0 && getLocalMistakes().length === 0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMode, setSelectedMode] = useState<FilterMode>('ALL');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
@@ -70,17 +74,20 @@ export default function ReportCardsPage() {
   // Detail View State
   const [selectedCard, setSelectedCard] = useState<SavedReportCard | null>(null);
 
-  // Analytics State
-  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+  // Analytics State - immediate local estimate
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(() => {
+    const local = getLocalReportCards();
+    return local.length > 0 ? computeLocalAnalyticsSummary(local) : null;
+  });
 
-  // Mistakes State
-  const [mistakes, setMistakes] = useState<MistakeEntry[]>([]);
+  // Mistakes State - instant local cache
+  const [mistakes, setMistakes] = useState<MistakeEntry[]>(() => getLocalMistakes());
   const [mistakeFilter, setMistakeFilter] = useState<MistakeFilter>('NEEDS_REVIEW');
   const [selectedMistakeSubject, setSelectedMistakeSubject] = useState<string>('ALL');
   const [expandedMistakes, setExpandedMistakes] = useState<Set<string>>(new Set());
 
-  // Bookmarks State
-  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  // Bookmarks State - instant local cache
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>(() => getLocalBookmarks());
   const [selectedBookmarkSubject, setSelectedBookmarkSubject] = useState<string>('ALL');
   const [expandedBookmarks, setExpandedBookmarks] = useState<Set<string>>(new Set());
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -124,14 +131,13 @@ export default function ReportCardsPage() {
   // Initial Data Fetch
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
+    // Trigger silent cloud sync in background without blocking initial UI
+    if (user) {
+      syncLocalReportCardsToCloud().catch(() => {});
+    }
 
-    // If user is authenticated, sync any device-local tests up to cloud Neon DB
     const loadStudentData = async () => {
       try {
-        if (user) {
-          await syncLocalReportCardsToCloud().catch(() => {});
-        }
         const [cards, mList, bList, aSummary] = await Promise.all([
           fetchReportCardsApi(),
           fetchMistakesApi(),

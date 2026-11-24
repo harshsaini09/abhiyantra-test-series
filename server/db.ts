@@ -6,15 +6,14 @@ export const isDbConfigured = Boolean(
       process.env.DATABASE_URL.startsWith('postgres://'))
 );
 
-let prismaInstance: PrismaClient | null = null;
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
-if (isDbConfigured) {
-  try {
-    prismaInstance = new PrismaClient();
-  } catch (e) {
-    console.warn('Failed to initialize Prisma client:', e);
-    prismaInstance = null;
-  }
+function createPrismaClient(): PrismaClient {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  });
 }
 
-export const prisma = prismaInstance as PrismaClient;
+export const prisma = isDbConfigured
+  ? globalForPrisma.prisma || (globalForPrisma.prisma = createPrismaClient())
+  : (null as unknown as PrismaClient);

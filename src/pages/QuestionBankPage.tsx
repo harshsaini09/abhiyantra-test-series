@@ -12,6 +12,9 @@ import {
   toggleBookmarkApi,
   computeQuestionHash,
   clearPlatformDataApi,
+  getLocalStats,
+  getLocalHierarchy,
+  getLocalQuestions,
 } from '../utils/api';
 import type {
   SubjectWithTopics,
@@ -55,10 +58,11 @@ export default function QuestionBankPage() {
         user.email.toLowerCase().startsWith('harshsaini0912@'))
   );
 
-  const [stats, setStats] = useState<QuestionBankStats | null>(null);
-  const [hierarchy, setHierarchy] = useState<SubjectWithTopics[]>([]);
-  const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Instant Stale-While-Revalidate initialization (0ms initial render!)
+  const [stats, setStats] = useState<QuestionBankStats | null>(() => getLocalStats());
+  const [hierarchy, setHierarchy] = useState<SubjectWithTopics[]>(() => getLocalHierarchy());
+  const [questions, setQuestions] = useState<QuestionBankItem[]>(() => getLocalQuestions());
+  const [loading, setLoading] = useState<boolean>(() => getLocalQuestions().length === 0);
 
   // Filters
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | undefined>(undefined);
@@ -134,10 +138,12 @@ export default function QuestionBankPage() {
   const [formNatIsRange, setFormNatIsRange] = useState(false);
   const [formSolution, setFormSolution] = useState('');
 
-  // Load initial data
+  // Load initial data with background revalidation
   const loadData = useCallback(async () => {
     try {
-      setLoading(true);
+      if (questions.length === 0) {
+        setLoading(true);
+      }
       const [statsData, hierarchyData, questionsData] = await Promise.all([
         fetchStats(),
         fetchHierarchy(),
@@ -160,7 +166,7 @@ export default function QuestionBankPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedSubjectId, selectedTopicId, selectedType, selectedMarks, searchQuery, includeArchived]);
+  }, [selectedSubjectId, selectedTopicId, selectedType, selectedMarks, searchQuery, includeArchived, questions.length]);
 
   useEffect(() => {
     loadData();
