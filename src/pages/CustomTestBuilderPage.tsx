@@ -26,6 +26,8 @@ import {
   Plus,
   Trash2,
   AlertCircle,
+  Lock,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PaymentModal } from '../components/PaymentModal';
@@ -43,7 +45,15 @@ interface MixRule {
 
 export default function CustomTestBuilderPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const isMasterAdmin = Boolean(
+    user?.email &&
+      (user.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
+        user.email.toLowerCase().trim() === 'harshsaini0912@gmail' ||
+        user.email.toLowerCase().startsWith('harshsaini0912@') ||
+        user?.role === 'ADMIN')
+  );
+  const isTeacherOrAdmin = isMasterAdmin || user?.role === 'TEACHER';
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const [builderMode, setBuilderMode] = useState<BuilderMode>('manual');
@@ -356,6 +366,39 @@ export default function CustomTestBuilderPage() {
       setGenerating(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isTeacherOrAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-xl text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Faculty & Admin Access Only</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              The Custom Test Builder is reserved exclusively for Faculty, Instructors, and Platform Administrators to design test papers. Students can practice authentic full-length tests from the examination portal.
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer"
+            >
+              Explore GATE Mock Tests
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

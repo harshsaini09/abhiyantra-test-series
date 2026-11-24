@@ -12,6 +12,7 @@ export default function Navbar() {
 
   const isMasterAdmin = user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
   const isTeacher = user?.role === 'TEACHER';
+  const isTeacherOrAdmin = isMasterAdmin || isTeacher;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -24,13 +25,20 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const links = [
+  const baseLinks = [
     { to: '/', label: 'Home', shortLabel: 'Home', icon: <Home className="w-4 h-4" /> },
     { to: '/pricing', label: 'GATE Pass', shortLabel: 'Pass', icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
-    { to: '/question-bank', label: 'Question Bank', shortLabel: 'Q-Bank', icon: <Database className="w-4 h-4" /> },
-    { to: '/custom-builder', label: 'Custom Builder', shortLabel: 'Builder', icon: <Wrench className="w-4 h-4" /> },
     { to: '/report-cards', label: 'Report Cards', shortLabel: 'Reports', icon: <Award className="w-4 h-4" /> },
   ];
+
+  const facultyLinks = [
+    { to: '/question-bank', label: 'Question Bank', shortLabel: 'Q-Bank', icon: <Database className="w-4 h-4" /> },
+    { to: '/custom-builder', label: 'Custom Builder', shortLabel: 'Builder', icon: <Wrench className="w-4 h-4" /> },
+  ];
+
+  const links = isTeacherOrAdmin
+    ? [baseLinks[0], baseLinks[1], ...facultyLinks, baseLinks[2]]
+    : baseLinks;
 
   const isLinkActive = (to: string) => {
     if (location.pathname === to) return true;
@@ -199,14 +207,16 @@ export default function Navbar() {
                         <Award className="w-4 h-4 text-indigo-600" />
                         My Saved Report Cards
                       </Link>
-                      <Link
-                        to="/custom-builder"
-                        onClick={() => setDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-                      >
-                        <Wrench className="w-4 h-4 text-slate-500" />
-                        Custom Test Builder
-                      </Link>
+                      {isTeacherOrAdmin && (
+                        <Link
+                          to="/custom-builder"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                        >
+                          <Wrench className="w-4 h-4 text-slate-500" />
+                          Custom Test Builder
+                        </Link>
+                      )}
                     </div>
 
                     <div className="border-t border-slate-100 pt-1 mt-1">

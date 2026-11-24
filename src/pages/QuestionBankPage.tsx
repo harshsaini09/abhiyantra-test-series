@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -44,19 +45,23 @@ import {
   AlertCircle,
   Bookmark,
   Trash2,
+  Lock,
 } from 'lucide-react';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
 import TikzDiagram from '../components/TikzDiagram';
 
 export default function QuestionBankPage() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const isMasterAdmin = Boolean(
     user?.email &&
       (user.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
         user.email.toLowerCase().trim() === 'harshsaini0912@gmail' ||
-        user.email.toLowerCase().startsWith('harshsaini0912@'))
+        user.email.toLowerCase().startsWith('harshsaini0912@') ||
+        user?.role === 'ADMIN')
   );
+  const isTeacherOrAdmin = isMasterAdmin || user?.role === 'TEACHER';
 
   // Instant Stale-While-Revalidate initialization (0ms initial render!)
   const [stats, setStats] = useState<QuestionBankStats | null>(() => getLocalStats());
@@ -295,6 +300,39 @@ export default function QuestionBankPage() {
         .find((s) => s.id === selectedSubjectId)
         ?.topics.find((t) => t.id === selectedTopicId)?.name
     : undefined;
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isTeacherOrAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-xl text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Faculty & Admin Access Only</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              The Question Bank repository is restricted to verified Instructors, Faculty, and Platform Administrators. Students can practice authentic full-length tests directly from the examination portal.
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer"
+            >
+              Explore GATE Mock Tests
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">

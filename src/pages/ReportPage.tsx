@@ -39,6 +39,7 @@ export default function ReportPage() {
   const results = (location.state as { results?: TestResults } | null)?.results;
 
   const { user, stagePendingResults } = useAuth();
+  const isTeacherOrAdmin = user?.role === 'TEACHER' || user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'idle'>('idle');
 
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
@@ -779,21 +780,25 @@ export default function ReportPage() {
             My Report Cards
           </button>
 
-          <button
-            onClick={() => navigate('/question-bank')}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-xs text-xs sm:text-sm"
-          >
-            <Database className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
-            Question Bank
-          </button>
+          {isTeacherOrAdmin && (
+            <>
+              <button
+                onClick={() => navigate('/question-bank')}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-xs text-xs sm:text-sm"
+              >
+                <Database className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                Question Bank
+              </button>
 
-          <button
-            onClick={() => navigate('/custom-builder')}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-xs text-xs sm:text-sm"
-          >
-            <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
-            Custom Test Builder
-          </button>
+              <button
+                onClick={() => navigate('/custom-builder')}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium shadow-xs text-xs sm:text-sm"
+              >
+                <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                Custom Test Builder
+              </button>
+            </>
+          )}
 
           <button
             onClick={() => navigate('/')}

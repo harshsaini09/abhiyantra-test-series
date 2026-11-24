@@ -94,11 +94,13 @@ export default function ReportCardsPage() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState<string>('');
 
-  // Admin Action State
+  // Admin & Faculty Action State
   const isMasterAdmin =
     user?.email?.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
     user?.email?.toLowerCase().trim() === 'harshsaini0912@gmail' ||
-    user?.email?.toLowerCase().startsWith('harshsaini0912@');
+    user?.email?.toLowerCase().startsWith('harshsaini0912@') ||
+    user?.role === 'ADMIN';
+  const isTeacherOrAdmin = isMasterAdmin || user?.role === 'TEACHER';
 
   const [isClearing, setIsClearing] = useState(false);
   const handleClearReportCards = async () => {
@@ -587,12 +589,14 @@ export default function ReportCardsPage() {
                 >
                   Take Another Test
                 </Link>
-                <Link
-                  to="/question-bank"
-                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl text-xs font-bold transition"
-                >
-                  Question Bank
-                </Link>
+                {isTeacherOrAdmin && (
+                  <Link
+                    to="/question-bank"
+                    className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl text-xs font-bold transition"
+                  >
+                    Question Bank
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -1290,13 +1294,13 @@ export default function ReportCardsPage() {
                   <Bookmark className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                   <h3 className="text-base font-bold text-slate-800">No bookmarked questions yet</h3>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                    Click the bookmark icon on any question in the Question Bank or after completing a test to save it here for fast revision.
+                    Click the bookmark icon on any question during or after completing a test to save it here for fast revision.
                   </p>
                   <Link
-                    to="/question-bank"
+                    to="/"
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition"
                   >
-                    Browse Question Bank
+                    Start a Practice Test
                   </Link>
                 </div>
               ) : (
