@@ -532,6 +532,8 @@ const handleClearData = async (req: Request, res: Response) => {
 
     if (!target || target === 'all' || target === 'report-cards') {
       await prisma.reportCard.deleteMany({});
+      await prisma.mistakeEntry.deleteMany({});
+      await prisma.bookmark.deleteMany({});
     }
 
     if (!target || target === 'all' || target === 'questions') {

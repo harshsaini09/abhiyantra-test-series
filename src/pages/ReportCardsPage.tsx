@@ -21,6 +21,7 @@ import {
   Play,
   Flame,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
@@ -35,6 +36,7 @@ import {
   fetchAnalyticsSummaryApi,
   computeQuestionHash,
   syncLocalReportCardsToCloud,
+  clearPlatformDataApi,
 } from '../utils/api';
 import type {
   SavedReportCard,
@@ -86,6 +88,41 @@ export default function ReportCardsPage() {
   const [expandedBookmarks, setExpandedBookmarks] = useState<Set<string>>(new Set());
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState<string>('');
+
+  // Admin Action State
+  const isMasterAdmin =
+    user?.email?.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
+    user?.email?.toLowerCase().trim() === 'harshsaini0912@gmail' ||
+    user?.email?.toLowerCase().startsWith('harshsaini0912@');
+
+  const [isClearing, setIsClearing] = useState(false);
+  const handleClearReportCards = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to empty all report cards to zero? This will permanently wipe all test history, mistake entries, and analytics across all your devices.'
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsClearing(true);
+      await clearPlatformDataApi('report-cards');
+      setReportCards([]);
+      setMistakes([]);
+      setBookmarks([]);
+      setAnalytics({
+        totalTests: 0,
+        avgAccuracy: 0,
+        avgScorePercent: 0,
+        totalTimeSpentSeconds: 0,
+        trends: [],
+        subjectMastery: [],
+        weakTopics: [],
+      });
+    } catch (err) {
+      console.error('Failed to clear report cards:', err);
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   // Initial Data Fetch
   useEffect(() => {
@@ -603,7 +640,18 @@ export default function ReportCardsPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                {isMasterAdmin && (
+                  <button
+                    onClick={handleClearReportCards}
+                    disabled={isClearing || (reportCards.length === 0 && mistakes.length === 0)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs font-semibold border border-rose-500/30 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    title="Empty all test history and report cards (harshsaini0912@gmail only)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>{isClearing ? 'Clearing...' : 'Clear History'}</span>
+                  </button>
+                )}
                 <Link
                   to="/"
                   className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition"

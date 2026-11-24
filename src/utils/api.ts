@@ -739,12 +739,9 @@ export async function fetchReportCardsApi(): Promise<SavedReportCard[]> {
 
       const data = await res.json();
       if (Array.isArray(data)) {
-        if (data.length > 0) {
-          data.forEach((rc) => saveLocalReportCard(rc));
-        }
-        // Auto-sync any remaining local reports to cloud
-        syncLocalReportCardsToCloud().catch(() => {});
-        return data.length > 0 ? data : getLocalReportCards();
+        // Cloud is authoritative for authenticated session: sync local cache with cloud state
+        localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify(data));
+        return data;
       }
     }
   } catch {
@@ -845,7 +842,7 @@ export async function fetchMistakesApi(): Promise<MistakeEntry[]> {
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         saveLocalMistakes(data);
         return data;
       }
@@ -908,7 +905,7 @@ export async function fetchBookmarksApi(): Promise<BookmarkItem[]> {
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         saveLocalBookmarks(data);
         return data;
       }
@@ -1145,7 +1142,7 @@ export async function fetchAnalyticsSummaryApi(): Promise<AnalyticsSummary> {
     });
     if (res.ok) {
       const data = await res.json();
-      if (data && data.totalTests > 0) {
+      if (data && typeof data.totalTests === 'number') {
         return data;
       }
     }
