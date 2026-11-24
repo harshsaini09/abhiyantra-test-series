@@ -244,7 +244,7 @@ export default function LandingPage() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-sm font-black rounded-xl shadow-md transition-all cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-slate-950 fill-current" />
-              Get Full Pass (₹499)
+              Get Full Pass (₹59)
             </button>
             <a
               href="#loader"

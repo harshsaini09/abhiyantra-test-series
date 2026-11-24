@@ -35,9 +35,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const plan: PricingPlan = selectedPlan || {
     id: 'gate-complete-pass',
     name: 'GATE Complete Mock Test Series (2026/2027)',
-    price: 499,
-    originalPrice: 1999,
-    discountBadge: '75% OFF - Launch Special',
+    price: 59,
+    originalPrice: 499,
+    discountBadge: '88% OFF - Limited Special',
     durationDays: 365,
     popular: true,
     features: [
@@ -84,8 +84,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         if (data.upiUri) {
           try {
             const qrUrl = await QRCode.toDataURL(data.upiUri, {
-              width: 256,
+              width: 320,
               margin: 1.5,
+              errorCorrectionLevel: 'H',
               color: {
                 dark: '#0f172a',
                 light: '#ffffff',
@@ -104,11 +105,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         setLoadingIntent(false);
         // Fallback default intent
         const fallbackOrderId = `ABH_${Date.now().toString().slice(-6)}`;
-        const fallbackUri = `upi://pay?pa=harshsaini0912@okhdfcbank&pn=Abhiyantra%20Test%20Series&am=${plan.price}&cu=INR&tn=Abhiyantra%20GATE%20Pass&tr=${fallbackOrderId}`;
+        const fallbackUri = `upi://pay?pa=harshsaini0912@okhdfcbank&pn=Abhiyantra%20Test%20Series&am=${plan.price.toFixed(2)}&cu=INR&tn=Abhiyantra%20GATE%20Pass&tr=${fallbackOrderId}`;
         setUpiUri(fallbackUri);
         setOrderId(fallbackOrderId);
         setPayeeId('harshsaini0912@okhdfcbank');
-        QRCode.toDataURL(fallbackUri, { width: 256, margin: 1.5 })
+        QRCode.toDataURL(fallbackUri, { width: 320, margin: 1.5, errorCorrectionLevel: 'H' })
           .then((url) => {
             if (isMounted) setQrDataUrl(url);
           })
@@ -279,31 +280,33 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   </a>
                 </div>
 
-                {/* QR Code Container */}
-                <div className="bg-white border-2 border-indigo-200 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left shadow-xs">
-                  <div className="relative w-40 h-40 bg-white rounded-xl flex items-center justify-center p-1.5 border border-slate-200 shadow-sm shrink-0">
-                    {loadingIntent ? (
+                {/* QR Code Container with Direct Pre-filled ₹59 Amount */}
+                <div className="bg-white border-2 border-indigo-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left shadow-xs">
+                  <div className="relative w-44 h-44 bg-white rounded-2xl flex items-center justify-center p-2 border-2 border-indigo-100 shadow-sm shrink-0">
+                    {loadingIntent && !qrDataUrl ? (
                       <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                     ) : (
-                      <img
-                        src="/payment-qr.jpg"
-                        onError={(e) => {
-                          // fallback to dynamic QR code if image fails to load
-                          if (qrDataUrl) (e.target as HTMLImageElement).src = qrDataUrl;
-                        }}
-                        alt="Official Google Pay UPI QR Code"
-                        className="w-full h-full object-contain rounded-lg"
-                      />
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <img
+                          src={qrDataUrl || `/payment-qr-${plan.price}.png` || '/payment-qr-59.png'}
+                          alt={`Official UPI Payment QR with prefilled ₹${plan.price}`}
+                          className="w-full h-full object-contain rounded-xl"
+                        />
+                        <div className="absolute inset-0 m-auto w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center border border-slate-200 p-0.5 pointer-events-none">
+                          <img src="/logo.avif" alt="Abhiyantra" className="w-6 h-6 object-contain rounded-full" />
+                        </div>
+                      </div>
                     )}
                   </div>
 
                   <div className="space-y-2 text-xs flex-1">
-                    <div className="flex items-center gap-1.5 justify-center sm:justify-start">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[11px]">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span className="text-[11px] font-bold text-emerald-700">Official Google Pay QR</span>
+                      <span>Direct ₹{plan.price}.00 Pre-filled in UPI App</span>
                     </div>
+
                     <p className="font-semibold text-slate-800">
-                      Scan using Google Pay, PhonePe, Paytm, BHIM, or any banking app.
+                      Scan with Google Pay, PhonePe, Paytm, or CRED. The ₹{plan.price} amount will automatically appear pre-filled on your screen.
                     </p>
                     
                     {/* Copy UPI ID */}
@@ -325,7 +328,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     </div>
 
                     <p className="text-[11px] text-slate-500">
-                      Amount: <span className="font-bold text-slate-800">₹{plan.price}.00</span> (Exact amount prefilled)
+                      Exact Amount: <span className="font-bold text-slate-900 font-mono">₹{plan.price}.00</span> (Zero manual typing needed)
                     </p>
                   </div>
                 </div>

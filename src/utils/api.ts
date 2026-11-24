@@ -1256,9 +1256,9 @@ export async function fetchPricingPlansApi(): Promise<{ plans: any[]; upi: { pay
       {
         id: 'gate-complete-pass',
         name: 'GATE Complete Mock Test Series (2026/2027)',
-        price: 499,
-        originalPrice: 1999,
-        discountBadge: '75% OFF - Launch Special',
+        price: 59,
+        originalPrice: 499,
+        discountBadge: '88% OFF - Limited Special',
         durationDays: 365,
         popular: true,
         features: [
@@ -1274,8 +1274,8 @@ export async function fetchPricingPlansApi(): Promise<{ plans: any[]; upi: { pay
       {
         id: 'gate-booster-pass',
         name: 'Subject & Topic-Wise Booster Pass',
-        price: 199,
-        originalPrice: 799,
+        price: 29,
+        originalPrice: 199,
         discountBadge: 'Special Offer',
         durationDays: 180,
         popular: false,
