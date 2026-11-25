@@ -648,7 +648,8 @@ function saveLocalReportCard(rc: SavedReportCard, replaceLocalId?: string): void
 
 export async function saveReportCardApi(results: TestResults): Promise<SavedReportCard | null> {
   const payload = {
-    testTitle: results.testData.title || 'GATE Mock Test',
+    testTitle: results.testData.title || 'Mock Test',
+    examCategory: results.testData.examCategory || results.examCategory || 'GATE',
     mode: (results.mode || 'EXAM').toUpperCase(),
     totalQuestions: results.questionResults.length,
     maxMarks: results.maxMarks,

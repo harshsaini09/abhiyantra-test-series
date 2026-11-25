@@ -56,6 +56,7 @@ model ReportCard {
   userId             String
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   testTitle          String
+  examCategory       String   @default("GATE") // "GATE" | "JEE_MAINS"
   mode               String   // "EXAM" | "PRACTICE"
   totalQuestions     Int
   maxMarks           Float
@@ -74,6 +75,7 @@ model ReportCard {
 
   @@index([userId])
   @@index([submittedAt])
+  @@index([examCategory])
 }
 
 model MistakeEntry {
@@ -112,11 +114,14 @@ model Bookmark {
 }
 
 model Subject {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  createdAt DateTime   @default(now())
-  topics    Topic[]
-  questions Question[]
+  id           Int        @id @default(autoincrement())
+  name         String     @unique
+  examCategory String     @default("GATE") // "GATE" | "JEE_MAINS"
+  createdAt    DateTime   @default(now())
+  topics       Topic[]
+  questions    Question[]
+
+  @@index([examCategory])
 }
 
 model Topic {

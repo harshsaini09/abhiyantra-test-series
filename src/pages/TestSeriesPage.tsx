@@ -496,9 +496,16 @@ export const TestSeriesPage: React.FC = () => {
                   {/* Top Badges */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-200">
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wider border ${
+                        test.examCategory === 'JEE_MAINS'
+                          ? 'bg-amber-100 text-amber-800 border-amber-200'
+                          : 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                      }`}>
+                        {test.examCategory === 'JEE_MAINS' ? '⚛️ JEE Mains' : '🎓 GATE'}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
                         {test.category === 'FULL_MOCK'
-                          ? 'Full 65-Q Mock'
+                          ? (test.examCategory === 'JEE_MAINS' ? 'Full 75-Q Mock' : 'Full 65-Q Mock')
                           : test.category === 'SUBJECT_PACK'
                           ? 'Subject Pack'
                           : 'Topic Test'}

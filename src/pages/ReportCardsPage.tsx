@@ -851,6 +851,15 @@ export default function ReportCardsPage() {
                           <div className="space-y-1.5 min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wide border ${
+                                  rc.examCategory === 'JEE_MAINS'
+                                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                    : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                }`}
+                              >
+                                {rc.examCategory === 'JEE_MAINS' ? '⚛️ JEE Mains' : '🎓 GATE'}
+                              </span>
+                              <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide ${
                                   rc.mode === 'EXAM'
                                     ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
@@ -1551,9 +1560,18 @@ export default function ReportCardsPage() {
                     >
                       <div className="space-y-3">
                         <div className="flex items-start justify-between gap-2">
-                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                            {t.category || 'CUSTOM'}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
+                              t.examCategory === 'JEE_MAINS'
+                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                            }`}>
+                              {t.examCategory === 'JEE_MAINS' ? '⚛️ JEE Mains' : '🎓 GATE'}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                              {t.category || 'CUSTOM'}
+                            </span>
+                          </div>
                           <button
                             onClick={() => handleDeletePersonalTest(t.id, t.title)}
                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"

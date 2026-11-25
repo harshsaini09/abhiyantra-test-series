@@ -167,6 +167,7 @@ export interface QuestionResult {
 export interface TestResults {
   testData: TestData;
   mode: TestMode;
+  examCategory?: 'GATE' | 'JEE_MAINS';
   questionResults: QuestionResult[];
   totalScore: number;
   maxMarks: number;
@@ -272,6 +273,7 @@ export interface SavedReportCard {
   id: string;
   userId?: string;
   testTitle: string;
+  examCategory?: 'GATE' | 'JEE_MAINS';
   mode: 'EXAM' | 'PRACTICE';
   totalQuestions: number;
   maxMarks: number;

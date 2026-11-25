@@ -14,6 +14,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     const user = req.user!;
     const {
       testTitle,
+      examCategory = 'GATE',
       mode,
       totalQuestions,
       maxMarks,
@@ -85,6 +86,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       data: {
         userId: dbUserId,
         testTitle: String(testTitle).trim(),
+        examCategory: examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE',
         mode: String(mode || 'EXAM').toUpperCase(),
         totalQuestions: Number(totalQuestions),
         maxMarks: Number(maxMarks || 0),
@@ -227,6 +229,7 @@ router.post('/sync', async (req: AuthenticatedRequest, res: Response): Promise<v
         data: {
           userId: dbUserId,
           testTitle: String(card.testTitle || 'GATE Mock Test').trim(),
+          examCategory: card.examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE',
           mode: String(card.mode || 'EXAM').toUpperCase(),
           totalQuestions: Number(card.totalQuestions || 0),
           maxMarks: Number(card.maxMarks || 0),
@@ -267,20 +270,27 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
   }
   try {
     const user = req.user!;
+    const { examCategory } = req.query;
+
+    const whereClause: any = {
+      user: {
+        email: user.email,
+      },
+    };
+    if (examCategory && (examCategory === 'GATE' || examCategory === 'JEE_MAINS')) {
+      whereClause.examCategory = examCategory;
+    }
 
     // Find all report cards for user by email matching or user ID
     const reportCards = await prisma.reportCard.findMany({
-      where: {
-        user: {
-          email: user.email,
-        },
-      },
+      where: whereClause,
       orderBy: {
         submittedAt: 'desc',
       },
       select: {
         id: true,
         testTitle: true,
+        examCategory: true,
         mode: true,
         totalQuestions: true,
         maxMarks: true,
