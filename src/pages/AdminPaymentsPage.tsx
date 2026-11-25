@@ -20,7 +20,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 import {
   fetchAdminPaymentsApi,
-  verifyAdminPaymentApi,
   fetchAdminUsersApi,
   updateUserRoleApi,
   syncRazorpayPaymentsApi,
@@ -38,9 +37,8 @@ export const AdminPaymentsPage: React.FC = () => {
   const [stats, setStats] = useState({ total: 0, verified: 0, pending: 0, rejected: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('ALL');
-  const [copiedUtr, setCopiedUtr] = useState<string | null>(null);
-  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'VERIFIED'>('ALL');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Users & Roles State
   const [usersList, setUsersList] = useState<PlatformUser[]>([]);
@@ -104,28 +102,10 @@ export const AdminPaymentsPage: React.FC = () => {
     }
   }, [isMasterAdmin]);
 
-  const handleCopyUtr = (utr: string) => {
-    navigator.clipboard.writeText(utr);
-    setCopiedUtr(utr);
-    setTimeout(() => setCopiedUtr(null), 2000);
-  };
-
-  const handleUpdateStatus = async (paymentId: string, status: 'VERIFIED' | 'REJECTED') => {
-    const confirmMsg =
-      status === 'VERIFIED'
-        ? 'Are you sure you want to approve this UTR and mark it VERIFIED?'
-        : 'Are you sure you want to REJECT this transaction and revoke the student\'s active subscription?';
-    if (!window.confirm(confirmMsg)) return;
-
-    setProcessingId(paymentId);
-    try {
-      await verifyAdminPaymentApi(paymentId, status);
-      await loadPayments();
-    } catch (err: any) {
-      alert(err.message || 'Failed to update payment status');
-    } finally {
-      setProcessingId(null);
-    }
+  const handleCopyId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleRoleChange = async (userId: string, newRole: 'STUDENT' | 'TEACHER' | 'ADMIN') => {
@@ -269,41 +249,35 @@ export const AdminPaymentsPage: React.FC = () => {
         {activeTab === 'PAYMENTS' && (
           <div className="space-y-6 animate-in fade-in duration-150">
             {/* Stats Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
                   <span>Total Revenue</span>
                   <IndianRupee className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-black text-slate-900">₹{stats.revenue.toLocaleString('en-IN')}</div>
-                <div className="text-[11px] text-emerald-600 font-medium">0% Gateway Cuts</div>
+                <div className="text-[11px] text-emerald-600 font-medium">Direct Razorpay Collections</div>
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
-                  <span>Total Transactions</span>
-                  <Users className="w-4 h-4 text-blue-600" />
+                  <span>Verified Subscriptions</span>
+                  <CheckCircle2 className="w-4 h-4 text-blue-600" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-slate-900">{stats.total}</div>
-                <div className="text-[11px] text-slate-500 font-medium">{stats.verified} Verified</div>
+                <div className="text-2xl sm:text-3xl font-black text-slate-900">{stats.verified}</div>
+                <div className="text-[11px] text-slate-500 font-medium">{stats.total} Total Orders Logged</div>
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
-                  <span>Pending Review</span>
-                  <Clock className="w-4 h-4 text-amber-500" />
+                  <span>Payment Gateway</span>
+                  <ShieldCheck className="w-4 h-4 text-purple-600" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-600">{stats.pending}</div>
-                <div className="text-[11px] text-slate-500 font-medium">Awaiting manual check</div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-                <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">
-                  <span>Rejected</span>
-                  <XCircle className="w-4 h-4 text-rose-500" />
+                <div className="text-2xl sm:text-3xl font-black text-slate-900">Razorpay Live</div>
+                <div className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                  100% Automated Instant Verification
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-rose-600">{stats.rejected}</div>
-                <div className="text-[11px] text-slate-500 font-medium">Access revoked</div>
               </div>
             </div>
 
@@ -313,7 +287,7 @@ export const AdminPaymentsPage: React.FC = () => {
                 <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search by 12-digit UTR, student name, or email..."
+                  placeholder="Search by student name, email, or payment ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-600 focus:outline-none rounded-xl text-xs font-medium text-slate-800 transition-all"
@@ -321,7 +295,7 @@ export const AdminPaymentsPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-                {(['ALL', 'PENDING', 'VERIFIED', 'REJECTED'] as const).map((st) => (
+                {(['ALL', 'VERIFIED'] as const).map((st) => (
                   <button
                     key={st}
                     onClick={() => setFilterStatus(st)}
@@ -331,7 +305,7 @@ export const AdminPaymentsPage: React.FC = () => {
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    {st === 'ALL' ? 'All Records' : st.charAt(0) + st.slice(1).toLowerCase()}
+                    {st === 'ALL' ? 'All Records' : 'Verified Only'}
                   </button>
                 ))}
               </div>
@@ -359,15 +333,13 @@ export const AdminPaymentsPage: React.FC = () => {
                       <tr>
                         <th className="py-3 px-4">Student</th>
                         <th className="py-3 px-4">Plan & Amount</th>
-                        <th className="py-3 px-4">12-Digit UTR</th>
+                        <th className="py-3 px-4">Payment ID</th>
                         <th className="py-3 px-4">Date</th>
                         <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredPayments.map((p) => {
-                        const isProcessing = processingId === p.id;
                         return (
                           <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
                             {/* Student Info */}
@@ -393,16 +365,16 @@ export const AdminPaymentsPage: React.FC = () => {
                               <p className="text-[11px] text-slate-500 truncate max-w-[150px]">{p.planName}</p>
                             </td>
 
-                            {/* 12-Digit UTR */}
+                            {/* Payment ID */}
                             <td className="py-3.5 px-4">
                               <div className="flex items-center gap-1.5 font-mono font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded-md w-fit">
                                 <span>{p.utrNumber}</span>
                                 <button
-                                  onClick={() => handleCopyUtr(p.utrNumber)}
-                                  className="text-slate-400 hover:text-indigo-600 transition-colors"
-                                  title="Copy UTR"
+                                  onClick={() => handleCopyId(p.utrNumber)}
+                                  className="text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                                  title="Copy Payment ID"
                                 >
-                                  {copiedUtr === p.utrNumber ? (
+                                  {copiedId === p.utrNumber ? (
                                     <Check className="w-3.5 h-3.5 text-emerald-600" />
                                   ) : (
                                     <Copy className="w-3.5 h-3.5" />
@@ -441,30 +413,6 @@ export const AdminPaymentsPage: React.FC = () => {
                                   Pending
                                 </span>
                               )}
-                            </td>
-
-                            {/* Actions */}
-                            <td className="py-3.5 px-4 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {p.status !== 'VERIFIED' && (
-                                  <button
-                                    onClick={() => handleUpdateStatus(p.id, 'VERIFIED')}
-                                    disabled={isProcessing}
-                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] shadow-sm transition-all"
-                                  >
-                                    Approve
-                                  </button>
-                                )}
-                                {p.status !== 'REJECTED' && (
-                                  <button
-                                    onClick={() => handleUpdateStatus(p.id, 'REJECTED')}
-                                    disabled={isProcessing}
-                                    className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg text-[11px] transition-all"
-                                  >
-                                    Reject
-                                  </button>
-                                )}
-                              </div>
                             </td>
                           </tr>
                         );
