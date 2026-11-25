@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Award,
   Calendar,
@@ -20,6 +20,9 @@ import {
   RotateCcw,
   Trash2,
   ShieldCheck,
+  Layers,
+  Plus,
+  Loader2,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import ReportCardTestReview from '../components/ReportCardTestReview';
@@ -40,6 +43,9 @@ import {
   getLocalMistakes,
   getLocalBookmarks,
   computeLocalAnalyticsSummary,
+  fetchPersonalTestSeriesApi,
+  fetchPersonalTestByIdApi,
+  deleteTestSeriesApi,
 } from '../utils/api';
 import type {
   SavedReportCard,
@@ -53,7 +59,7 @@ import { formatDurationHuman } from '../utils/scoring';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
 
-type TabView = 'history' | 'analytics' | 'mistakes' | 'bookmarks';
+type TabView = 'history' | 'analytics' | 'mistakes' | 'bookmarks' | 'personal-series';
 type FilterMode = 'ALL' | 'EXAM' | 'PRACTICE';
 type SortOption = 'newest' | 'oldest' | 'highest_score' | 'highest_accuracy';
 type MistakeFilter = 'ALL' | 'NEEDS_REVIEW' | 'MASTERED' | 'MOST_MISSED';
@@ -61,9 +67,61 @@ type MistakeFilter = 'ALL' | 'NEEDS_REVIEW' | 'MASTERED' | 'MOST_MISSED';
 export default function ReportCardsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as TabView) || 'history';
 
   // Navigation State
-  const [activeTab, setActiveTab] = useState<TabView>('history');
+  const [activeTab, setActiveTab] = useState<TabView>(initialTab);
+
+  // Personal Test Series State
+  const [personalTests, setPersonalTests] = useState<any[]>([]);
+  const [loadingPersonal, setLoadingPersonal] = useState(false);
+  const [launchingTestId, setLaunchingTestId] = useState<string | null>(null);
+
+  const loadPersonalTests = async () => {
+    if (!user) return;
+    try {
+      setLoadingPersonal(true);
+      const res = await fetchPersonalTestSeriesApi();
+      setPersonalTests(res.tests || []);
+    } catch (err) {
+      console.warn('Failed to load personal test series:', err);
+    } finally {
+      setLoadingPersonal(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'personal-series') {
+      loadPersonalTests();
+    }
+  }, [activeTab, user]);
+
+  const handleLaunchPersonalTest = async (testId: string, mode: 'exam' | 'practice') => {
+    try {
+      setLaunchingTestId(testId);
+      const res = await fetchPersonalTestByIdApi(testId);
+      if (res && res.test) {
+        navigate('/test', { state: { testData: res.test, mode } });
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to launch personal test.');
+    } finally {
+      setLaunchingTestId(null);
+    }
+  };
+
+  const handleDeletePersonalTest = async (testId: string, testTitle: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${testTitle}" from your personal test series?`)) {
+      return;
+    }
+    try {
+      await deleteTestSeriesApi(testId);
+      setPersonalTests(prev => prev.filter(t => t.id !== testId));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete test.');
+    }
+  };
 
   // Instant Stale-While-Revalidate initialization (0ms initial render!)
   const [reportCards, setReportCards] = useState<SavedReportCard[]>(() => getLocalReportCards());
@@ -649,6 +707,18 @@ export default function ReportCardsPage() {
             >
               <Bookmark className="w-4 h-4" />
               <span>Bookmarks ({bookmarks.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('personal-series')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'personal-series'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-purple-400" />
+              <span>My Personal Test Series {personalTests.length > 0 ? `(${personalTests.length})` : ''}</span>
             </button>
           </div>
 
@@ -1417,6 +1487,126 @@ export default function ReportCardsPage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: MY PERSONAL TEST SERIES */}
+          {activeTab === 'personal-series' && (
+            <div className="space-y-6">
+              {/* Header Banner */}
+              <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-md border border-indigo-800/40">
+                <div className="space-y-2 max-w-xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                    ₹59 Full Pro Pass Feature
+                  </div>
+                  <h2 className="text-2xl font-black tracking-tight text-white">
+                    My Personal Test Series
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Custom tests crafted by you using the AI Question Bank and Custom Test Builder. Retake them anytime in full authentic GATE CBT exam or practice mode.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/custom-builder')}
+                  className="px-5 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Build New Custom Test</span>
+                </button>
+              </div>
+
+              {loadingPersonal ? (
+                <div className="bg-white rounded-3xl p-12 border border-slate-200/80 flex flex-col items-center justify-center gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                  <p className="text-xs font-bold text-slate-600">Loading your personal test series...</p>
+                </div>
+              ) : personalTests.length === 0 ? (
+                <div className="bg-white rounded-3xl p-10 sm:p-14 border border-slate-200/80 text-center space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto border border-indigo-100">
+                    <Layers className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1 max-w-md mx-auto">
+                    <h3 className="text-lg font-bold text-slate-900">No Personal Tests Saved Yet</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Use the Custom Test Builder to select specific subjects, question types, and difficulty levels, then click "Save to My Personal Test Series" to practice here anytime.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/custom-builder')}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Create Your First Test
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {personalTests.map((t) => (
+                    <div
+                      key={t.id}
+                      className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-indigo-300 hover:shadow-md transition flex flex-col justify-between space-y-4"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            {t.category || 'CUSTOM'}
+                          </span>
+                          <button
+                            onClick={() => handleDeletePersonalTest(t.id, t.title)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                            title="Delete Test"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{t.title}</h4>
+                          <p className="text-xs text-slate-500 line-clamp-2 mt-1">
+                            {t.description || 'Personal custom test paper created from Question Bank.'}
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 py-2 border-y border-slate-100 text-center">
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-semibold uppercase">Questions</span>
+                            <span className="font-bold text-xs text-slate-800">{t.totalQuestions}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-semibold uppercase">Total Marks</span>
+                            <span className="font-bold text-xs text-slate-800">{t.totalMarks}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-400 font-semibold uppercase">Duration</span>
+                            <span className="font-bold text-xs text-slate-800">{t.durationMinutes}m</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          disabled={launchingTestId === t.id}
+                          onClick={() => handleLaunchPersonalTest(t.id, 'exam')}
+                          className="flex-1 py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer disabled:opacity-50"
+                        >
+                          {launchingTestId === t.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Play className="w-3.5 h-3.5" />
+                          )}
+                          <span>CBT Exam</span>
+                        </button>
+                        <button
+                          disabled={launchingTestId === t.id}
+                          onClick={() => handleLaunchPersonalTest(t.id, 'practice')}
+                          className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                        >
+                          <span>Practice</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

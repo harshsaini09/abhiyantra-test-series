@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { fetchHierarchy, fetchQuestions, generateCustomTest } from '../utils/api';
+import { fetchHierarchy, fetchQuestions, generateCustomTest, savePersonalTestSeriesApi } from '../utils/api';
 import type {
   SubjectWithTopics,
   QuestionBankItem,
@@ -26,8 +26,9 @@ import {
   Plus,
   Trash2,
   AlertCircle,
-  Lock,
   Loader2,
+  BookmarkPlus,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PaymentModal } from '../components/PaymentModal';
@@ -367,6 +368,39 @@ export default function CustomTestBuilderPage() {
     }
   };
 
+  // Action: Save to My Personal Test Series
+  const [savingPersonal, setSavingPersonal] = useState(false);
+  const [personalSaveSuccess, setPersonalSaveSuccess] = useState(false);
+
+  const handleSavePersonalTest = async () => {
+    setErrorMsg('');
+    try {
+      setSavingPersonal(true);
+      const testData = await buildTestData();
+      if (!testData.questions || testData.questions.length === 0) {
+        throw new Error('Please select at least 1 question to save.');
+      }
+
+      await savePersonalTestSeriesApi({
+        title: testTitle || 'My Custom Test Paper',
+        description: testDesc || 'Custom test paper saved in My Personal Test Series',
+        category: builderMode === 'full-mock' ? 'FULL_MOCK' : 'PERSONAL',
+        subject: subjectFilter ? hierarchy.find(s => s.id === subjectFilter)?.name : 'Custom Mix',
+        testData,
+      });
+
+      setPersonalSaveSuccess(true);
+      setTimeout(() => setPersonalSaveSuccess(false), 5000);
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || 'Failed to save test to My Personal Test Series.');
+    } finally {
+      setSavingPersonal(false);
+    }
+  };
+
+  const isProPassHolder = Boolean(user?.isSubscribed && user?.subscriptionTier !== 'gate-booster-pass');
+  const hasBuilderAccess = isTeacherOrAdmin || isProPassHolder;
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -375,27 +409,41 @@ export default function CustomTestBuilderPage() {
     );
   }
 
-  if (!isTeacherOrAdmin) {
+  if (!hasBuilderAccess) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-xl text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
-              <Lock className="w-8 h-8" />
+            <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center mx-auto">
+              <Sparkles className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Faculty & Admin Access Only</h2>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">₹59 Pro Pass Feature</h2>
             <p className="text-xs text-slate-500 leading-relaxed">
-              The Custom Test Builder is reserved exclusively for Faculty, Instructors, and Platform Administrators to design test papers. Students can practice authentic full-length tests from the examination portal.
+              Custom Test Builder is unlocked exclusively for <strong>₹59 Complete Pro Pass</strong> students and Faculty. Build your own tests, select questions by subject, and store unlimited practice papers in your Personal Test Series!
             </p>
-            <button
-              onClick={() => navigate('/')}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer"
-            >
-              Explore GATE Mock Tests
-            </button>
+            <div className="pt-2 space-y-2">
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                <span>Unlock ₹59 Complete Pro Pass</span>
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Return to Home
+              </button>
+            </div>
           </div>
         </div>
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={() => setShowPaymentModal(false)}
+        />
       </div>
     );
   }
@@ -1088,6 +1136,43 @@ export default function CustomTestBuilderPage() {
                 <Download className="w-3.5 h-3.5" />
                 Export Custom Test (.json)
               </button>
+
+              <button
+                type="button"
+                disabled={savingPersonal || generating || (builderMode === 'manual' && totalQuestions === 0) || (builderMode === 'full-mock' && totalMockAvailable === 0)}
+                onClick={handleSavePersonalTest}
+                className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 cursor-pointer"
+              >
+                {savingPersonal ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving to Profile...</span>
+                  </>
+                ) : personalSaveSuccess ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
+                    <span>Saved to Personal Series!</span>
+                  </>
+                ) : (
+                  <>
+                    <BookmarkPlus className="w-3.5 h-3.5" />
+                    <span>Save to My Personal Test Series</span>
+                  </>
+                )}
+              </button>
+
+              {personalSaveSuccess && (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center text-xs text-emerald-800 space-y-1">
+                  <p className="font-bold">Test saved to your personal vault!</p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/report-cards?tab=personal-series')}
+                    className="text-[11px] text-indigo-700 underline font-semibold hover:text-indigo-900 cursor-pointer"
+                  >
+                    View in My Personal Test Series →
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </aside>

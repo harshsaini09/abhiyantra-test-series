@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   ShieldCheck,
@@ -31,6 +32,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   selectedPlan,
   onSuccess,
 }) => {
+  const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
 
   const plan: PricingPlan = selectedPlan || {
@@ -234,10 +236,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
 
               <button
-                onClick={onClose}
-                className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/25 transition-all text-sm flex items-center justify-center gap-2"
+                onClick={() => {
+                  onClose();
+                  if (plan.id === 'gate-booster-pass' || plan.price === 29) {
+                    navigate('/test-series');
+                  } else {
+                    navigate('/');
+                  }
+                }}
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/25 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Go to Test Series & Start Practicing</span>
+                <span>
+                  {plan.id === 'gate-booster-pass' || plan.price === 29
+                    ? 'Go to Dedicated Test Series'
+                    : 'Go to Full Mock Tests & Start Practicing'}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

@@ -1506,3 +1506,139 @@ export async function syncRazorpayPaymentsApi(): Promise<{
   return data;
 }
 
+// ─── Test Series APIs (Official Teacher Series & Personal Series) ───
+
+export async function fetchOfficialTestSeriesApi(): Promise<{
+  tests: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    category: string;
+    subject: string | null;
+    totalQuestions: number;
+    totalMarks: number;
+    durationMinutes: number;
+    creatorRole: string;
+    createdAt: string;
+    creator?: { name: string; email: string };
+  }>;
+}> {
+  const res = await fetch(`${API_BASE}/test-series/official`, {
+    headers: { ...getAuthHeaders() },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to fetch official test series.');
+  }
+  return await res.json();
+}
+
+export async function fetchOfficialTestByIdApi(id: string): Promise<{ test: any }> {
+  const res = await fetch(`${API_BASE}/test-series/official/${id}`, {
+    headers: { ...getAuthHeaders() },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to load official test paper.');
+  }
+  return await res.json();
+}
+
+export async function uploadOfficialTestSeriesApi(payload: {
+  title?: string;
+  description?: string;
+  category?: string;
+  subject?: string;
+  testData: any;
+}): Promise<{ success: boolean; message: string; test: any }> {
+  const res = await fetch(`${API_BASE}/test-series/upload`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to upload official test series.');
+  }
+  return data;
+}
+
+export async function fetchPersonalTestSeriesApi(): Promise<{
+  tests: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    category: string;
+    subject: string | null;
+    totalQuestions: number;
+    totalMarks: number;
+    durationMinutes: number;
+    createdAt: string;
+  }>;
+}> {
+  const res = await fetch(`${API_BASE}/test-series/my-personal`, {
+    headers: { ...getAuthHeaders() },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to fetch personal test series.');
+  }
+  return await res.json();
+}
+
+export async function fetchPersonalTestByIdApi(id: string): Promise<{ test: any }> {
+  const res = await fetch(`${API_BASE}/test-series/my-personal/${id}`, {
+    headers: { ...getAuthHeaders() },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to load personal test.');
+  }
+  return await res.json();
+}
+
+export async function savePersonalTestSeriesApi(payload: {
+  title: string;
+  description?: string;
+  category?: string;
+  subject?: string;
+  testData: any;
+}): Promise<{ success: boolean; message: string; test: any }> {
+  const res = await fetch(`${API_BASE}/test-series/save-personal`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to save personal test series.');
+  }
+  return data;
+}
+
+export async function deleteTestSeriesApi(id: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/test-series/${id}`, {
+    method: 'DELETE',
+    headers: { ...getAuthHeaders() },
+    credentials: 'include',
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to delete test series.');
+  }
+  return data;
+}
+
+

@@ -13,6 +13,7 @@ export default function Navbar() {
   const isMasterAdmin = user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
   const isTeacher = user?.role === 'TEACHER';
   const isTeacherOrAdmin = isMasterAdmin || isTeacher;
+  const isProPassHolder = Boolean(user?.isSubscribed && user?.subscriptionTier !== 'gate-booster-pass');
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -216,7 +217,15 @@ export default function Navbar() {
                         <Award className="w-4 h-4 text-indigo-600" />
                         My Saved Report Cards
                       </Link>
-                      {isTeacherOrAdmin && (
+                      <Link
+                        to="/report-cards?tab=personal-series"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 transition-colors"
+                      >
+                        <Layers className="w-4 h-4 text-indigo-600" />
+                        My Personal Test Series
+                      </Link>
+                      {(isTeacherOrAdmin || isProPassHolder) && (
                         <Link
                           to="/custom-builder"
                           onClick={() => setDropdownOpen(false)}

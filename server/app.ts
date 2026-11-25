@@ -11,6 +11,7 @@ import bookmarksRouter from './bookmarks.js';
 import analyticsRouter from './analytics.js';
 import paymentsRouter from './payments.js';
 import razorpayRouter from './razorpay.js';
+import testSeriesRouter from './testSeries.js';
 
 const app = express();
 
@@ -41,6 +42,10 @@ app.use('/payment', paymentsRouter);
 // ─── Razorpay Standard Checkout Routes (POST /api/create-order & /api/verify-payment) ───
 app.use('/api', razorpayRouter);
 app.use('/', razorpayRouter);
+
+// ─── Test Series Routes (Official Teacher Series & Personal Series) ───
+app.use('/api/test-series', testSeriesRouter);
+app.use('/test-series', testSeriesRouter);
 
 // ─── 1. Health Check ───
 const handleHealth = (_req: Request, res: Response) => {

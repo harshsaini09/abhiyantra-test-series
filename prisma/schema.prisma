@@ -28,6 +28,7 @@ model User {
   reportCards ReportCard[]
   mistakes    MistakeEntry[]
   bookmarks   Bookmark[]
+  publishedTests PublishedTest[]
 }
 
 model PaymentRecord {
@@ -155,3 +156,26 @@ model Question {
   @@index([marks])
   @@index([isArchived])
 }
+
+model PublishedTest {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  category        String   @default("FULL_MOCK") // "FULL_MOCK" | "SUBJECT_PACK" | "CHAPTER_TEST" | "PERSONAL"
+  subject         String?
+  totalQuestions  Int
+  totalMarks      Float
+  durationMinutes Int
+  questionsJson   String   // Stored test data payload (questions, options, answers, etc.)
+  creatorId       String
+  creator         User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorRole     String   @default("STUDENT") // "STUDENT" | "TEACHER" | "ADMIN"
+  isOfficial      Boolean  @default(false)     // true = Teacher/Admin Test Series; false = Student Personal Test
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([creatorId])
+  @@index([isOfficial])
+  @@index([category])
+}
+
