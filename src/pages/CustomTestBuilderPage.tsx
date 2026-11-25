@@ -46,7 +46,7 @@ interface MixRule {
 
 export default function CustomTestBuilderPage() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, targetExam } = useAuth();
   const isMasterAdmin = Boolean(
     user?.email &&
       (user.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
@@ -382,11 +382,12 @@ export default function CustomTestBuilderPage() {
       }
 
       await savePersonalTestSeriesApi({
-        title: testTitle || 'My Custom Test Paper',
+        title: testTitle || (targetExam === 'JEE_MAINS' ? 'My JEE Mains Custom Paper' : 'My Custom Test Paper'),
         description: testDesc || 'Custom test paper saved in My Personal Test Series',
         category: builderMode === 'full-mock' ? 'FULL_MOCK' : 'PERSONAL',
+        examCategory: targetExam,
         subject: subjectFilter ? hierarchy.find(s => s.id === subjectFilter)?.name : 'Custom Mix',
-        testData,
+        testData: { ...testData, examCategory: targetExam },
       });
 
       setPersonalSaveSuccess(true);

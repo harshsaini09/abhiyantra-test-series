@@ -28,6 +28,7 @@ import {
   Search,
   CheckCircle,
   GraduationCap,
+  Atom,
 } from 'lucide-react';
 
 interface OfficialTestItem {
@@ -35,6 +36,7 @@ interface OfficialTestItem {
   title: string;
   description: string | null;
   category: string;
+  examCategory?: string;
   subject: string | null;
   totalQuestions: number;
   totalMarks: number;
@@ -51,12 +53,19 @@ interface OfficialTestItem {
 
 export const TestSeriesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, targetExam } = useAuth();
 
   const isMasterAdmin = user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
   const isTeacher = user?.role === 'TEACHER';
   const isTeacherOrAdmin = isMasterAdmin || isTeacher;
   const hasAccess = isTeacherOrAdmin || !!(user && user.isSubscribed);
+
+  // Exam category filter (defaults to user active targetExam)
+  const [examFilter, setExamFilter] = useState<'GATE' | 'JEE_MAINS'>(targetExam);
+
+  useEffect(() => {
+    setExamFilter(targetExam);
+  }, [targetExam]);
 
   // Tests & loading states
   const [tests, setTests] = useState<OfficialTestItem[]>([]);
@@ -80,6 +89,7 @@ export const TestSeriesPage: React.FC = () => {
   // Upload form fields
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
+  const [uploadExamCategory, setUploadExamCategory] = useState<'GATE' | 'JEE_MAINS'>(targetExam);
   const [uploadCategory, setUploadCategory] = useState<'FULL_MOCK' | 'SUBJECT_PACK' | 'TOPIC_TEST'>('FULL_MOCK');
   const [uploadSubject, setUploadSubject] = useState('');
   const [uploadDuration, setUploadDuration] = useState<number>(180);
@@ -92,7 +102,7 @@ export const TestSeriesPage: React.FC = () => {
   const loadOfficialTests = async () => {
     try {
       setLoading(true);
-      const res = await fetchOfficialTestSeriesApi();
+      const res = await fetchOfficialTestSeriesApi(examFilter);
       setTests(res.tests || []);
     } catch (err) {
       console.warn('Failed to load official test series:', err);
@@ -100,6 +110,10 @@ export const TestSeriesPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadOfficialTests();
+  }, [examFilter]);
 
   useEffect(() => {
     loadOfficialTests();
@@ -194,13 +208,15 @@ export const TestSeriesPage: React.FC = () => {
       setUploadError(null);
 
       await uploadOfficialTestSeriesApi({
-        title: uploadTitle.trim() || 'Official GATE Test Paper',
+        title: uploadTitle.trim() || (uploadExamCategory === 'JEE_MAINS' ? 'Official JEE Mains Test Paper' : 'Official GATE Test Paper'),
         description: uploadDescription.trim(),
         category: uploadCategory,
+        examCategory: uploadExamCategory,
         subject: uploadSubject.trim() || undefined,
         testData: {
           title: uploadTitle.trim(),
           description: uploadDescription.trim(),
+          examCategory: uploadExamCategory,
           duration: Number(uploadDuration) || 180,
           questions: parsedQuestions,
         },
@@ -273,22 +289,33 @@ export const TestSeriesPage: React.FC = () => {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
           <div className="space-y-4 text-center md:text-left max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
-              <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
-              Teacher-Curated GATE 2026/2027 Papers
+              {examFilter === 'JEE_MAINS' ? (
+                <>
+                  <Atom className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Teacher-Curated JEE Mains 2026/2027 Papers</span>
+                </>
+              ) : (
+                <>
+                  <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Teacher-Curated GATE 2026/2027 Papers</span>
+                </>
+              )}
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
-              Official GATE Test Series
+              {examFilter === 'JEE_MAINS' ? 'Official JEE Mains Test Series' : 'Official GATE Test Series'}
             </h1>
 
             <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-              Full-length 65-question mocks and sectional subject packs crafted strictly by IIT & GATE faculty. Experience the identical TCS-iON CBT screen, official marking scheme, and real-time percentile analysis.
+              {examFilter === 'JEE_MAINS'
+                ? 'Full 75-question mock simulations and subject packs (Physics, Chemistry, Mathematics). Modeled strictly after the NTA CBT interface with +4 / -1 marking and section-wise analysis.'
+                : 'Full-length 65-question mocks and sectional subject packs crafted strictly by IIT & GATE faculty. Experience the identical TCS-iON CBT screen, official marking scheme, and real-time percentile analysis.'}
             </p>
 
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2 text-xs text-slate-300 font-medium">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                Authentic GATE IIT Pattern
+                {examFilter === 'JEE_MAINS' ? 'Authentic NTA JEE Pattern' : 'Authentic GATE IIT Pattern'}
               </span>
               <span className="flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-amber-400" />
@@ -296,7 +323,7 @@ export const TestSeriesPage: React.FC = () => {
               </span>
               <span className="flex items-center gap-1.5">
                 <Award className="w-4 h-4 text-indigo-400" />
-                Included in ₹29 & ₹59 Passes
+                {examFilter === 'JEE_MAINS' ? 'Physics · Chemistry · Maths' : 'CS / IT / Aptitude / Math'}
               </span>
             </div>
           </div>
@@ -360,26 +387,50 @@ export const TestSeriesPage: React.FC = () => {
 
         {/* Filter & Search Bar */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* Category Tabs */}
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            {[
-              { id: 'ALL', label: 'All Test Series' },
-              { id: 'FULL_MOCK', label: 'Full 65-Q Mocks' },
-              { id: 'SUBJECT_PACK', label: 'Subject Packs' },
-              { id: 'TOPIC_TEST', label: 'Topic Tests' },
-            ].map((cat) => (
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {/* Exam Toggle */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  selectedCategory === cat.id
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                onClick={() => setExamFilter('GATE')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  examFilter === 'GATE' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                {cat.label}
+                <GraduationCap className="w-3.5 h-3.5" />
+                <span>GATE</span>
               </button>
-            ))}
+              <button
+                onClick={() => setExamFilter('JEE_MAINS')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  examFilter === 'JEE_MAINS' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Atom className="w-3.5 h-3.5" />
+                <span>JEE Mains</span>
+              </button>
+            </div>
+
+            {/* Category Tabs */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'ALL', label: 'All Series' },
+                { id: 'FULL_MOCK', label: examFilter === 'JEE_MAINS' ? 'Full Mocks (75 Qs)' : 'Full Mocks (65 Qs)' },
+                { id: 'SUBJECT_PACK', label: 'Subject Packs' },
+                { id: 'TOPIC_TEST', label: 'Chapter Tests' },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedCategory === cat.id
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Search Input */}
@@ -622,6 +673,21 @@ export const TestSeriesPage: React.FC = () => {
                 </div>
               )}
 
+              {/* Target Examination */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Target Examination *
+                </label>
+                <select
+                  value={uploadExamCategory}
+                  onChange={(e: any) => setUploadExamCategory(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800"
+                >
+                  <option value="GATE">🎓 GATE Examination (IIT Pattern)</option>
+                  <option value="JEE_MAINS">⚛️ JEE Mains Examination (NTA Pattern)</option>
+                </select>
+              </div>
+
               {/* Test Title */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -632,7 +698,7 @@ export const TestSeriesPage: React.FC = () => {
                   required
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder="e.g. GATE CS 2026 All India Full Mock #1"
+                  placeholder={uploadExamCategory === 'JEE_MAINS' ? 'e.g. JEE Mains 2026 All India Full Mock #1' : 'e.g. GATE CS 2026 All India Full Mock #1'}
                   className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>

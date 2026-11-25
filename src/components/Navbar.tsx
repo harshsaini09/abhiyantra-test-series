@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Database, Wrench, Home, Award, LogOut, ChevronDown, Sparkles, ShieldCheck, Layers } from 'lucide-react';
+import { Database, Wrench, Home, Award, LogOut, ChevronDown, Sparkles, ShieldCheck, Layers, Atom, GraduationCap, Check } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const location = useLocation();
-  const { user, login, logout, loading } = useAuth();
+  const { user, login, logout, loading, targetExam, setTargetExam } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [examDropdownOpen, setExamDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const examDropdownRef = useRef<HTMLDivElement>(null);
 
   const isMasterAdmin = user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
   const isTeacher = user?.role === 'TEACHER';
@@ -20,6 +22,9 @@ export default function Navbar() {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (examDropdownRef.current && !examDropdownRef.current.contains(event.target as Node)) {
+        setExamDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -53,21 +58,88 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
           {/* Logo & Brand */}
-          <Link to="/" className="flex items-center gap-2.5 sm:gap-3 text-indigo-700 hover:text-indigo-800 transition-colors group shrink-0">
-            <img
-              src="/logo.avif"
-              alt="Abhiyantra Logo"
-              className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-xl bg-slate-50 border border-slate-200 p-1 shadow-xs group-hover:scale-105 transition-transform"
-            />
-            <div>
-              <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 group-hover:text-indigo-700 transition-colors">
-                abhiyantra
-              </span>
-              <span className="hidden sm:block text-[10px] uppercase font-bold tracking-wider text-indigo-600">
-                GATE Examination Platform
-              </span>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <Link to="/" className="flex items-center gap-2 sm:gap-2.5 text-indigo-700 hover:text-indigo-800 transition-colors group shrink-0">
+              <img
+                src="/logo.avif"
+                alt="Abhiyantra Logo"
+                className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-xl bg-slate-50 border border-slate-200 p-1 shadow-xs group-hover:scale-105 transition-transform"
+              />
+              <div>
+                <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 group-hover:text-indigo-700 transition-colors">
+                  abhiyantra
+                </span>
+                <span className="hidden sm:block text-[10px] uppercase font-bold tracking-wider text-indigo-600">
+                  {targetExam === 'JEE_MAINS' ? 'JEE Mains Portal' : 'GATE Exam Portal'}
+                </span>
+              </div>
+            </Link>
+
+            {/* Exam Target Switcher Pill */}
+            <div className="relative" ref={examDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setExamDropdownOpen(!examDropdownOpen)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer ${
+                  targetExam === 'JEE_MAINS'
+                    ? 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100/80'
+                    : 'bg-indigo-50 border-indigo-200 text-indigo-800 hover:bg-indigo-100/80'
+                }`}
+                title="Switch Target Examination"
+              >
+                {targetExam === 'JEE_MAINS' ? (
+                  <>
+                    <Atom className="w-3.5 h-3.5 text-cyan-600" />
+                    <span>JEE Mains</span>
+                  </>
+                ) : (
+                  <>
+                    <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>GATE</span>
+                  </>
+                )}
+                <ChevronDown className="w-3 h-3 text-slate-400" />
+              </button>
+
+              {examDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Target Examination
+                  </div>
+                  <button
+                    onClick={() => {
+                      setTargetExam('GATE');
+                      setExamDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
+                      targetExam === 'GATE' ? 'text-indigo-600 bg-indigo-50/50 font-bold' : 'text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="w-4 h-4 text-indigo-600" />
+                      <span>GATE Exam</span>
+                    </div>
+                    {targetExam === 'GATE' && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTargetExam('JEE_MAINS');
+                      setExamDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
+                      targetExam === 'JEE_MAINS' ? 'text-cyan-600 bg-cyan-50/50 font-bold' : 'text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Atom className="w-4 h-4 text-cyan-600" />
+                      <span>JEE Mains</span>
+                    </div>
+                    {targetExam === 'JEE_MAINS' && <Check className="w-3.5 h-3.5 text-cyan-600" />}
+                  </button>
+                </div>
+              )}
             </div>
-          </Link>
+          </div>
 
           {/* Center Navigation Links (Tablet landscape & Desktop) */}
           <div className="hidden md:flex items-center gap-1">

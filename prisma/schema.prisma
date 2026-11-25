@@ -20,6 +20,7 @@ model User {
   name        String
   avatarUrl   String?
   role        String         @default("STUDENT") // "STUDENT" | "TEACHER" | "ADMIN"
+  targetExam  String?        // "GATE" | "JEE_MAINS" (null for new users until onboarding modal)
   createdAt   DateTime       @default(now())
   isSubscribed      Boolean         @default(false)
   subscriptionTier  String?         // "GATE_FULL_PASS" | "PREMIUM"
@@ -162,6 +163,7 @@ model PublishedTest {
   title           String
   description     String?
   category        String   @default("FULL_MOCK") // "FULL_MOCK" | "SUBJECT_PACK" | "CHAPTER_TEST" | "PERSONAL"
+  examCategory    String   @default("GATE")      // "GATE" | "JEE_MAINS"
   subject         String?
   totalQuestions  Int
   totalMarks      Float
@@ -177,5 +179,6 @@ model PublishedTest {
   @@index([creatorId])
   @@index([isOfficial])
   @@index([category])
+  @@index([examCategory])
 }
 

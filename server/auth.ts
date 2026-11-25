@@ -18,6 +18,7 @@ export interface AuthUser {
   name: string;
   avatarUrl?: string | null;
   role?: 'STUDENT' | 'TEACHER' | 'ADMIN' | string;
+  targetExam?: 'GATE' | 'JEE_MAINS' | null;
   isSubscribed?: boolean;
   subscriptionTier?: string | null;
   subscriptionUntil?: string | null;
@@ -241,6 +242,7 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
           name: dbUser.name,
           avatarUrl: dbUser.avatarUrl,
           role: dbUser.role || (isAdminUser ? 'ADMIN' : 'STUDENT'),
+          targetExam: (dbUser as any).targetExam || null,
           isSubscribed: isSubActive,
           subscriptionTier: dbUser.subscriptionTier,
           subscriptionUntil: dbUser.subscriptionUntil?.toISOString() || null,
@@ -323,6 +325,7 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
               name: dbUser.name,
               avatarUrl: dbUser.avatarUrl,
               role: dbUser.role || (isAdminUser ? 'ADMIN' : 'STUDENT'),
+              targetExam: (dbUser as any).targetExam || null,
               isSubscribed: isSubActive,
               subscriptionTier: dbUser.subscriptionTier,
               subscriptionUntil: dbUser.subscriptionUntil?.toISOString() || null,
@@ -351,6 +354,39 @@ router.post('/logout', (_req: Request, res: Response): void => {
     path: '/',
   });
   res.json({ success: true, message: 'Logged out successfully.' });
+});
+
+// ─── 4. Update Target Examination (POST /api/auth/target-exam) ───
+router.post('/target-exam', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const user = req.user;
+    if (!user || !user.email) {
+      res.status(401).json({ error: 'Unauthorized.' });
+      return;
+    }
+
+    const { targetExam } = req.body;
+    if (targetExam !== 'GATE' && targetExam !== 'JEE_MAINS') {
+      res.status(400).json({ error: 'Invalid targetExam. Must be "GATE" or "JEE_MAINS".' });
+      return;
+    }
+
+    if (isDbConfigured && prisma) {
+      await prisma.user.update({
+        where: { email: user.email },
+        data: { targetExam },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Target exam set to ${targetExam}`,
+      targetExam,
+    });
+  } catch (err: any) {
+    console.error('Update targetExam error:', err);
+    res.status(500).json({ error: err.message || 'Failed to update target exam.' });
+  }
 });
 
 // ─── 4. Admin: Get All Users & Roles (GET /api/auth/admin/users) ───

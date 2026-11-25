@@ -1508,12 +1508,30 @@ export async function syncRazorpayPaymentsApi(): Promise<{
 
 // ─── Test Series APIs (Official Teacher Series & Personal Series) ───
 
-export async function fetchOfficialTestSeriesApi(): Promise<{
+export async function updateTargetExamApi(targetExam: 'GATE' | 'JEE_MAINS'): Promise<{ success: boolean; targetExam: string }> {
+  const res = await fetch(`${API_BASE}/auth/target-exam`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify({ targetExam }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update target examination.');
+  }
+  return data;
+}
+
+export async function fetchOfficialTestSeriesApi(examCategory?: string): Promise<{
   tests: Array<{
     id: string;
     title: string;
     description: string | null;
     category: string;
+    examCategory?: string;
     subject: string | null;
     totalQuestions: number;
     totalMarks: number;
@@ -1523,7 +1541,10 @@ export async function fetchOfficialTestSeriesApi(): Promise<{
     creator?: { name: string; email: string };
   }>;
 }> {
-  const res = await fetch(`${API_BASE}/test-series/official`, {
+  const url = examCategory
+    ? `${API_BASE}/test-series/official?examCategory=${encodeURIComponent(examCategory)}`
+    : `${API_BASE}/test-series/official`;
+  const res = await fetch(url, {
     headers: { ...getAuthHeaders() },
     credentials: 'include',
   });
@@ -1550,6 +1571,7 @@ export async function uploadOfficialTestSeriesApi(payload: {
   title?: string;
   description?: string;
   category?: string;
+  examCategory?: 'GATE' | 'JEE_MAINS';
   subject?: string;
   testData: any;
 }): Promise<{ success: boolean; message: string; test: any }> {
@@ -1569,12 +1591,13 @@ export async function uploadOfficialTestSeriesApi(payload: {
   return data;
 }
 
-export async function fetchPersonalTestSeriesApi(): Promise<{
+export async function fetchPersonalTestSeriesApi(examCategory?: string): Promise<{
   tests: Array<{
     id: string;
     title: string;
     description: string | null;
     category: string;
+    examCategory?: string;
     subject: string | null;
     totalQuestions: number;
     totalMarks: number;
@@ -1582,7 +1605,10 @@ export async function fetchPersonalTestSeriesApi(): Promise<{
     createdAt: string;
   }>;
 }> {
-  const res = await fetch(`${API_BASE}/test-series/my-personal`, {
+  const url = examCategory
+    ? `${API_BASE}/test-series/my-personal?examCategory=${encodeURIComponent(examCategory)}`
+    : `${API_BASE}/test-series/my-personal`;
+  const res = await fetch(url, {
     headers: { ...getAuthHeaders() },
     credentials: 'include',
   });
@@ -1609,6 +1635,7 @@ export async function savePersonalTestSeriesApi(payload: {
   title: string;
   description?: string;
   category?: string;
+  examCategory?: 'GATE' | 'JEE_MAINS';
   subject?: string;
   testData: any;
 }): Promise<{ success: boolean; message: string; test: any }> {

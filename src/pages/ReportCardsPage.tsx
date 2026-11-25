@@ -65,7 +65,7 @@ type SortOption = 'newest' | 'oldest' | 'highest_score' | 'highest_accuracy';
 type MistakeFilter = 'ALL' | 'NEEDS_REVIEW' | 'MASTERED' | 'MOST_MISSED';
 
 export default function ReportCardsPage() {
-  const { user } = useAuth();
+  const { user, targetExam } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get('tab') as TabView) || 'history';
@@ -82,7 +82,7 @@ export default function ReportCardsPage() {
     if (!user) return;
     try {
       setLoadingPersonal(true);
-      const res = await fetchPersonalTestSeriesApi();
+      const res = await fetchPersonalTestSeriesApi(targetExam);
       setPersonalTests(res.tests || []);
     } catch (err) {
       console.warn('Failed to load personal test series:', err);
@@ -95,7 +95,7 @@ export default function ReportCardsPage() {
     if (activeTab === 'personal-series') {
       loadPersonalTests();
     }
-  }, [activeTab, user]);
+  }, [activeTab, user, targetExam]);
 
   const handleLaunchPersonalTest = async (testId: string, mode: 'exam' | 'practice') => {
     try {

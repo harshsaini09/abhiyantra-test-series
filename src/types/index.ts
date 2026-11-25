@@ -39,6 +39,8 @@ export interface TestData {
   description?: string;
   promptingTip?: string;
   subject?: string;
+  examCategory?: 'GATE' | 'JEE_MAINS';
+  category?: string;
   topic?: string;
   defaultSubject?: string;
   defaultTopic?: string;
@@ -208,6 +210,7 @@ export interface UserProfile {
   name: string;
   avatarUrl?: string | null;
   role?: 'STUDENT' | 'TEACHER' | 'ADMIN';
+  targetExam?: 'GATE' | 'JEE_MAINS' | null;
   isSubscribed?: boolean;
   subscriptionTier?: string | null;
   subscriptionUntil?: string | null;
@@ -219,6 +222,7 @@ export interface PlatformUser {
   name: string;
   avatarUrl?: string | null;
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
+  targetExam?: 'GATE' | 'JEE_MAINS' | null;
   isSubscribed?: boolean;
   subscriptionTier?: string | null;
   subscriptionUntil?: string | null;

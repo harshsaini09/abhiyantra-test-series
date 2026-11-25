@@ -45,21 +45,28 @@ function sanitizeTestData(input: any, defaultTitle = 'GATE Test Paper') {
 }
 
 // ─── 1. Get Official Teacher-Made Test Series (Public / Student View) ───
-router.get('/official', async (_req: Request, res: Response): Promise<void> => {
+router.get('/official', async (req: Request, res: Response): Promise<void> => {
   try {
     if (!isDbConfigured || !prisma) {
       res.json({ tests: [] });
       return;
     }
 
+    const { examCategory } = req.query;
+    const whereClause: any = { isOfficial: true };
+    if (examCategory && (examCategory === 'GATE' || examCategory === 'JEE_MAINS')) {
+      whereClause.examCategory = examCategory;
+    }
+
     const tests = await prisma.publishedTest.findMany({
-      where: { isOfficial: true },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         title: true,
         description: true,
         category: true,
+        examCategory: true,
         subject: true,
         totalQuestions: true,
         totalMarks: true,
@@ -116,6 +123,8 @@ router.get('/official/:id', async (req: Request, res: Response): Promise<void> =
         duration: test.durationMinutes,
         totalQuestions: test.totalQuestions,
         totalMarks: test.totalMarks,
+        category: test.category,
+        examCategory: test.examCategory,
         questions: parsedQuestions,
         creator: test.creator,
       },
@@ -135,7 +144,7 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
       return;
     }
 
-    const { title, description, category = 'FULL_MOCK', subject, testData } = req.body;
+    const { title, description, category = 'FULL_MOCK', examCategory = 'GATE', subject, testData } = req.body;
     const rawData = testData || req.body;
     const sanitized = sanitizeTestData(rawData, title || 'Official GATE Test Series');
 
@@ -154,6 +163,7 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
         title: title || sanitized.title,
         description: description || sanitized.description,
         category: category || (sanitized.totalQuestions >= 50 ? 'FULL_MOCK' : 'SUBJECT_PACK'),
+        examCategory: examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE',
         subject: subject || (sanitized.questions[0]?.subject || null),
         totalQuestions: sanitized.totalQuestions,
         totalMarks: sanitized.totalMarks,
@@ -196,17 +206,24 @@ router.get('/my-personal', requireAuth, async (req: AuthenticatedRequest, res: R
       return;
     }
 
+    const { examCategory } = req.query;
+    const whereClause: any = {
+      creatorId: user.id,
+      isOfficial: false,
+    };
+    if (examCategory && (examCategory === 'GATE' || examCategory === 'JEE_MAINS')) {
+      whereClause.examCategory = examCategory;
+    }
+
     const tests = await prisma.publishedTest.findMany({
-      where: {
-        creatorId: user.id,
-        isOfficial: false,
-      },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         title: true,
         description: true,
         category: true,
+        examCategory: true,
         subject: true,
         totalQuestions: true,
         totalMarks: true,
@@ -259,6 +276,8 @@ router.get('/my-personal/:id', requireAuth, async (req: AuthenticatedRequest, re
         duration: test.durationMinutes,
         totalQuestions: test.totalQuestions,
         totalMarks: test.totalMarks,
+        category: test.category,
+        examCategory: test.examCategory,
         questions: parsedQuestions,
       },
     });
@@ -288,7 +307,7 @@ router.post('/save-personal', requireAuth, async (req: AuthenticatedRequest, res
       return;
     }
 
-    const { title, description, category = 'PERSONAL', subject, testData } = req.body;
+    const { title, description, category = 'PERSONAL', examCategory = 'GATE', subject, testData } = req.body;
     const rawData = testData || req.body;
     const sanitized = sanitizeTestData(rawData, title || 'My Custom Test Paper');
 
@@ -307,6 +326,7 @@ router.post('/save-personal', requireAuth, async (req: AuthenticatedRequest, res
         title: title || sanitized.title,
         description: description || sanitized.description,
         category,
+        examCategory: examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE',
         subject: subject || (sanitized.questions[0]?.subject || 'Custom Mix'),
         totalQuestions: sanitized.totalQuestions,
         totalMarks: sanitized.totalMarks,

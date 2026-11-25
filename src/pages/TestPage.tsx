@@ -397,8 +397,10 @@ export default function TestPage() {
 
   // ─── marks display ───
   function marksLabel(q: Question) {
-    const neg = getNegativeMarkingDisplay(q.type, q.marks);
-    return `+${q.marks} | ${neg}`;
+    const isJee = testData?.examCategory === 'JEE_MAINS';
+    const pos = isJee ? 4 : q.marks;
+    const neg = getNegativeMarkingDisplay(q.type, q.marks, testData?.examCategory);
+    return `+${pos} | ${neg}`;
   }
 
   // ────────────────────────────────────────────────────
@@ -434,14 +436,16 @@ export default function TestPage() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <button
-            onClick={() => setShowCalculator((prev) => !prev)}
-            className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/90 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shrink-0 shadow-xs active:scale-95"
-            title="Open GATE On-Screen Scientific Calculator"
-          >
-            <Calculator className="w-4 h-4 text-indigo-600" />
-            <span className="hidden sm:inline">Calculator</span>
-          </button>
+          {testData.examCategory !== 'JEE_MAINS' && (
+            <button
+              onClick={() => setShowCalculator((prev) => !prev)}
+              className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/90 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition shrink-0 shadow-xs active:scale-95"
+              title="Open GATE On-Screen Scientific Calculator"
+            >
+              <Calculator className="w-4 h-4 text-indigo-600" />
+              <span className="hidden sm:inline">Calculator</span>
+            </button>
+          )}
 
           <div
             className={`flex items-center gap-1.5 sm:gap-2 font-mono text-sm sm:text-lg font-semibold shrink-0 ${

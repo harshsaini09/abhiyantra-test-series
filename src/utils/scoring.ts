@@ -58,7 +58,12 @@ function checkNAT(question: Question, response: UserResponse): { isCorrect: bool
 }
 
 /** Grade a single question */
-export function gradeQuestion(question: Question, response: UserResponse, timeSpentSeconds: number = 0): QuestionResult {
+export function gradeQuestion(
+  question: Question,
+  response: UserResponse,
+  timeSpentSeconds: number = 0,
+  examCategory?: string
+): QuestionResult {
   let checkResult: { isCorrect: boolean; isAttempted: boolean };
 
   switch (question.type) {
@@ -78,13 +83,13 @@ export function gradeQuestion(question: Question, response: UserResponse, timeSp
   let marksAwarded = 0;
   if (checkResult.isAttempted) {
     if (checkResult.isCorrect) {
-      marksAwarded = question.marks;
+      marksAwarded = examCategory === 'JEE_MAINS' ? 4 : question.marks;
     } else {
-      // Negative marking only for MCQ
-      if (question.type === 'MCQ') {
+      if (examCategory === 'JEE_MAINS') {
+        marksAwarded = -1; // -1 for both MCQ and Numerical in JEE Mains
+      } else if (question.type === 'MCQ') {
         marksAwarded = getNegativeMarks(question.marks);
       }
-      // MSQ and NAT: no negative marking
     }
   }
 
@@ -145,11 +150,11 @@ export function gradeTest(
       status: 'not-visited' as const,
     };
     const spent = timeSpentPerQuestion ? (timeSpentPerQuestion[q.id] || 0) : 0;
-    return gradeQuestion(q, response, spent);
+    return gradeQuestion(q, response, spent, testData.examCategory);
   });
 
   const totalScore = questionResults.reduce((sum, r) => sum + r.marksAwarded, 0);
-  const maxMarks = testData.questions.reduce((sum, q) => sum + q.marks, 0);
+  const maxMarks = testData.questions.reduce((sum, q) => sum + (testData.examCategory === 'JEE_MAINS' ? 4 : q.marks), 0);
   const totalCorrect = questionResults.filter(r => r.isCorrect).length;
   const totalIncorrect = questionResults.filter(r => r.isAttempted && !r.isCorrect).length;
   const totalUnattempted = questionResults.filter(r => !r.isAttempted).length;
@@ -220,7 +225,10 @@ function createBreakdown(results: QuestionResult[]): TypeBreakdown {
 }
 
 /** Get negative marking info string for display */
-export function getNegativeMarkingDisplay(type: QuestionType, marks: number): string {
+export function getNegativeMarkingDisplay(type: QuestionType, marks: number, examCategory?: string): string {
+  if (examCategory === 'JEE_MAINS') {
+    return '−1.00';
+  }
   if (type === 'MCQ') {
     const neg = marks === 1 ? '−⅓' : '−⅔';
     return neg;

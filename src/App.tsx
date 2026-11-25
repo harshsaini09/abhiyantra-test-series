@@ -8,10 +8,12 @@ import ReportCardsPage from './pages/ReportCardsPage';
 import PricingPage from './pages/PricingPage';
 import AdminPaymentsPage from './pages/AdminPaymentsPage';
 import TestSeriesPage from './pages/TestSeriesPage';
+import ExamOnboardingModal from './components/ExamOnboardingModal';
 
 export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 w-full max-w-full overflow-x-hidden">
+      <ExamOnboardingModal />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/test-series" element={<TestSeriesPage />} />

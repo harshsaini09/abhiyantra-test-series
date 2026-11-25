@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { UserProfile, TestResults } from '../types';
-import { fetchCurrentUser, loginWithGoogleApi, logoutUserApi, saveReportCardApi } from '../utils/api';
+import { fetchCurrentUser, loginWithGoogleApi, logoutUserApi, saveReportCardApi, updateTargetExamApi } from '../utils/api';
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
+  targetExam: 'GATE' | 'JEE_MAINS';
+  setTargetExam: (exam: 'GATE' | 'JEE_MAINS') => Promise<void>;
   login: (credential: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<UserProfile | null>;
@@ -36,6 +38,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
+
+  const [targetExam, setTargetExamState] = useState<'GATE' | 'JEE_MAINS'>(() => {
+    try {
+      const saved = localStorage.getItem('abhiyantra_active_exam');
+      if (saved === 'JEE_MAINS' || saved === 'GATE') return saved;
+    } catch {}
+    return 'GATE';
+  });
+
+  // Keep targetExam in sync with user profile
+  useEffect(() => {
+    if (user?.targetExam) {
+      setTargetExamState(user.targetExam);
+      try {
+        localStorage.setItem('abhiyantra_active_exam', user.targetExam);
+      } catch {}
+    }
+  }, [user?.targetExam]);
+
+  const setTargetExam = async (exam: 'GATE' | 'JEE_MAINS') => {
+    setTargetExamState(exam);
+    try {
+      localStorage.setItem('abhiyantra_active_exam', exam);
+    } catch {}
+    if (user) {
+      setUser((prev) => (prev ? { ...prev, targetExam: exam } : null));
+      try {
+        await updateTargetExamApi(exam);
+      } catch (err) {
+        console.warn('Failed to persist target exam to DB:', err);
+      }
+    }
+  };
 
   // Load user session on mount
   useEffect(() => {
@@ -125,6 +160,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
+        targetExam,
+        setTargetExam,
         login,
         logout,
         refreshUser,
