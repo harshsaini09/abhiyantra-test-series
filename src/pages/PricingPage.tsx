@@ -44,6 +44,7 @@ export const PricingPage: React.FC = () => {
   }, []);
 
   const handleSelectPlan = (plan: PricingPlan) => {
+    if (user?.isSubscribed) return;
     setSelectedPlan(plan);
     setIsModalOpen(true);
   };
@@ -148,16 +149,29 @@ export const PricingPage: React.FC = () => {
                 </div>
 
                 <button
+                  type="button"
+                  disabled={Boolean(user?.isSubscribed)}
                   onClick={() => handleSelectPlan(p)}
                   className={`w-full py-4 px-6 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all ${
-                    isPopular
-                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-indigo-500/25'
-                      : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/10'
+                    user?.isSubscribed
+                      ? 'bg-emerald-50 border-2 border-emerald-300 text-emerald-800 shadow-none cursor-not-allowed opacity-90'
+                      : isPopular
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-indigo-500/25 cursor-pointer active:scale-98'
+                      : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/10 cursor-pointer active:scale-98'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                  <span>Get Pass Now (₹{p.price})</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {user?.isSubscribed ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <span>Pro Pass Already Active</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-yellow-300" />
+                      <span>Get Pass Now (₹{p.price})</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
               </div>
             );

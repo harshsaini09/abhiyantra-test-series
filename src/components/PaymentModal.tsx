@@ -73,6 +73,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       return;
     }
 
+    if (user.isSubscribed) {
+      setErrorMessage('You already have an active Pro Pass! No additional purchase is required.');
+      return;
+    }
+
     setLoadingRazorpay(true);
     setErrorMessage('');
 
@@ -312,10 +317,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <button
                   type="button"
                   onClick={handleRazorpayCheckout}
-                  disabled={loadingRazorpay}
-                  className="w-full py-4 px-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-extrabold rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2.5 text-sm transition-all cursor-pointer active:scale-[0.99] disabled:opacity-75 disabled:cursor-wait"
+                  disabled={loadingRazorpay || Boolean(user?.isSubscribed)}
+                  className={`w-full py-4 px-4 font-extrabold rounded-xl shadow-lg flex items-center justify-center gap-2.5 text-sm transition-all ${
+                    user?.isSubscribed
+                      ? 'bg-emerald-50 border-2 border-emerald-300 text-emerald-800 shadow-none cursor-not-allowed opacity-90'
+                      : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-indigo-600/25 cursor-pointer active:scale-[0.99] disabled:opacity-75 disabled:cursor-wait'
+                  }`}
                 >
-                  {loadingRazorpay ? (
+                  {user?.isSubscribed ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <span>Pro Pass Already Active For Your Account</span>
+                    </>
+                  ) : loadingRazorpay ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       <span>Opening Secure Checkout...</span>

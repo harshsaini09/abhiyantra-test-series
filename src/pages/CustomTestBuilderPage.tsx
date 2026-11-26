@@ -563,7 +563,7 @@ export default function CustomTestBuilderPage() {
     }
   };
 
-  const isProPassHolder = Boolean(user?.isSubscribed && user?.subscriptionTier !== 'gate-booster-pass');
+  const isProPassHolder = Boolean(user?.isSubscribed);
   const hasBuilderAccess = isTeacherOrAdmin || isProPassHolder;
 
   if (authLoading) {

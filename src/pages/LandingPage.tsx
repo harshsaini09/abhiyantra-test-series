@@ -324,13 +324,20 @@ export default function LandingPage() {
 
           {/* Quick Action CTAs */}
           <div className="mt-8 flex flex-col sm:flex-row flex-wrap justify-center gap-3 w-full sm:w-auto max-w-md sm:max-w-none">
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 text-sm font-black rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-slate-950 fill-current" />
-              Get Full Pass (₹59)
-            </button>
+            {user?.isSubscribed ? (
+              <div className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 text-sm font-bold rounded-xl shadow-xs cursor-default">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>Pro Pass Active</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 text-sm font-black rounded-xl shadow-lg hover:shadow-amber-500/25 transition-all cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-slate-950 fill-current" />
+                Get Full Pass (₹59)
+              </button>
+            )}
             <button
               onClick={() => navigate('/test-series')}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-md transition-all cursor-pointer"
