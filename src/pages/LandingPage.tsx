@@ -22,7 +22,6 @@ import {
   Calculator,
   Database,
   Users,
-  Atom,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import StudentCarousel from '../components/StudentCarousel';
@@ -39,7 +38,7 @@ type InputTab = 'paste' | 'upload';
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { user, targetExam, setTargetExam } = useAuth();
+  const { user } = useAuth();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Resume banner
@@ -258,69 +257,6 @@ export default function LandingPage() {
           <p className="mt-3 text-xs sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Real exam simulation environment for <strong className="text-white font-bold">GATE</strong> &amp; <strong className="text-white font-bold">JEE Mains</strong> with official marking blueprints, TCS-iON / NTA user interfaces, virtual calculator, and deep performance analytics.
           </p>
-
-          {/* Dual Exam Track Selector Cards */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full max-w-3xl text-left">
-            {/* GATE Card */}
-            <div
-              onClick={() => setTargetExam('GATE')}
-              className={`relative rounded-2xl p-5 sm:p-6 transition-all cursor-pointer border-2 ${
-                targetExam === 'GATE'
-                  ? 'bg-indigo-950/80 border-emerald-400 shadow-lg shadow-emerald-500/10'
-                  : 'bg-slate-800/60 border-slate-700/80 hover:border-slate-600'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-900/60 text-indigo-300 border border-indigo-700/60">
-                  <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
-                  GATE Exam Portal
-                </div>
-                {targetExam === 'GATE' && (
-                  <span className="text-[11px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full">
-                    Active
-                  </span>
-                )}
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5">Official GATE CBT Mock Series</h3>
-              <p className="text-xs sm:text-sm text-slate-300 mb-4 leading-relaxed">
-                65 Questions • 100 Marks • 180 Minutes • Virtual Scientific Calculator • General Aptitude &amp; Core Subjects.
-              </p>
-              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
-                <span>Select GATE Track</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </div>
-
-            {/* JEE Mains Card */}
-            <div
-              onClick={() => setTargetExam('JEE_MAINS')}
-              className={`relative rounded-2xl p-5 sm:p-6 transition-all cursor-pointer border-2 ${
-                targetExam === 'JEE_MAINS'
-                  ? 'bg-amber-950/80 border-amber-400 shadow-lg shadow-amber-500/10'
-                  : 'bg-slate-800/60 border-slate-700/80 hover:border-slate-600'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-900/60 text-amber-300 border border-amber-700/60">
-                  <Atom className="w-3.5 h-3.5 text-amber-400" />
-                  JEE Mains Portal
-                </div>
-                {targetExam === 'JEE_MAINS' && (
-                  <span className="text-[11px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full">
-                    Active
-                  </span>
-                )}
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5">Official JEE Mains CBT Mock Series</h3>
-              <p className="text-xs sm:text-sm text-slate-300 mb-4 leading-relaxed">
-                75 Questions • 300 Marks • 180 Minutes • Physics, Chemistry &amp; Mathematics • +4 / -1 Marking System.
-              </p>
-              <div className="flex items-center gap-2 text-xs font-semibold text-amber-400">
-                <span>Select JEE Mains Track</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
 
           {/* Quick Action CTAs */}
           <div className="mt-8 flex flex-col sm:flex-row flex-wrap justify-center gap-3 w-full sm:w-auto max-w-md sm:max-w-none">
