@@ -30,7 +30,10 @@ import {
   GraduationCap,
   Atom,
   Calculator,
+  Copy,
+  Check,
 } from 'lucide-react';
+import { AI_SYSTEM_PROMPT } from '../utils/sampleData';
 
 interface OfficialTestItem {
   id: string;
@@ -98,8 +101,19 @@ export const TestSeriesPage: React.FC = () => {
   const [totalMarks, setTotalMarks] = useState<number>(0);
   const [parsedQuestions, setParsedQuestions] = useState<any[] | null>(null);
   const [fileName, setFileName] = useState<string>('');
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCopyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(AI_SYSTEM_PROMPT);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
 
   const resetUploadForm = () => {
     setIsUploadModalOpen(false);
@@ -859,6 +873,31 @@ export const TestSeriesPage: React.FC = () => {
                   <p className="text-[10px] text-slate-400">
                     Auto-detects questions, per-question pacing, examination type, and calculates duration.
                   </p>
+                </div>
+
+                {/* AI Prompt Generator Banner for Faculty */}
+                <div className="mt-2.5 flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span className="text-slate-600 text-[11px] font-medium">Using ChatGPT / Claude to convert paper?</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyPrompt}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 rounded-lg text-[11px] shadow-2xs transition cursor-pointer"
+                  >
+                    {copiedPrompt ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span className="text-emerald-700">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 text-indigo-600" />
+                        <span>Copy AI Prompt</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 

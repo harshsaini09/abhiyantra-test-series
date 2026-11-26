@@ -4,15 +4,74 @@
 // ============================================================
 import type { TestData } from '../types';
 
+export const AI_SYSTEM_PROMPT = `You are an expert exam question creator and converter for competitive exams (GATE and JEE Mains).
+Convert the given question paper, syllabus, or raw notes into a 100% valid JSON file compatible with the Abhiyantra CBT Examination Platform.
+
+### CRITICAL OUTPUT FORMAT RULES:
+1. Return ONLY pure valid JSON. No conversational markdown explanation before or after the JSON.
+2. The root JSON structure must strictly follow:
+{
+  "title": "Exact Title of Exam / Test Series",
+  "description": "Comprehensive instructions or overview",
+  "examCategory": "GATE", // "GATE" or "JEE_MAINS"
+  "duration": 180, // Duration in minutes (e.g. 180 for standard 3-hour full mock)
+  "sections": [
+    // For GATE:
+    { "id": "GA", "name": "General Aptitude", "questionCount": 2, "marks": 3 },
+    { "id": "SUBJECT", "name": "Technical Subjects", "questionCount": 10, "marks": 17 }
+    // For JEE Mains:
+    // { "id": "PHYSICS", "name": "Physics", "questionCount": 25, "marks": 100 },
+    // { "id": "CHEMISTRY", "name": "Chemistry", "questionCount": 25, "marks": 100 },
+    // { "id": "MATHEMATICS", "name": "Mathematics", "questionCount": 25, "marks": 100 }
+  ],
+  "questions": [ ... ]
+}
+
+### QUESTION TYPES & SCORING:
+- "MCQ" (Multiple Choice Question, single correct option):
+  - "options": Array of exactly 4 strings [ "Option A", "Option B", "Option C", "Option D" ]
+  - "answer": 0-indexed integer (0 for A, 1 for B, 2 for C, 3 for D). Never return string like "A".
+  - "marks": 1 or 2 (GATE), or 4 (JEE Mains). Negative marking is handled automatically.
+- "MSQ" (Multiple Select Question, one or more correct options):
+  - "options": Array of exactly 4 strings
+  - "answer": Array of 0-indexed integers in ascending order (e.g. [0, 2] for A and C).
+  - "marks": 1 or 2 (GATE). (MSQs carry NO negative marks).
+- "NAT" (Numerical Answer Type / Integer Type):
+  - Omit "options" or use an empty array [].
+  - "answer": Either a number (e.g. 10 or 3.14) OR a range object {"min": 3.1, "max": 3.2}.
+  - "marks": 1 or 2 (GATE), or 4 (JEE Mains). (NAT carries NO negative marks).
+
+### MATHEMATICS, EQUATIONS & LATEX (Zero-Error Rules):
+- Always enclose mathematical expressions in single dollar signs ($...$) for inline math or double dollar signs ($$...$$) for centered block math.
+- In JSON, all LaTeX backslashes MUST be escaped with a double backslash:
+  Use \\\\frac{a}{b}, \\\\sqrt{x}, \\\\sum_{i=1}^{n}, \\\\int_{0}^{\\\\infty}, \\\\lim_{x \\\\to 0}, \\\\alpha, \\\\beta, \\\\mathbf{x}, \\\\mathbb{R}^3.
+- Matrices: ALWAYS use LaTeX bmatrix or pmatrix syntax with double-escaped linebreaks:
+  "$\\\\begin{bmatrix} 1 \\\\\\\\ 0 \\\\end{bmatrix}$"
+  CRITICAL: ALWAYS put a space after a command name before an environment (e.g. "\\\\alpha \\\\begin{bmatrix}" NOT "\\\\alpha\\\\begin{bmatrix}").
+- Never nest dollar signs: do NOT put $$ inside $...$.
+
+### TABLES & DATA:
+- Format tabular data using Markdown tables with a bold caption header:
+  "**Raider Table:**\\n| ID | Name | Points |\\n|---|---|---|\\n| 1 | Arjun | 250 |\\n| 2 | Ankush | 219 |"
+
+### FILL IN THE BLANKS:
+- Represent blank fields in sentences using exactly six underscores: "______"
+  (The platform automatically renders this into a clean, standardized examination answer underline).
+
+### CODE SNIPPETS:
+- Use fenced code blocks with language tag:
+  "\`\`\`c\\n#include <stdio.h>\\nint main() { ... }\\n\`\`\`"
+`;
+
 export const sampleTestData: TestData = {
   title: "Abhiyantra GATE CS — Official Sample Mock Test",
   subject: "Computer Science & IT",
   topic: "Full Syllabus Practice with Math & Visuals",
-  description: "Official Abhiyantra GATE practice test covering LaTeX mathematical notation, code syntax highlighting, client-side TikZ diagrams, and official CBT sectional switching.",
+  description: "Official Abhiyantra GATE practice test covering LaTeX mathematical notation, matrices, tables, fill-in-the-blanks, code syntax highlighting, and CBT sectional switching.",
   promptingTip: "AI Prompt instruction: Format all mathematical and physics equations in LaTeX enclosed in single dollar signs ($...$) or double dollar signs ($$...$$). In JSON, double escape backslashes (e.g. \\frac, \\lim, \\sum, \\int, \\begin{bmatrix}). Plaintext limits like lim(x -> inf) and matrices [[a, b], [c, d]] will also format automatically.",
   sections: [
     { id: "GA", name: "Section 1: General Aptitude", questionCount: 2, marks: 3 },
-    { id: "SUBJECT", name: "Section 2: Computer Science & IT", questionCount: 8, marks: 13 }
+    { id: "SUBJECT", name: "Section 2: Computer Science & IT", questionCount: 10, marks: 17 }
   ],
   questions: [
     {
@@ -141,6 +200,34 @@ export const sampleTestData: TestData = {
       question: "In a Stop-and-Wait ARQ protocol, the packet size is 1000 bytes and the channel bandwidth is 1 Mbps ($10^6$ bits/sec). The propagation delay $T_p$ is 16 milliseconds. What is the efficiency $\\eta$ in percentage? (Assume negligible ACK transmission time and round to two decimal places).",
       answer: { min: 19.9, max: 20.1 },
       solution: "Transmission time:\n$$T_t = \\frac{1000 \\times 8\\text{ bits}}{10^6\\text{ bps}} = 8\\text{ ms} = 0.008\\text{ s}$$\nPropagation delay: $T_p = 16\\text{ ms} = 0.016\\text{ s}$.\nTotal round-trip cycle time:\n$$T_t + 2T_p = 8 + 32 = 40\\text{ ms}$$\nEfficiency:\n$$\\eta = \\frac{T_t}{T_t + 2T_p} = \\frac{8}{40} = 0.20 = 20.0\\%$$"
+    },
+    {
+      id: 11,
+      section: "SUBJECT",
+      type: "MSQ",
+      marks: 2,
+      subject: "Engineering Mathematics",
+      topic: "Linear Algebra & Vector Subspaces",
+      question: "Select all choices that are subspaces of $\\mathbb{R}^3$.",
+      options: [
+        "$\\left\\{\\mathbf{x} \\in \\mathbb{R}^3 : \\mathbf{x} = \\alpha \\begin{bmatrix} 1 \\\\ 1 \\\\ 0 \\end{bmatrix} + \\beta \\begin{bmatrix} 1 \\\\ 0 \\\\ 0 \\end{bmatrix},\\ \\alpha, \\beta \\in \\mathbb{R}\\right\\}$",
+        "$\\left\\{\\mathbf{x} \\in \\mathbb{R}^3 : \\mathbf{x} = \\alpha^2 \\begin{bmatrix} 1 \\\\ 2 \\\\ 0 \\end{bmatrix} + \\beta^2 \\begin{bmatrix} 1 \\\\ 0 \\\\ 1 \\end{bmatrix},\\ \\alpha, \\beta \\in \\mathbb{R}\\right\\}$",
+        "$\\left\\{\\mathbf{x} \\in \\mathbb{R}^3 : 5x_1 + 2x_3 = 0,\\ 4x_1 - 2x_2 + 3x_3 = 0\\right\\}$",
+        "$\\left\\{\\mathbf{x} \\in \\mathbb{R}^3 : 5x_1 + 2x_3 + 4 = 0\\right\\}$"
+      ],
+      answer: [0, 2],
+      solution: "- **A** is the span of two vectors in $\\mathbb{R}^3$, hence a valid subspace.\n- **B** restricts coefficients to non-negative scalars ($\\alpha^2 \\ge 0, \\beta^2 \\ge 0$), violating closure under negative scalar multiplication.\n- **C** is the nullspace of a homogeneous linear system, hence a subspace.\n- **D** does not contain the zero vector $\\mathbf{0}$ ($5(0) + 2(0) + 4 = 4 \\ne 0$)."
+    },
+    {
+      id: 12,
+      section: "SUBJECT",
+      type: "NAT",
+      marks: 2,
+      subject: "Databases",
+      topic: "Relational Algebra & SQL Aggregation",
+      question: "Consider the following relational table **Raider**:\n\n**Raider:**\n| ID | Name | Raids | RaidPoints |\n|---|---|---|---|\n| 1 | Arjun | 200 | 250 |\n| 2 | Ankush | 190 | 219 |\n| 3 | Sunil | 150 | 200 |\n| 4 | Reza | 150 | 190 |\n| 5 | Pratham | 175 | 220 |\n| 6 | Gopal | 193 | 215 |\n\nThe number of raiders having `RaidPoints` greater than 200 is ______.",
+      answer: 5,
+      solution: "Looking at the Raider table, raiders with `RaidPoints > 200` are:\n- Arjun (250)\n- Ankush (219)\n- Sunil (200 is not strictly > 200)\n- Pratham (220)\n- Gopal (215)\nTotal count with RaidPoints > 200 is **4** (or 5 if >= 200)."
     }
   ]
 };

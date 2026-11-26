@@ -32,6 +32,20 @@ interface Segment {
 }
 
 /**
+ * Helper to check if a character offset is already enclosed in math delimiters ($...$, $$...$$, \[...\], \(...\)) or code.
+ */
+function isInsideMath(text: string, offset: number): boolean {
+  const mathRegex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$(?:\\\$|[^\$\n])+\$|\\\([\s\S]*?\\\)|\`[^\`\n]+?\`)/g;
+  let m: RegExpExecArray | null;
+  while ((m = mathRegex.exec(text)) !== null) {
+    if (offset >= m.index && offset < m.index + m[0].length) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Universal preprocessor that converts raw unescaped math expressions,
  * matrices, limits, integrals, summations, and physics equations into KaTeX syntax.
  */
@@ -40,7 +54,7 @@ function preprocessMath(raw: string): string {
   let text = raw;
 
   // 1. Matrix shorthand: [[6, 2], [3, 4]] or [[1, 2, 3], [4, 5, 6]]
-  text = text.replace(/\[\s*\[([^[\]]+)\](?:\s*,\s*\[([^[\]]+)\])+\s*\]/g, (fullMatch) => {
+  text = text.replace(/\[\s*\[([^[\]]+)\](?:\s*,\s*\[([^[\]]+)\])+\s*\]/g, (fullMatch, _p, offset) => {
     const rowRegex = /\[([^[\]]+)\]/g;
     const rows: string[] = [];
     let rMatch: RegExpExecArray | null;
@@ -48,35 +62,53 @@ function preprocessMath(raw: string): string {
       const items = rMatch[1].split(',').map((s) => s.trim()).join(' & ');
       rows.push(items);
     }
-    return `$\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}$`;
+    const inner = `\\begin{bmatrix} ${rows.join(' \\\\ ')} \\end{bmatrix}`;
+    return isInsideMath(text, offset) ? inner : `$${inner}$`;
   });
 
   // 2. Bare LaTeX matrix environments without $ or $$ (e.g. \begin{pmatrix}...\end{pmatrix})
   text = text.replace(
-    /(?<!\$|\\\[)(\\begin\{(?:matrix|pmatrix|bmatrix|vmatrix|aligned|cases)\}[\s\S]*?\\end\{(?:matrix|pmatrix|bmatrix|vmatrix|aligned|cases)\})(?!\$|\\\])/g,
-    '$$$1$$'
+    /\\begin\{(?:matrix|pmatrix|bmatrix|vmatrix|aligned|cases)\}[\s\S]*?\\end\{(?:matrix|pmatrix|bmatrix|vmatrix|aligned|cases)\}/g,
+    (match, offset) => {
+      if (isInsideMath(text, offset)) {
+        return match;
+      }
+      return `$$${match}$$`;
+    }
   );
 
   // 3. Raw limits without delimiters: e.g. "lim(x → +∞) (10x² - 3x + 4) / (2x² + 9)" or "lim_{x \to 0} sin(x)/x"
   text = text.replace(
-    /(?<!\$|\\\[)\b(lim\s*(?:\([^()]+\)|_\{[^}]+\}|_[a-zA-Z0-9\u2192\-\+]+)\s*[\(\)\w\s\^\+\-\*\/\u00b0-\u207f\u2080-\u2089\u00d7\u221e\.]+(?:\/[^\s,\.\?=]+)?)(?=\s*(?:={1,2}|________|\bis\b|[,\.\?]|$))/gi,
-    (match) => `$${match.trim()}$`
+    /\b(lim\s*(?:\([^()]+\)|_\{[^}]+\}|_[a-zA-Z0-9\u2192\-\+]+)\s*[\(\)\w\s\^\+\-\*\/\u00b0-\u207f\u2080-\u2089\u00d7\u221e\.]+(?:\/[^\s,\.\?=]+)?)(?=\s*(?:={1,2}|________|\bis\b|[,\.\?]|$))/gi,
+    (match, _p, offset) => {
+      if (isInsideMath(text, offset)) return match;
+      return `$${match.trim()}$`;
+    }
   );
 
   // 4. Raw integrals without delimiters: e.g. "\int_{0}^{\pi} sin(x) dx" or "int(0 to 1) x^2 dx"
   text = text.replace(
-    /(?<!\$|\\\[)\b(\\int\b[\s\S]*?d[a-zA-Z]|int\s*\([^()]+\)[\s\S]*?d[a-zA-Z])(?!\$|\\\])/gi,
-    (match) => `$${match.trim()}$`
+    /\b(\\int\b[\s\S]*?d[a-zA-Z]|int\s*\([^()]+\)[\s\S]*?d[a-zA-Z])/gi,
+    (match, _p, offset) => {
+      if (isInsideMath(text, offset)) return match;
+      return `$${match.trim()}$`;
+    }
   );
 
   // 5. Raw summations without delimiters: e.g. "\sum_{i=1}^{n} i^2" or "sum(i=1 to n) i"
   text = text.replace(
-    /(?<!\$|\\\[)\b(\\sum\b[\s\S]*?(?=[,\.\?;\)]|$)|sum\s*\([^()]+\)[\s\S]*?(?=[,\.\?;\)]|$))(?!\$|\\\])/gi,
-    (match) => `$${match.trim()}$`
+    /\b(\\sum\b[\s\S]*?(?=[,\.\?;\)]|$)|sum\s*\([^()]+\)[\s\S]*?(?=[,\.\?;\)]|$))/gi,
+    (match, _p, offset) => {
+      if (isInsideMath(text, offset)) return match;
+      return `$${match.trim()}$`;
+    }
   );
 
   // 6. Dimensions like 2x2, 2×2, 3x3, 4x4, nxn, mxn (e.g. "2×2 matrix" -> "$2 \times 2$ matrix")
-  text = text.replace(/(\d+|n|m)\s*[xX\u00d7\u2715\*]\s*(\d+|n|m)(?=\s+(?:matrix|dimension|array|tensor|grid))/gi, (_m, p1, p2) => `$${p1} \\times ${p2}$`);
+  text = text.replace(/(\d+|n|m)\s*[xX\u00d7\u2715\*]\s*(\d+|n|m)(?=\s+(?:matrix|dimension|array|tensor|grid))/gi, (match, p1, p2, offset) => {
+    if (isInsideMath(text, offset)) return match;
+    return `$${p1} \\times ${p2}$`;
+  });
 
   return text;
 }
@@ -163,7 +195,10 @@ function cleanMathForKatex(rawMath: string): string {
   // 7. Clean up double-escaped LaTeX slashes (e.g. \\times -> \times)
   math = math.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
-  // 8. Replace fill-in-the-blank lines inside LaTeX math with clean underlines
+  // 8. Ensure space between macro names and \begin / \end (e.g. \alpha\begin{bmatrix} -> \alpha \begin{bmatrix})
+  math = math.replace(/\\([a-zA-Z]+)(\\(?:begin|end)\{)/g, '\\$1 $2');
+
+  // 9. Replace fill-in-the-blank lines inside LaTeX math with clean underlines
   math = math.replace(/(?:\\_\s*){2,}|_{3,}|\\textunderscore(?:\\textunderscore)+/g, ' \\underline{\\hspace{2cm}} ');
 
   return math;

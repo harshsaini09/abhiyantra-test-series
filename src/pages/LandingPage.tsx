@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import type { TestData, TestMode, ValidationError } from '../types';
-import { sampleTestData, sampleJSONString } from '../utils/sampleData';
+import { sampleTestData, sampleJSONString, AI_SYSTEM_PROMPT } from '../utils/sampleData';
 import { parseJSON, validateTestJSON } from '../utils/validation';
 import { calculateDuration, formatDurationHuman } from '../utils/scoring';
 import { hasInProgressTest } from '../utils/storage';
@@ -61,6 +61,7 @@ export default function LandingPage() {
 
   // Copy feedback
   const [copied, setCopied] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   // Check in-progress test on mount
   useEffect(() => {
@@ -118,6 +119,13 @@ export default function LandingPage() {
     await navigator.clipboard.writeText(sampleJSONString);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Copy AI System Prompt
+  const handleCopyPrompt = async () => {
+    await navigator.clipboard.writeText(AI_SYSTEM_PROMPT);
+    setCopiedPrompt(true);
+    setTimeout(() => setCopiedPrompt(false), 2000);
   };
 
   // Download sample JSON
@@ -438,22 +446,74 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Mathematical & LaTeX Equations Prompting Guide */}
-          <div className="mt-6 rounded-xl bg-slate-900 border border-slate-700 p-4 sm:p-5 text-white">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-indigo-400" />
-              <h4 className="font-bold text-sm sm:text-base text-indigo-300">
-                AI Prompting Guide: Generating Mathematical Equations in JSON
-              </h4>
+          {/* Master AI Prompting Guide for Generating Error-Free JSON */}
+          <div className="mt-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 border border-slate-700 p-5 sm:p-7 text-white shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-base sm:text-lg text-white">
+                    Master AI Prompt for Converting Papers to JSON
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    Feed this prompt to ChatGPT, Claude, Gemini, or DeepSeek for 100% error-free question conversion
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleCopyPrompt}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-indigo-600/30 transition-all cursor-pointer shrink-0"
+              >
+                {copiedPrompt ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-emerald-300" />
+                    <span>Copied to Clipboard!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copy Complete AI Prompt</span>
+                  </>
+                )}
+              </button>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-3">
-              When asking an AI (ChatGPT, Claude, Gemini) or creating questions manually, copy and include this instruction at the end of your prompt to guarantee seamless mathematical rendering:
-            </p>
-            <div className="relative rounded-lg bg-slate-950 border border-slate-800 p-3 text-xs font-mono text-emerald-300 leading-relaxed overflow-x-auto select-all">
-              {`"Format all mathematical, statistical, and physics equations using LaTeX notation enclosed in single dollar signs for inline math (e.g. $f(x) = x^2 - 4x + 7$, $\\lim_{x \\to \\infty} \\frac{10x^2 - 3x + 4}{2x^2 + 9}$, $\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}$) or double dollar signs for centered block math ($$...$$). In the JSON output, escape all LaTeX backslashes properly (e.g. \\\\lim, \\\\frac, \\\\begin, \\\\int, \\\\sum)."`}
+
+            {/* Quick Syntax Rules Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 mb-5 text-[11px]">
+              <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="font-bold text-indigo-300 block mb-1">1. MCQ</span>
+                <span className="text-slate-400">answer: <code className="text-emerald-400 font-mono">0..3</code> (0-indexed int)</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="font-bold text-indigo-300 block mb-1">2. MSQ</span>
+                <span className="text-slate-400">answer: <code className="text-emerald-400 font-mono">[0, 2]</code> (int array)</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="font-bold text-indigo-300 block mb-1">3. NAT</span>
+                <span className="text-slate-400">answer: <code className="text-emerald-400 font-mono">10</code> or <code className="text-emerald-400 font-mono">{"{min, max}"}</code></span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="font-bold text-indigo-300 block mb-1">4. LaTeX Math</span>
+                <span className="text-slate-400"><code className="text-emerald-400 font-mono">$...$</code> with <code className="text-amber-300 font-mono">\\escapes</code></span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="font-bold text-indigo-300 block mb-1">5. Tables</span>
+                <span className="text-slate-400">Markdown <code className="text-emerald-400 font-mono">| col | col |</code></span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="font-bold text-indigo-300 block mb-1">6. Fill Blank</span>
+                <span className="text-slate-400">Six underscores <code className="text-emerald-400 font-mono">______</code></span>
+              </div>
             </div>
-            <p className="text-[11px] text-slate-400 mt-2">
-              ✦ <strong>Universal Auto-Fallback:</strong> Even if plain text is provided without dollar signs (such as <code className="text-indigo-300 font-mono">lim(x → +∞) (10x² - 3x + 4) / (2x² + 9)</code> or <code className="text-indigo-300 font-mono">matrix [[6, 2], [3, 4]]</code>), Abhiyantra's universal math engine will automatically format and render it with KaTeX typography.
+
+            {/* Prompt Codebox */}
+            <div className="relative rounded-xl bg-slate-950 border border-slate-800 p-3.5 text-xs font-mono text-emerald-300 leading-relaxed overflow-x-auto max-h-56 overflow-y-auto select-all">
+              <pre className="whitespace-pre-wrap">{AI_SYSTEM_PROMPT}</pre>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-2.5 flex items-center gap-1.5">
+              <span>✦</span> <strong>Pro-Tip:</strong> Attach your PDF or photo of questions in ChatGPT / Claude alongside this prompt to receive instant, validated JSON with all matrices, equations, and tables properly structured.
             </p>
           </div>
         </div>
