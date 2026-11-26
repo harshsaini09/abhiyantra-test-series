@@ -57,11 +57,9 @@ export default function QuestionBankPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, targetExam } = useAuth();
   const isMasterAdmin = Boolean(
-    user?.email &&
-      (user.email.toLowerCase().trim() === 'brainiacssolutions9@gmail.com' ||
-        user.email.toLowerCase().trim() === 'brainiacssolutions9@gmail' ||
-        user.email.toLowerCase().startsWith('brainiacssolutions9@') ||
-        user?.role === 'ADMIN')
+    user?.role === 'ADMIN' ||
+      (user?.email &&
+        ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase().trim()))
   );
   const isTeacherOrAdmin = isMasterAdmin || user?.role === 'TEACHER';
 

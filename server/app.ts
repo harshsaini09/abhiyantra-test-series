@@ -588,13 +588,13 @@ const handleClearData = async (req: Request, res: Response) => {
     const authUser = token ? verifyUserToken(token) : null;
     const isMasterAdmin = authUser && (
       authUser.role === 'ADMIN' ||
-      authUser.email.toLowerCase().trim() === 'brainiacssolutions9@gmail.com' ||
-      authUser.email.toLowerCase().trim() === 'brainiacssolutions9@gmail' ||
-      authUser.email.toLowerCase().startsWith('brainiacssolutions9@')
+      ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(authUser.email.toLowerCase().trim()) ||
+      authUser.email.toLowerCase().startsWith('brainiacssolutions9@') ||
+      authUser.email.toLowerCase().startsWith('harshsaini0912@')
     );
 
     if (authUser && !isMasterAdmin) {
-      res.status(403).json({ error: 'Access denied: Only brainiacssolutions9@gmail.com has permission to clear database data.' });
+      res.status(403).json({ error: 'Access denied: Master Admin permission required.' });
       return;
     }
 

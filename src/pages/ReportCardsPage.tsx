@@ -154,10 +154,9 @@ export default function ReportCardsPage() {
 
   // Admin & Faculty Action State
   const isMasterAdmin =
-    user?.email?.toLowerCase().trim() === 'brainiacssolutions9@gmail.com' ||
-    user?.email?.toLowerCase().trim() === 'brainiacssolutions9@gmail' ||
-    user?.email?.toLowerCase().startsWith('brainiacssolutions9@') ||
-    user?.role === 'ADMIN';
+    user?.role === 'ADMIN' ||
+    (user?.email &&
+      ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase().trim()));
   const isTeacherOrAdmin = isMasterAdmin || user?.role === 'TEACHER';
 
   const [isClearing, setIsClearing] = useState(false);

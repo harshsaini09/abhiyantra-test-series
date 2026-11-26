@@ -376,7 +376,7 @@ router.post('/save-personal', requireAuth, async (req: AuthenticatedRequest, res
     }
 
     // Must have ₹59 Pro Pass or be Teacher/Admin
-    const isTeacherOrAdmin = user.role === 'ADMIN' || user.role === 'TEACHER' || user.email.toLowerCase() === 'brainiacssolutions9@gmail.com';
+    const isTeacherOrAdmin = user.role === 'ADMIN' || user.role === 'TEACHER' || ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase());
     const isProPassHolder = user.isSubscribed && user.subscriptionTier !== 'gate-booster-pass';
 
     if (!isTeacherOrAdmin && !isProPassHolder) {
@@ -449,7 +449,7 @@ router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    const isMasterAdmin = user.role === 'ADMIN' || user.email.toLowerCase() === 'brainiacssolutions9@gmail.com';
+    const isMasterAdmin = user.role === 'ADMIN' || ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase());
 
     const test = await prisma.publishedTest.findUnique({
       where: { id },
@@ -500,7 +500,7 @@ router.put('/:id', requireTeacherOrAdmin, async (req: AuthenticatedRequest, res:
       return;
     }
 
-    const isMasterAdmin = user.role === 'ADMIN' || user.email.toLowerCase() === 'brainiacssolutions9@gmail.com';
+    const isMasterAdmin = user.role === 'ADMIN' || ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase());
     if (test.creatorId !== user.id && !isMasterAdmin && user.role !== 'TEACHER') {
       res.status(403).json({ error: 'Access denied.' });
       return;
