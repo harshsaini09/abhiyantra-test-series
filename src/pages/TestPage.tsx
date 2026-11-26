@@ -10,7 +10,9 @@ import {
   Menu,
   RotateCcw,
   Calculator,
+  Ban,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 import GateCalculator from '../components/GateCalculator';
 import RichContent from '../components/RichContent';
@@ -56,6 +58,7 @@ const typeBadgeColors: Record<string, string> = {
 export default function TestPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, targetExam } = useAuth();
 
   const savedOnMount = useMemo(() => loadTestState(), []);
   const stateData = (location.state ?? {}) as {
@@ -96,6 +99,33 @@ export default function TestPage() {
             Go Home
           </button>
         </p>
+      </div>
+    );
+  }
+
+  // ─── guard: enrolled track isolation for students ───
+  if (user?.role === 'STUDENT' && testData?.examCategory && targetExam && testData.examCategory !== targetExam) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4 bg-slate-900 text-white text-center">
+        <div className="max-w-md w-full bg-slate-800 p-8 rounded-3xl border border-slate-700 space-y-5 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-red-500/20 text-red-400 mx-auto flex items-center justify-center">
+            <Ban className="w-7 h-7" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold">Track Access Restricted</h2>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Your student account is enrolled in the{' '}
+              <strong className="text-white font-bold">{targetExam === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'}</strong> track.
+              You cannot access or attempt {testData.examCategory === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} mock papers.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/test-series')}
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+          >
+            Return to My {targetExam === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} Test Series
+          </button>
+        </div>
       </div>
     );
   }

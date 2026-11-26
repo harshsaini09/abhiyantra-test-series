@@ -58,6 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.targetExam]);
 
   const setTargetExam = async (exam: 'GATE' | 'JEE_MAINS') => {
+    // Prevent switching once a student has already selected an exam track
+    if (user && user.role === 'STUDENT' && user.targetExam && user.targetExam !== exam) {
+      console.warn(`Target exam is locked to ${user.targetExam} for student accounts.`);
+      return;
+    }
     setTargetExamState(exam);
     try {
       localStorage.setItem('abhiyantra_active_exam', exam);

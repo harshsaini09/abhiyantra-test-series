@@ -33,23 +33,42 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onSuccess,
 }) => {
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, targetExam } = useAuth();
+  const isJee = targetExam === 'JEE_MAINS';
 
-  const plan: PricingPlan = selectedPlan || {
-    id: 'gate-complete-pass',
-    name: 'GATE Complete Mock Test Series (2026/2027)',
-    price: 59,
-    originalPrice: 499,
-    discountBadge: '88% OFF - Limited Special',
-    durationDays: 365,
-    popular: true,
-    features: [
-      'Full 65-Question Authentic GATE CBT Mock Tests',
-      'GATE Authentic Marking Scheme (+1, -1/3 & +2, -2/3)',
-      'Mistake Revision Notebook & 1-Click Retest',
-      'AI Weak Topic Diagnosis & Ranking Insights',
-    ],
-  };
+  const defaultPlan: PricingPlan = isJee
+    ? {
+        id: 'jee-complete-pass',
+        name: 'JEE Mains Complete Mock Test Series (2026/2027)',
+        price: 59,
+        originalPrice: 499,
+        discountBadge: '88% OFF - Limited Special',
+        durationDays: 365,
+        popular: true,
+        features: [
+          'Full 75-Question Authentic JEE Mains NTA CBT Mock Tests',
+          'JEE Mains Authentic Marking Scheme (+4, -1)',
+          'Mistake Revision Notebook & 1-Click Retest',
+          'AI Weak Topic Diagnosis & Ranking Insights',
+        ],
+      }
+    : {
+        id: 'gate-complete-pass',
+        name: 'GATE Complete Mock Test Series (2026/2027)',
+        price: 59,
+        originalPrice: 499,
+        discountBadge: '88% OFF - Limited Special',
+        durationDays: 365,
+        popular: true,
+        features: [
+          'Full 65-Question Authentic GATE CBT Mock Tests',
+          'GATE Authentic Marking Scheme (+1, -1/3 & +2, -2/3)',
+          'Mistake Revision Notebook & 1-Click Retest',
+          'AI Weak Topic Diagnosis & Ranking Insights',
+        ],
+      };
+
+  const plan: PricingPlan = selectedPlan || defaultPlan;
 
   const [loadingRazorpay, setLoadingRazorpay] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -193,10 +212,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-            Unlock Abhiyantra GATE Pass
+            Unlock Abhiyantra {isJee ? 'JEE Mains Pass' : 'GATE Pass'}
           </h2>
           <p className="text-xs sm:text-sm text-indigo-100 mt-1">
-            Instant, automated access to all authentic GATE CBT mock tests and mistake revision.
+            Instant, automated access to all authentic {isJee ? 'JEE Mains' : 'GATE'} CBT mock tests and mistake revision.
           </p>
         </div>
 

@@ -675,27 +675,45 @@ export const TestSeriesPage: React.FC = () => {
         {/* Filter & Search Bar */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            {/* Exam Toggle */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button
-                onClick={() => setExamFilter('GATE')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  examFilter === 'GATE' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <GraduationCap className="w-3.5 h-3.5" />
-                <span>GATE</span>
-              </button>
-              <button
-                onClick={() => setExamFilter('JEE_MAINS')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  examFilter === 'JEE_MAINS' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Atom className="w-3.5 h-3.5" />
-                <span>JEE Mains</span>
-              </button>
-            </div>
+            {/* Exam Badge / Toggle */}
+            {isTeacherOrAdmin ? (
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setExamFilter('GATE')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    examFilter === 'GATE' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>GATE</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExamFilter('JEE_MAINS')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    examFilter === 'JEE_MAINS' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Atom className="w-3.5 h-3.5" />
+                  <span>JEE Mains</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border bg-slate-50 text-xs font-extrabold text-slate-800">
+                {targetExam === 'JEE_MAINS' ? (
+                  <>
+                    <Atom className="w-4 h-4 text-cyan-600" />
+                    <span>JEE Mains Series</span>
+                  </>
+                ) : (
+                  <>
+                    <GraduationCap className="w-4 h-4 text-indigo-600" />
+                    <span>GATE Series</span>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Category Tabs */}
             <div className="flex flex-wrap items-center gap-1.5">

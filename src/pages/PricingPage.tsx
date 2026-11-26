@@ -18,7 +18,8 @@ import type { PricingPlan } from '../types';
 
 export const PricingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, targetExam } = useAuth();
+  const isJee = targetExam === 'JEE_MAINS';
 
   const [plans, setPlans] = useState<PricingPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +31,20 @@ export const PricingPage: React.FC = () => {
     fetchPricingPlansApi()
       .then((data) => {
         if (mounted) {
-          setPlans(data.plans || []);
+          const rawPlans: PricingPlan[] = data.plans || [];
+          const customized = rawPlans.map((p) => ({
+            ...p,
+            name: isJee ? p.name.replace(/GATE/g, 'JEE Mains') : p.name,
+            features: isJee
+              ? p.features.map((f) =>
+                  f
+                    .replace(/GATE/g, 'JEE Mains')
+                    .replace(/65-Question/g, '75-Question')
+                    .replace(/\(\+1, -1\/3 & \+2, -2\/3\)/g, '(+4, -1)')
+                )
+              : p.features,
+          }));
+          setPlans(customized);
           setLoading(false);
         }
       })
@@ -41,7 +55,7 @@ export const PricingPage: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isJee]);
 
   const handleSelectPlan = (plan: PricingPlan) => {
     if (user?.isSubscribed) return;
@@ -59,11 +73,13 @@ export const PricingPage: React.FC = () => {
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
-          Supercharge Your GATE Preparation
+          {isJee ? 'Supercharge Your JEE Mains Preparation' : 'Supercharge Your GATE Preparation'}
         </h1>
 
         <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto">
-          Practice authentic 65-question GATE CBT mock papers, master weak concepts with the Mistake Notebook, and track your all-India percentile.
+          {isJee
+            ? 'Practice authentic 75-question JEE Mains NTA CBT mock papers (+4 / -1 marking), master weak concepts with the Mistake Notebook, and track your all-India percentile.'
+            : 'Practice authentic 65-question GATE CBT mock papers, master weak concepts with the Mistake Notebook, and track your all-India percentile.'}
         </p>
 
         {/* User Active Subscription Banner */}
@@ -74,7 +90,9 @@ export const PricingPage: React.FC = () => {
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-bold text-emerald-950">Your GATE Pass is Currently Active!</p>
+                <p className="text-sm font-bold text-emerald-950">
+                  Your {isJee ? 'JEE Mains' : 'GATE'} Pass is Currently Active!
+                </p>
                 <p className="text-xs text-emerald-800">
                   {user.subscriptionUntil ? (
                     <>Valid until {new Date(user.subscriptionUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</>

@@ -50,7 +50,7 @@ export const ExamOnboardingModal: React.FC = () => {
           </h2>
 
           <p className="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
-            Select your target examination below. We will personalize your mock test series, question bank, CBT exam interface, and performance analytics specifically for your syllabus.
+            Select your target examination below <strong className="text-slate-800 font-bold">(one-time selection)</strong>. Your student account will be locked to this track to personalize your mock test series, CBT papers, and passes.
           </p>
         </div>
 

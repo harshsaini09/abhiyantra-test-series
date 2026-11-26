@@ -531,33 +531,49 @@ export default function CustomTestBuilderPage() {
 
           {/* Controls: Exam Selector & Builder Mode Switcher */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            {/* Target Exam Selector */}
-            <div className="flex items-center bg-black/25 p-1 rounded-2xl border border-white/20 backdrop-blur-xs gap-1">
-              <button
-                type="button"
-                onClick={() => handleExamChange('GATE')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  selectedExam === 'GATE'
-                    ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-white/30'
-                    : 'text-white/80 hover:text-white'
-                }`}
-              >
-                <span>🎓</span>
-                <span>GATE</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExamChange('JEE_MAINS')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  selectedExam === 'JEE_MAINS'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm ring-1 ring-white/30'
-                    : 'text-white/80 hover:text-white'
-                }`}
-              >
-                <span>⚛️</span>
-                <span>JEE Mains</span>
-              </button>
-            </div>
+            {/* Target Exam Track Badge / Selector */}
+            {isTeacherOrAdmin ? (
+              <div className="flex items-center bg-black/25 p-1 rounded-2xl border border-white/20 backdrop-blur-xs gap-1">
+                <button
+                  type="button"
+                  onClick={() => handleExamChange('GATE')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    selectedExam === 'GATE'
+                      ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-white/30'
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  <span>🎓</span>
+                  <span>GATE</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExamChange('JEE_MAINS')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    selectedExam === 'JEE_MAINS'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm ring-1 ring-white/30'
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  <span>⚛️</span>
+                  <span>JEE Mains</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/30 border border-white/20 text-xs font-extrabold text-white">
+                {selectedExam === 'JEE_MAINS' ? (
+                  <>
+                    <span>⚛️</span>
+                    <span>JEE Mains Enrolled Track</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🎓</span>
+                    <span>GATE Enrolled Track</span>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Builder Mode Switcher */}
             <div className="flex flex-wrap items-center bg-white/10 p-1.5 rounded-2xl border border-white/20 backdrop-blur-xs gap-1.5">

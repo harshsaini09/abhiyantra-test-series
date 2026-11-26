@@ -36,7 +36,7 @@ export default function Navbar() {
     { to: '/', label: 'Home', shortLabel: 'Home', icon: <Home className="w-4 h-4" /> },
     { to: '/test-series', label: 'Test Series', shortLabel: 'Series', icon: <Layers className="w-4 h-4" /> },
     ...(!isPassUnlocked
-      ? [{ to: '/pricing', label: 'GATE Pass', shortLabel: 'Pass', icon: <Sparkles className="w-4 h-4 text-amber-500" /> }]
+      ? [{ to: '/pricing', label: targetExam === 'JEE_MAINS' ? 'JEE Pass' : 'GATE Pass', shortLabel: 'Pass', icon: <Sparkles className="w-4 h-4 text-amber-500" /> }]
       : []),
     { to: '/report-cards', label: 'Report Cards', shortLabel: 'Reports', icon: <Award className="w-4 h-4" /> },
   ];
@@ -194,7 +194,7 @@ export default function Navbar() {
                     <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50/70">
                       <div className="flex items-center justify-between mb-1.5 px-0.5">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Target Examination
+                          {isTeacherOrAdmin ? 'Target Examination' : 'Enrolled Track'}
                         </span>
                         <span
                           className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full border ${
@@ -203,41 +203,59 @@ export default function Navbar() {
                               : 'bg-indigo-100/70 border-indigo-200 text-indigo-800'
                           }`}
                         >
-                          {targetExam === 'JEE_MAINS' ? 'JEE Mains Active' : 'GATE Active'}
+                          {targetExam === 'JEE_MAINS'
+                            ? isTeacherOrAdmin ? 'JEE Mains Active' : 'JEE Mains (Locked)'
+                            : isTeacherOrAdmin ? 'GATE Active' : 'GATE (Locked)'}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5 p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTargetExam('GATE');
-                          }}
-                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            targetExam === 'GATE'
-                              ? 'bg-indigo-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                          }`}
-                        >
-                          <GraduationCap className="w-3.5 h-3.5" />
-                          <span>GATE</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTargetExam('JEE_MAINS');
-                          }}
-                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            targetExam === 'JEE_MAINS'
-                              ? 'bg-cyan-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                          }`}
-                        >
-                          <Atom className="w-3.5 h-3.5" />
-                          <span>JEE Mains</span>
-                        </button>
-                      </div>
+                      {isTeacherOrAdmin ? (
+                        <div className="grid grid-cols-2 gap-1.5 p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTargetExam('GATE');
+                            }}
+                            className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              targetExam === 'GATE'
+                                ? 'bg-indigo-600 text-white shadow-xs'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                            }`}
+                          >
+                            <GraduationCap className="w-3.5 h-3.5" />
+                            <span>GATE</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTargetExam('JEE_MAINS');
+                            }}
+                            className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              targetExam === 'JEE_MAINS'
+                                ? 'bg-cyan-600 text-white shadow-xs'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                            }`}
+                          >
+                            <Atom className="w-3.5 h-3.5" />
+                            <span>JEE Mains</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 p-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700">
+                          {targetExam === 'JEE_MAINS' ? (
+                            <>
+                              <Atom className="w-4 h-4 text-cyan-600 shrink-0" />
+                              <span className="truncate">JEE Mains Enrolled Track</span>
+                            </>
+                          ) : (
+                            <>
+                              <GraduationCap className="w-4 h-4 text-indigo-600 shrink-0" />
+                              <span className="truncate">GATE Enrolled Track</span>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="py-1">

@@ -55,7 +55,7 @@ import { DiagramUploader } from '../components/DiagramUploader';
 
 export default function QuestionBankPage() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, targetExam } = useAuth();
   const isMasterAdmin = Boolean(
     user?.email &&
       (user.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
@@ -383,10 +383,10 @@ export default function QuestionBankPage() {
               🔑 Continue as Platform Admin (harshsaini0912@gmail.com)
             </button>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/test-series')}
               className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition border border-slate-200 cursor-pointer"
             >
-              Explore GATE Mock Tests
+              Explore {targetExam === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} Mock Tests
             </button>
           </div>
         </div>

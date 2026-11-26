@@ -372,10 +372,23 @@ router.post('/target-exam', requireAuth, async (req: AuthenticatedRequest, res: 
     }
 
     if (isDbConfigured && prisma) {
-      await prisma.user.update({
-        where: { email: user.email },
-        data: { targetExam },
-      });
+      const existingUser = await prisma.user.findUnique({ where: { email: user.email } });
+      if (existingUser) {
+        // Enforce 1-time selection: Students cannot switch once an exam is set
+        const isStaff = existingUser.role === 'ADMIN' || existingUser.role === 'TEACHER' || user.email === 'harshsaini0912@gmail.com';
+        if (!isStaff && existingUser.targetExam && existingUser.targetExam !== targetExam) {
+          res.status(403).json({
+            error: `Your target examination is locked to ${existingUser.targetExam}. Students cannot switch between tracks.`,
+            targetExam: existingUser.targetExam,
+          });
+          return;
+        }
+
+        await prisma.user.update({
+          where: { email: user.email },
+          data: { targetExam },
+        });
+      }
     }
 
     res.json({

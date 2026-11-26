@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma, isDbConfigured } from './db.js';
-import { requireAuth, requireTeacherOrAdmin, AuthenticatedRequest } from './auth.js';
+import { requireAuth, requireTeacherOrAdmin, AuthenticatedRequest, verifyUserToken } from './auth.js';
 import { ingestQuestions } from './ingest.js';
 
 const router = Router();
@@ -67,9 +67,16 @@ router.get('/official', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+    const user = token ? verifyUserToken(token) : null;
+
     const { examCategory } = req.query;
     const whereClause: any = { isOfficial: true };
-    if (examCategory && (examCategory === 'GATE' || examCategory === 'JEE_MAINS')) {
+
+    // Enforce enrolled exam track for student accounts
+    if (user && user.role === 'STUDENT' && user.targetExam) {
+      whereClause.examCategory = user.targetExam;
+    } else if (examCategory && (examCategory === 'GATE' || examCategory === 'JEE_MAINS')) {
       whereClause.examCategory = examCategory;
     }
 
@@ -127,6 +134,18 @@ router.get('/official/:id', async (req: Request, res: Response): Promise<void> =
     if (!test) {
       res.status(404).json({ error: 'Test paper not found.' });
       return;
+    }
+
+    // Enforce track isolation for student accounts
+    const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+    const user = token ? verifyUserToken(token) : null;
+    if (user && user.role === 'STUDENT' && user.targetExam && test.examCategory) {
+      if (test.examCategory !== user.targetExam) {
+        res.status(403).json({
+          error: `Access restricted. Your account is enrolled in the ${user.targetExam === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} track. You cannot access ${test.examCategory === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} test papers.`,
+        });
+        return;
+      }
     }
 
     const rawQuestions = JSON.parse(test.questionsJson);
