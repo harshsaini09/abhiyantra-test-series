@@ -374,15 +374,21 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Deepika Sheel */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center text-emerald-800 font-bold text-xl mb-4">
-                DS
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs hover:shadow-md transition-shadow flex flex-col">
+              <div className="flex items-center gap-4 mb-4">
+                <img
+                  src="/mentors/Deepika.avif"
+                  alt="Deepika Sheel"
+                  className="w-18 h-18 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-teal-500 shadow-xs"
+                />
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Deepika Sheel</h3>
+                  <p className="text-xs font-bold text-teal-700 uppercase tracking-wide">
+                    Educator — Physics &amp; Civil Engineering
+                  </p>
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Deepika Sheel</h3>
-              <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mt-0.5">
-                Educator — Physics &amp; Civil Engineering
-              </p>
-              <p className="text-xs text-slate-500 mt-2.5 leading-relaxed">
+              <p className="text-xs text-slate-600 leading-relaxed flex-1">
                 5+ years of dedicated teaching experience. Mentored numerous students securing top ranks in GATE, JEE Mains, and NEET examinations.
               </p>
               <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5 text-[11px] font-semibold text-slate-600">
@@ -393,15 +399,21 @@ export default function LandingPage() {
             </div>
 
             {/* Aman Sheel */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-              <div className="w-16 h-16 rounded-full bg-amber-100 border-2 border-amber-500 flex items-center justify-center text-amber-800 font-bold text-xl mb-4">
-                AS
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs hover:shadow-md transition-shadow flex flex-col">
+              <div className="flex items-center gap-4 mb-4">
+                <img
+                  src="/mentors/Aman.avif"
+                  alt="Aman Sheel"
+                  className="w-18 h-18 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-amber-500 shadow-xs"
+                />
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Aman Sheel</h3>
+                  <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">
+                    Educator — Chemistry &amp; Civil Engineering
+                  </p>
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Aman Sheel</h3>
-              <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mt-0.5">
-                Educator — Chemistry &amp; Civil Engineering
-              </p>
-              <p className="text-xs text-slate-500 mt-2.5 leading-relaxed">
+              <p className="text-xs text-slate-600 leading-relaxed flex-1">
                 10+ years of teaching experience. Mentored rank holders in GATE, JEE Mains, JEE Advanced, and NEET across India.
               </p>
               <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5 text-[11px] font-semibold text-slate-600">
@@ -412,15 +424,21 @@ export default function LandingPage() {
             </div>
 
             {/* Anmol Twickley */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-              <div className="w-16 h-16 rounded-full bg-indigo-100 border-2 border-indigo-500 flex items-center justify-center text-indigo-800 font-bold text-xl mb-4">
-                AT
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs hover:shadow-md transition-shadow flex flex-col">
+              <div className="flex items-center gap-4 mb-4">
+                <img
+                  src="/mentors/Anmol.avif"
+                  alt="Anmol Twickley"
+                  className="w-18 h-18 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-indigo-500 shadow-xs"
+                />
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Anmol Twickley</h3>
+                  <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide">
+                    Educator — Mathematics &amp; Data Science
+                  </p>
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Anmol Twickley</h3>
-              <p className="text-xs font-bold text-indigo-700 uppercase tracking-wide mt-0.5">
-                Educator — Mathematics &amp; Data Science
-              </p>
-              <p className="text-xs text-slate-500 mt-2.5 leading-relaxed">
+              <p className="text-xs text-slate-600 leading-relaxed flex-1">
                 Specialized in higher engineering mathematics, calculus, probability, and foundational data science &amp; artificial intelligence for GATE aspirants.
               </p>
               <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5 text-[11px] font-semibold text-slate-600">
