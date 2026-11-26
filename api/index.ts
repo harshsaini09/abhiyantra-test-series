@@ -37,6 +37,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       res.end(JSON.stringify([]));
       return;
     }
+    if (url.includes('/test-series')) {
+      res.end(JSON.stringify({ tests: [] }));
+      return;
+    }
     if (url.includes('/analytics')) {
       res.end(
         JSON.stringify({

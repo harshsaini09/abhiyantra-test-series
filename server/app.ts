@@ -630,4 +630,12 @@ const handleClearData = async (req: Request, res: Response) => {
 app.post('/api/admin/clear-data', handleClearData);
 app.post('/admin/clear-data', handleClearData);
 
+// ─── Global Error Handler ───
+app.use((err: any, _req: Request, res: Response, _next: any) => {
+  console.error('[Global Express Handler Error]:', err);
+  if (!res.headersSent) {
+    res.status(500).json({ error: err?.message || 'Internal Server Error' });
+  }
+});
+
 export default app;

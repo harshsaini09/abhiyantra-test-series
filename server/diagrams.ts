@@ -2,14 +2,20 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { prisma, isDbConfigured } from './db.js';
-import { verifyUserToken } from './auth.js';
 
 const router = Router();
 
-// Ensure local public/diagrams directory exists
+// Ensure local public/diagrams directory exists (safely catch read-only fs on serverless / Vercel)
 const DIAGRAMS_DIR = path.join(process.cwd(), 'public', 'diagrams');
-if (!fs.existsSync(DIAGRAMS_DIR)) {
-  fs.mkdirSync(DIAGRAMS_DIR, { recursive: true });
+let isLocalFsWritable = false;
+try {
+  if (!fs.existsSync(DIAGRAMS_DIR)) {
+    fs.mkdirSync(DIAGRAMS_DIR, { recursive: true });
+  }
+  isLocalFsWritable = true;
+} catch {
+  // Read-only filesystem on Vercel Serverless / AWS Lambda
+  isLocalFsWritable = false;
 }
 
 interface UploadDiagramRequest {
@@ -23,8 +29,8 @@ interface UploadDiagramRequest {
  * Upload diagram endpoint
  * Supports:
  * 1. Commits directly to GitHub repository via GitHub REST API (if GITHUB_TOKEN is set)
- * 2. Saves to local public/diagrams/ directory
- * 3. Returns lightning-fast jsDelivr CDN URL: https://cdn.jsdelivr.net/gh/:owner/:repo@main/public/diagrams/:filename
+ * 2. Saves to local public/diagrams/ directory if filesystem is writable
+ * 3. Returns lightning-fast jsDelivr CDN URL or local URL (with base64 data-URL fallback on serverless)
  * 4. Updates Question.imageUrl or Question.solutionImageUrl in database if questionId is provided
  */
 router.post('/upload', async (req: Request, res: Response): Promise<void> => {
@@ -60,10 +66,16 @@ router.post('/upload', async (req: Request, res: Response): Promise<void> => {
 
     const buffer = Buffer.from(rawBase64, 'base64');
 
-    // 2. Save locally to public/diagrams/
-    const localFilePath = path.join(DIAGRAMS_DIR, cleanFilename);
-    fs.writeFileSync(localFilePath, buffer);
-    const localUrl = `/diagrams/${cleanFilename}`;
+    // 2. Save locally if filesystem is writable
+    let localUrl = `/diagrams/${cleanFilename}`;
+    if (isLocalFsWritable) {
+      try {
+        const localFilePath = path.join(DIAGRAMS_DIR, cleanFilename);
+        fs.writeFileSync(localFilePath, buffer);
+      } catch {
+        isLocalFsWritable = false;
+      }
+    }
 
     // 3. GitHub repository upload (if GITHUB_TOKEN is present)
     const githubToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
@@ -73,7 +85,7 @@ router.post('/upload', async (req: Request, res: Response): Promise<void> => {
 
     let cdnUrl: string | null = null;
     let githubUrl: string | null = null;
-    let uploadMethod: 'github_cdn' | 'local_public' = 'local_public';
+    let uploadMethod: 'github_cdn' | 'local_public' | 'data_url' = isLocalFsWritable ? 'local_public' : 'data_url';
 
     if (githubToken) {
       try {
@@ -99,17 +111,27 @@ router.post('/upload', async (req: Request, res: Response): Promise<void> => {
           githubUrl = `https://raw.githubusercontent.com/${githubOwner}/${githubRepo}/${branch}/public/diagrams/${cleanFilename}`;
         } else {
           const errText = await ghResponse.text();
-          console.warn(`[GitHub Upload Warning] ${ghResponse.status}: ${errText}. Using local fallback.`);
+          console.warn(`[GitHub Upload Warning] ${ghResponse.status}: ${errText}`);
         }
       } catch (ghErr) {
         console.warn('[GitHub Upload Error]:', ghErr);
       }
     }
 
-    const finalUrl = cdnUrl || localUrl;
+    // Determine final public URL
+    let finalUrl = cdnUrl;
+    if (!finalUrl) {
+      if (isLocalFsWritable) {
+        finalUrl = localUrl;
+      } else {
+        // Safe serverless fallback: data URL renders instantly everywhere
+        finalUrl = imageBase64.startsWith('data:') ? imageBase64 : `data:${mimeType};base64,${rawBase64}`;
+        uploadMethod = 'data_url';
+      }
+    }
 
     // 4. Update database question if questionId is provided
-    if (questionId && isDbConfigured()) {
+    if (questionId && isDbConfigured && prisma) {
       const qIdNum = Number(questionId);
       if (!isNaN(qIdNum) && qIdNum > 0) {
         try {
@@ -134,7 +156,7 @@ router.post('/upload', async (req: Request, res: Response): Promise<void> => {
       success: true,
       url: finalUrl,
       cdnUrl,
-      localUrl,
+      localUrl: isLocalFsWritable ? localUrl : finalUrl,
       githubUrl,
       filename: cleanFilename,
       storage: uploadMethod,
