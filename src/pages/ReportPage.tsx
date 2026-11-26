@@ -554,9 +554,17 @@ export default function ReportPage() {
                   className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
                 >
                   {/* Collapsible header */}
-                  <button
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => toggleQuestion(qr.questionId)}
-                    className="w-full flex items-center justify-between gap-3 px-5 py-4 hover:bg-slate-50 transition-colors text-left"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleQuestion(qr.questionId);
+                      }
+                    }}
+                    className="w-full flex items-center justify-between gap-3 px-5 py-4 hover:bg-slate-50 transition-colors text-left cursor-pointer select-none"
                   >
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="font-semibold text-slate-700">Q{qr.questionId}</span>
@@ -609,7 +617,7 @@ export default function ReportPage() {
                         <ChevronDown className="w-5 h-5 text-slate-400" />
                       )}
                     </div>
-                  </button>
+                  </div>
 
                   {/* Expanded content */}
                   {isExpanded && (
