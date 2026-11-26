@@ -18,7 +18,7 @@ interface RichContentProps {
 }
 
 interface Segment {
-  type: 'text' | 'inline-code' | 'code-block' | 'inline-math' | 'display-math';
+  type: 'text' | 'inline-code' | 'code-block' | 'inline-math' | 'display-math' | 'blank';
   content: string;
   language?: string;
 }
@@ -155,6 +155,9 @@ function cleanMathForKatex(rawMath: string): string {
   // 7. Clean up double-escaped LaTeX slashes (e.g. \\times -> \times)
   math = math.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
+  // 8. Replace fill-in-the-blank lines inside LaTeX math with clean underlines
+  math = math.replace(/(?:\\_\s*){2,}|_{3,}|\\textunderscore(?:\\textunderscore)+/g, ' \\underline{\\hspace{2cm}} ');
+
   return math;
 }
 
@@ -188,8 +191,9 @@ function tokenize(text: string): Segment[] {
 }
 
 function parseTextAndMath(rawText: string, segments: Segment[]): void {
-  // Matches display math $$...$$ or \[...\] and inline math $...$ or \(...\) and inline code `...`
-  const mixedRegex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[^\$\n]+?\$|\\\([\s\S]*?\\\)|\`[^`\n]+?\`)/g;
+  // Matches display math $$...$$ or \[...\] and inline math $...$ or \(...\) and inline code `...` and fill-in-the-blank lines
+  const mixedRegex =
+    /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[^\$\n]+?\$|\\\([\s\S]*?\\\)|\`[^`\n]+?\`|(?:\\_\s*){2,}|_{3,}|\\textunderscore(?:\\textunderscore)+|\[[\s_\\\\]{3,}\]|\([\s_\\\\]{3,}\))/g;
   let lastIdx = 0;
   let m: RegExpExecArray | null;
 
@@ -226,6 +230,12 @@ function parseTextAndMath(rawText: string, segments: Segment[]): void {
       segments.push({
         type: 'inline-code',
         content: token.slice(1, -1),
+      });
+    } else {
+      // Fill-in-the-blank line token (e.g. \_\_\_\_\_\_ or ______ or [______])
+      segments.push({
+        type: 'blank',
+        content: token,
       });
     }
 
@@ -320,6 +330,16 @@ function KatexMath({ math, displayMode }: { math: string; displayMode: boolean }
   );
 }
 
+function BlankField() {
+  return (
+    <span
+      className="inline-block border-b-2 border-slate-700 min-w-[65px] sm:min-w-[85px] mx-1.5 h-[1.1em] align-baseline relative top-[-1px] select-none"
+      title="Fill in the blank"
+      aria-label="fill in the blank"
+    />
+  );
+}
+
 export default function RichContent({ content, className = '', inline = false }: RichContentProps) {
   if (!content) return null;
 
@@ -329,6 +349,9 @@ export default function RichContent({ content, className = '', inline = false }:
     return (
       <span className={className}>
         {segments.map((seg, i) => {
+          if (seg.type === 'blank') {
+            return <BlankField key={i} />;
+          }
           if (seg.type === 'inline-math') {
             return <KatexMath key={i} math={seg.content} displayMode={false} />;
           }
@@ -351,6 +374,9 @@ export default function RichContent({ content, className = '', inline = false }:
   return (
     <div className={`space-y-2 ${className}`}>
       {segments.map((seg, i) => {
+        if (seg.type === 'blank') {
+          return <BlankField key={i} />;
+        }
         if (seg.type === 'code-block') {
           return <CodeBlockView key={i} code={seg.content} language={seg.language || 'c'} />;
         }
