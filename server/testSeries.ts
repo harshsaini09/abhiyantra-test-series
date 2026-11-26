@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma, isDbConfigured } from './db.js';
 import { requireAuth, requireTeacherOrAdmin, AuthenticatedRequest } from './auth.js';
+import { ingestQuestions } from './ingest.js';
 
 const router = Router();
 
@@ -202,9 +203,27 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
       },
     });
 
+    // Automatically synchronize questions into the Question Bank (QB)
+    let qbResult = null;
+    try {
+      qbResult = await ingestQuestions({
+        title: title || sanitized.title,
+        examCategory: examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE',
+        subject: subject || (sanitized.questions[0]?.subject || undefined),
+        defaultSubject: subject || (sanitized.questions[0]?.subject || undefined),
+        questions: sanitized.questions,
+      });
+    } catch (ingestErr) {
+      console.warn('Non-critical: failed to sync questions to Question Bank during test series upload:', ingestErr);
+    }
+
+    const qbSummary = qbResult && qbResult.newInserted > 0
+      ? ` and ${qbResult.newInserted} new questions synced to Question Bank.`
+      : ' and synced with Question Bank.';
+
     res.status(201).json({
       success: true,
-      message: 'Official Test Series published successfully.',
+      message: `Official Test Series published${qbSummary}`,
       test: {
         id: created.id,
         title: created.title,
@@ -212,6 +231,7 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
         totalMarks: created.totalMarks,
         category: created.category,
       },
+      qbResult,
     });
   } catch (err: any) {
     console.error('Error uploading official test series:', err);

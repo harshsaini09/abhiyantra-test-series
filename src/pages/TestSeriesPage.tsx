@@ -469,7 +469,7 @@ export const TestSeriesPage: React.FC = () => {
       setUploading(true);
       setUploadError(null);
 
-      await uploadOfficialTestSeriesApi({
+      const res = await uploadOfficialTestSeriesApi({
         title: uploadTitle.trim() || (uploadExamCategory === 'JEE_MAINS' ? 'Official JEE Mains Test Paper' : 'Official GATE Test Paper'),
         description: uploadDescription.trim(),
         category: uploadCategory,
@@ -484,14 +484,19 @@ export const TestSeriesPage: React.FC = () => {
         },
       });
 
-      setUploadSuccess('Test paper published successfully to GATE Test Series!');
+      const qbCount = res?.qbResult?.newInserted;
+      setUploadSuccess(
+        qbCount && qbCount > 0
+          ? `Test paper published to Test Series & ${qbCount} new questions synced to Question Bank!`
+          : 'Test paper published successfully to Test Series and synced to Question Bank!'
+      );
       setTimeout(() => {
         setIsUploadModalOpen(false);
         setUploadSuccess(null);
         setParsedQuestions(null);
         setFileName('');
         loadOfficialTests();
-      }, 1200);
+      }, 1500);
     } catch (err: any) {
       setUploadError(err.message || 'Failed to upload test series.');
     } finally {

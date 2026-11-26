@@ -1577,7 +1577,7 @@ export async function uploadOfficialTestSeriesApi(payload: {
   examCategory?: 'GATE' | 'JEE_MAINS';
   subject?: string;
   testData: any;
-}): Promise<{ success: boolean; message: string; test: any }> {
+}): Promise<{ success: boolean; message: string; test: any; qbResult?: any }> {
   const res = await fetch(`${API_BASE}/test-series/upload`, {
     method: 'POST',
     headers: {
@@ -1641,7 +1641,7 @@ export async function savePersonalTestSeriesApi(payload: {
   examCategory?: 'GATE' | 'JEE_MAINS';
   subject?: string;
   testData: any;
-}): Promise<{ success: boolean; message: string; test: any }> {
+}): Promise<{ success: boolean; message: string; test: any; qbResult?: any }> {
   const res = await fetch(`${API_BASE}/test-series/save-personal`, {
     method: 'POST',
     headers: {
