@@ -22,6 +22,7 @@ export interface IngestQuestionInput {
 
 export interface IngestTestInput {
   title?: string;
+  examCategory?: string;
   subject?: string;
   topic?: string;
   defaultSubject?: string;
@@ -44,6 +45,7 @@ export async function ingestQuestions(data: IngestTestInput): Promise<IngestResu
   const testTitle = data.title?.trim() || 'Imported Test';
   const defaultSub = data.defaultSubject?.trim() || data.subject?.trim() || 'General / Unassigned';
   const defaultTop = data.defaultTopic?.trim() || data.topic?.trim() || 'General';
+  const examCat = data.examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE';
 
   // In-memory caches to eliminate redundant roundtrips across the network
   const subjectCache = new Map<string, number>();
@@ -54,8 +56,8 @@ export async function ingestQuestions(data: IngestTestInput): Promise<IngestResu
     if (subjectCache.has(name)) return subjectCache.get(name)!;
     const subj = await prisma.subject.upsert({
       where: { name },
-      create: { name },
-      update: {},
+      create: { name, examCategory: examCat },
+      update: { examCategory: examCat },
       select: { id: true },
     });
     subjectCache.set(name, subj.id);

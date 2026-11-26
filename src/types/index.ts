@@ -5,8 +5,8 @@
 /** Supported question types in GATE pattern */
 export type QuestionType = 'MCQ' | 'MSQ' | 'NAT';
 
-/** Mark value for a question */
-export type MarkValue = 1 | 2;
+/** Mark value for a question (1 | 2 for GATE, 4 for JEE Mains) */
+export type MarkValue = 1 | 2 | 4;
 
 /** NAT answer can be an exact number or a range */
 export interface NATAnswer {

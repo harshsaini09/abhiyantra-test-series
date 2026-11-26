@@ -79,6 +79,7 @@ export default function CustomTestBuilderPage() {
 
   const handleExamChange = (exam: 'GATE' | 'JEE_MAINS') => {
     setSelectedExam(exam);
+    setMockSubjectId(''); // Reset specific subject filter on exam change
     if (builderMode === 'full-mock') {
       if (exam === 'JEE_MAINS') {
         setTestTitle('Official JEE Mains Full Mock Test (75 Qs / 300 Marks / 180 Min)');
@@ -103,7 +104,7 @@ export default function CustomTestBuilderPage() {
   // Full Mock Mode State
   const [mockSubjectId, setMockSubjectId] = useState<number | ''>('');
 
-  // Bucket calculations for Full Mock
+  // ─── GATE Full Mock Bucket Calculations (65 Qs / 100 Marks) ───
   const gaQuestions = useMemo(() => {
     return allQuestions.filter(
       (q) => q.section === 'GA' || q.subject.name.toLowerCase().includes('general aptitude')
@@ -123,12 +124,62 @@ export default function CustomTestBuilderPage() {
   const core1m = useMemo(() => coreQuestions.filter((q) => q.marks === 1), [coreQuestions]);
   const core2m = useMemo(() => coreQuestions.filter((q) => q.marks === 2), [coreQuestions]);
 
-  const totalMockAvailable = ga1m.length + ga2m.length + core1m.length + core2m.length;
+  const totalGateAvailable = ga1m.length + ga2m.length + core1m.length + core2m.length;
   const isFull65Available =
     ga1m.length >= 5 &&
     ga2m.length >= 5 &&
     core1m.length >= 25 &&
     core2m.length >= 30;
+
+  // ─── JEE Mains Full Mock Bucket Calculations (75 Qs / 300 Marks) ───
+  // Official NTA JEE Pattern: 25 Physics (20 MCQ + 5 NAT), 25 Chemistry (20 MCQ + 5 NAT), 25 Math (20 MCQ + 5 NAT)
+  const jeePhysicsQuestions = useMemo(() => {
+    return allQuestions.filter((q) => {
+      const name = q.subject.name.toLowerCase();
+      const isPhy =
+        q.section === 'PHYSICS' ||
+        name.includes('physic') ||
+        ((q.subject as any).examCategory === 'JEE_MAINS' && name.includes('phys'));
+      if (!isPhy) return false;
+      if (mockSubjectId) return q.subjectId === mockSubjectId;
+      return true;
+    });
+  }, [allQuestions, mockSubjectId]);
+
+  const jeeChemistryQuestions = useMemo(() => {
+    return allQuestions.filter((q) => {
+      const name = q.subject.name.toLowerCase();
+      const isChem =
+        q.section === 'CHEMISTRY' ||
+        name.includes('chemist') ||
+        ((q.subject as any).examCategory === 'JEE_MAINS' && name.includes('chem'));
+      if (!isChem) return false;
+      if (mockSubjectId) return q.subjectId === mockSubjectId;
+      return true;
+    });
+  }, [allQuestions, mockSubjectId]);
+
+  const jeeMathQuestions = useMemo(() => {
+    return allQuestions.filter((q) => {
+      const name = q.subject.name.toLowerCase();
+      const isMath =
+        q.section === 'MATHEMATICS' ||
+        (name.includes('math') && !name.includes('gate') && !name.includes('engineering')) ||
+        ((q.subject as any).examCategory === 'JEE_MAINS' && name.includes('math'));
+      if (!isMath) return false;
+      if (mockSubjectId) return q.subjectId === mockSubjectId;
+      return true;
+    });
+  }, [allQuestions, mockSubjectId]);
+
+  const totalJeeAvailable = jeePhysicsQuestions.length + jeeChemistryQuestions.length + jeeMathQuestions.length;
+  const isFull75Available =
+    jeePhysicsQuestions.length >= 25 &&
+    jeeChemistryQuestions.length >= 25 &&
+    jeeMathQuestions.length >= 25;
+
+  const totalMockAvailable = selectedExam === 'JEE_MAINS' ? totalJeeAvailable : totalGateAvailable;
+  const isFullAvailable = selectedExam === 'JEE_MAINS' ? isFull75Available : isFull65Available;
 
   // Rules Mode State
   const [rules, setRules] = useState<MixRule[]>([
@@ -260,6 +311,88 @@ export default function CustomTestBuilderPage() {
     if (builderMode === 'full-mock') {
       const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => 0.5 - Math.random());
 
+      if (selectedExam === 'JEE_MAINS') {
+        // NTA Pattern: 25 Physics, 25 Chemistry, 25 Mathematics (4 marks each)
+        const pickSubjectQs = (qs: typeof allQuestions, maxCount = 25) => {
+          const mcqs = qs.filter((q) => q.type !== 'NAT');
+          const nats = qs.filter((q) => q.type === 'NAT');
+          const pickedMcq = shuffle(mcqs).slice(0, 20);
+          const pickedNat = shuffle(nats).slice(0, 5);
+          let res = [...pickedMcq, ...pickedNat];
+          if (res.length < maxCount) {
+            const remaining = shuffle(qs.filter((q) => !res.includes(q)));
+            res = [...res, ...remaining.slice(0, maxCount - res.length)];
+          }
+          return res;
+        };
+
+        const selectedPhy = pickSubjectQs(jeePhysicsQuestions, 25);
+        const selectedChem = pickSubjectQs(jeeChemistryQuestions, 25);
+        const selectedMath = pickSubjectQs(jeeMathQuestions, 25);
+
+        const combined = [
+          ...selectedPhy.map((q) => ({ ...q, section: 'PHYSICS' as const, marks: 4 as const })),
+          ...selectedChem.map((q) => ({ ...q, section: 'CHEMISTRY' as const, marks: 4 as const })),
+          ...selectedMath.map((q) => ({ ...q, section: 'MATHEMATICS' as const, marks: 4 as const })),
+        ];
+
+        if (combined.length === 0) {
+          throw new Error('No matching questions available in Question Bank to generate a JEE Mains mock test.');
+        }
+
+        const totalMarks = combined.length * 4;
+        const sections = [];
+        if (selectedPhy.length > 0) {
+          sections.push({
+            id: 'PHYSICS',
+            name: 'Section 1: Physics',
+            questionCount: selectedPhy.length,
+            marks: selectedPhy.length * 4,
+          });
+        }
+        if (selectedChem.length > 0) {
+          sections.push({
+            id: 'CHEMISTRY',
+            name: 'Section 2: Chemistry',
+            questionCount: selectedChem.length,
+            marks: selectedChem.length * 4,
+          });
+        }
+        if (selectedMath.length > 0) {
+          sections.push({
+            id: 'MATHEMATICS',
+            name: 'Section 3: Mathematics',
+            questionCount: selectedMath.length,
+            marks: selectedMath.length * 4,
+          });
+        }
+
+        return {
+          title: testTitle.trim() || `Official JEE Mains Full Mock Test (${combined.length} Qs / ${totalMarks} Marks)`,
+          examCategory: 'JEE_MAINS',
+          subject: mockSubjectId ? hierarchy.find((s) => s.id === mockSubjectId)?.name : 'Official JEE Mains (PCM Pattern)',
+          description: testDesc.trim() || 'Official 75-question JEE Mains NTA CBT pattern: Physics, Chemistry & Mathematics (+4 / -1 marking).',
+          sections,
+          questions: combined.map((q, idx) => ({
+            id: idx + 1,
+            section: q.section,
+            subject: q.subject.name,
+            topic: q.topic.name,
+            type: q.type,
+            marks: 4,
+            question: q.questionText,
+            options: q.options,
+            answer: q.answer,
+            solution: q.solution,
+            imageUrl: q.imageUrl,
+            tikzCode: q.tikzCode,
+            solutionImageUrl: q.solutionImageUrl,
+            solutionTikzCode: q.solutionTikzCode,
+          })),
+        };
+      }
+
+      // GATE Full Mock Generator
       const selectedGa1 = shuffle(ga1m).slice(0, 5);
       const selectedGa2 = shuffle(ga2m).slice(0, 5);
       const selectedCore1 = shuffle(core1m).slice(0, 25);
@@ -279,20 +412,20 @@ export default function CustomTestBuilderPage() {
       const totalMarks = combined.reduce((acc, q) => acc + q.marks, 0);
 
       return {
-        title: testTitle.trim() || `Official ${selectedExam === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} Mock Test (${combined.length} Qs / ${totalMarks} Marks)`,
-        examCategory: selectedExam,
-        subject: mockSubjectId ? hierarchy.find((s) => s.id === mockSubjectId)?.name : (selectedExam === 'JEE_MAINS' ? 'Official JEE Mains Pattern' : 'Official GATE Pattern'),
-        description: testDesc.trim() || `Official ${selectedExam === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} Examination structure.`,
+        title: testTitle.trim() || `Official GATE Mock Test (${combined.length} Qs / ${totalMarks} Marks)`,
+        examCategory: 'GATE',
+        subject: mockSubjectId ? hierarchy.find((s) => s.id === mockSubjectId)?.name : 'Official GATE Pattern',
+        description: testDesc.trim() || 'Official 65-question GATE CBT pattern: 10 General Aptitude + 55 Core Subject questions.',
         sections: [
           {
             id: 'GA',
-            name: selectedExam === 'JEE_MAINS' ? 'Section 1: General Science & Aptitude' : 'Section 1: General Aptitude',
+            name: 'Section 1: General Aptitude',
             questionCount: selectedGa1.length + selectedGa2.length,
             marks: selectedGa1.length * 1 + selectedGa2.length * 2,
           },
           {
             id: 'SUBJECT',
-            name: `Section 2: ${mockSubjectId ? hierarchy.find((s) => s.id === mockSubjectId)?.name : (selectedExam === 'JEE_MAINS' ? 'Physics, Chemistry & Math' : 'Core Subject')}`,
+            name: `Section 2: ${mockSubjectId ? hierarchy.find((s) => s.id === mockSubjectId)?.name : 'Core Subject'}`,
             questionCount: selectedCore1.length + selectedCore2.length,
             marks: selectedCore1.length * 1 + selectedCore2.length * 2,
           },
@@ -650,6 +783,7 @@ export default function CustomTestBuilderPage() {
                     <option value="">All Marks</option>
                     <option value="1">1-Mark</option>
                     <option value="2">2-Marks</option>
+                    <option value="4">4-Marks (JEE)</option>
                   </select>
                 </div>
 
@@ -874,6 +1008,7 @@ export default function CustomTestBuilderPage() {
                               <option value="">Any</option>
                               <option value="1">1M</option>
                               <option value="2">2M</option>
+                              <option value="4">4M</option>
                             </select>
                           </div>
                         </div>
@@ -907,18 +1042,30 @@ export default function CustomTestBuilderPage() {
             </div>
           )}
 
-          {/* ══════════ MODE C: Official GATE Full Mock Generator ══════════ */}
+          {/* ══════════ MODE C: Official Full Mock Generator (GATE / JEE Mains) ══════════ */}
           {builderMode === 'full-mock' && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-5">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200 mb-2">
+                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border mb-2 ${
+                    selectedExam === 'JEE_MAINS'
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : 'bg-indigo-100 text-indigo-900 border-indigo-200'
+                  }`}>
                     <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    Official GATE Specification (100 Marks • 180 Minutes)
+                    {selectedExam === 'JEE_MAINS'
+                      ? 'Official JEE Mains Specification (300 Marks • 180 Minutes)'
+                      : 'Official GATE Specification (100 Marks • 180 Minutes)'}
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">Official GATE 65-Question Full Mock Paper</h3>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {selectedExam === 'JEE_MAINS'
+                      ? 'Official JEE Mains 75-Question Full Mock Paper'
+                      : 'Official GATE 65-Question Full Mock Paper'}
+                  </h3>
                   <p className="text-xs text-slate-500 mt-1 max-w-xl">
-                    Follows the official GATE CBT blueprint with Section 1: General Aptitude (10 Qs / 15 Marks) and Section 2: Core Subject (55 Qs / 85 Marks).
+                    {selectedExam === 'JEE_MAINS'
+                      ? 'Follows the official NTA JEE Mains CBT pattern: Physics (25 Qs / 100 Marks), Chemistry (25 Qs / 100 Marks), and Mathematics (25 Qs / 100 Marks) with +4 / -1 marking.'
+                      : 'Follows the official GATE CBT blueprint with Section 1: General Aptitude (10 Qs / 15 Marks) and Section 2: Core Subject (55 Qs / 85 Marks).'}
                   </p>
                 </div>
 
@@ -928,19 +1075,33 @@ export default function CustomTestBuilderPage() {
                 </div>
               </div>
 
-              {/* Core Subject Filter Selection */}
+              {/* Subject Filter Selection */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                 <label className="block text-xs font-bold text-slate-700">
-                  Target Core Engineering Subject (Section 2)
+                  {selectedExam === 'JEE_MAINS' ? 'Target Subject Focus (Optional)' : 'Target Core Engineering Subject (Section 2)'}
                 </label>
                 <select
                   value={mockSubjectId}
                   onChange={(e) => setMockSubjectId(e.target.value ? Number(e.target.value) : '')}
                   className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-indigo-400 focus:outline-none"
                 >
-                  <option value="">All Available Core Subjects (Comprehensive Mock)</option>
+                  <option value="">
+                    {selectedExam === 'JEE_MAINS'
+                      ? 'All Subjects — Comprehensive PCM Full Mock (75 Questions)'
+                      : 'All Available Core Subjects (Comprehensive Mock)'}
+                  </option>
                   {hierarchy
-                    .filter((s) => !s.name.toLowerCase().includes('general aptitude'))
+                    .filter((s) => {
+                      if (selectedExam === 'JEE_MAINS') {
+                        return (
+                          (s as any).examCategory === 'JEE_MAINS' ||
+                          s.name.toLowerCase().includes('physic') ||
+                          s.name.toLowerCase().includes('chemist') ||
+                          s.name.toLowerCase().includes('math')
+                        );
+                      }
+                      return !s.name.toLowerCase().includes('general aptitude');
+                    })
                     .map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name} ({s.topics.reduce((acc, t) => acc + (t._count?.questions || 0), 0)} Qs available)
@@ -955,74 +1116,125 @@ export default function CustomTestBuilderPage() {
                   Syllabus Split &amp; Question Bank Availability
                 </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Bucket 1: GA 1-Mark */}
-                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-800">General Aptitude (1-Mark)</span>
-                      <span className="font-mono text-indigo-700 font-bold">5 Qs (5 Marks)</span>
+                {selectedExam === 'JEE_MAINS' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* JEE Bucket 1: Physics */}
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800">Physics (PCM)</span>
+                        <span className="font-mono text-indigo-700 font-bold">25 Qs (100 M)</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500">20 MCQs (+4/-1) • 5 NAT (+4/-1)</p>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
+                        <span>Available: {jeePhysicsQuestions.length} Qs</span>
+                        <span className={jeePhysicsQuestions.length >= 25 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                          {jeePhysicsQuestions.length >= 25 ? '✓ Ready' : `${25 - jeePhysicsQuestions.length} short`}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center text-[11px] text-slate-500">
-                      <span>Available: {ga1m.length} Qs</span>
-                      <span className={ga1m.length >= 5 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
-                        {ga1m.length >= 5 ? '✓ Ready' : `${5 - ga1m.length} short`}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Bucket 2: GA 2-Mark */}
-                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-800">General Aptitude (2-Mark)</span>
-                      <span className="font-mono text-indigo-700 font-bold">5 Qs (10 Marks)</span>
+                    {/* JEE Bucket 2: Chemistry */}
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800">Chemistry (PCM)</span>
+                        <span className="font-mono text-indigo-700 font-bold">25 Qs (100 M)</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500">20 MCQs (+4/-1) • 5 NAT (+4/-1)</p>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
+                        <span>Available: {jeeChemistryQuestions.length} Qs</span>
+                        <span className={jeeChemistryQuestions.length >= 25 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                          {jeeChemistryQuestions.length >= 25 ? '✓ Ready' : `${25 - jeeChemistryQuestions.length} short`}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center text-[11px] text-slate-500">
-                      <span>Available: {ga2m.length} Qs</span>
-                      <span className={ga2m.length >= 5 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
-                        {ga2m.length >= 5 ? '✓ Ready' : `${5 - ga2m.length} short`}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Bucket 3: Core 1-Mark */}
-                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-800">Core Subject (1-Mark)</span>
-                      <span className="font-mono text-indigo-700 font-bold">25 Qs (25 Marks)</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[11px] text-slate-500">
-                      <span>Available: {core1m.length} Qs</span>
-                      <span className={core1m.length >= 25 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
-                        {core1m.length >= 25 ? '✓ Ready' : `${25 - core1m.length} short`}
-                      </span>
+                    {/* JEE Bucket 3: Mathematics */}
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800">Mathematics (PCM)</span>
+                        <span className="font-mono text-indigo-700 font-bold">25 Qs (100 M)</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500">20 MCQs (+4/-1) • 5 NAT (+4/-1)</p>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1 border-t border-slate-200/60">
+                        <span>Available: {jeeMathQuestions.length} Qs</span>
+                        <span className={jeeMathQuestions.length >= 25 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                          {jeeMathQuestions.length >= 25 ? '✓ Ready' : `${25 - jeeMathQuestions.length} short`}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Bucket 1: GA 1-Mark */}
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800">General Aptitude (1-Mark)</span>
+                        <span className="font-mono text-indigo-700 font-bold">5 Qs (5 Marks)</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500">
+                        <span>Available: {ga1m.length} Qs</span>
+                        <span className={ga1m.length >= 5 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                          {ga1m.length >= 5 ? '✓ Ready' : `${5 - ga1m.length} short`}
+                        </span>
+                      </div>
+                    </div>
 
-                  {/* Bucket 4: Core 2-Mark */}
-                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-800">Core Subject (2-Mark)</span>
-                      <span className="font-mono text-indigo-700 font-bold">30 Qs (60 Marks)</span>
+                    {/* Bucket 2: GA 2-Mark */}
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800">General Aptitude (2-Mark)</span>
+                        <span className="font-mono text-indigo-700 font-bold">5 Qs (10 Marks)</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500">
+                        <span>Available: {ga2m.length} Qs</span>
+                        <span className={ga2m.length >= 5 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                          {ga2m.length >= 5 ? '✓ Ready' : `${5 - ga2m.length} short`}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center text-[11px] text-slate-500">
-                      <span>Available: {core2m.length} Qs</span>
-                      <span className={core2m.length >= 30 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
-                        {core2m.length >= 30 ? '✓ Ready' : `${30 - core2m.length} short`}
-                      </span>
+
+                    {/* Bucket 3: Core 1-Mark */}
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800">Core Subject (1-Mark)</span>
+                        <span className="font-mono text-indigo-700 font-bold">25 Qs (25 Marks)</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500">
+                        <span>Available: {core1m.length} Qs</span>
+                        <span className={core1m.length >= 25 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                          {core1m.length >= 25 ? '✓ Ready' : `${25 - core1m.length} short`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bucket 4: Core 2-Mark */}
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-800">Core Subject (2-Mark)</span>
+                        <span className="font-mono text-indigo-700 font-bold">30 Qs (60 Marks)</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500">
+                        <span>Available: {core2m.length} Qs</span>
+                        <span className={core2m.length >= 30 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
+                          {core2m.length >= 30 ? '✓ Ready' : `${30 - core2m.length} short`}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Status & Shortfall Alert */}
-              {!isFull65Available && (
+              {!isFullAvailable && (
                 <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl text-xs space-y-1.5 text-amber-900">
                   <div className="flex items-center gap-2 font-bold text-amber-800">
                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>Question Bank Capacity Notice</span>
                   </div>
                   <p className="leading-relaxed">
-                    Your Question Bank currently has <strong>{totalMockAvailable}</strong> matching questions (65 needed for full paper). You can generate a <strong>Best-Available Mock Test</strong> with all available questions, or add more questions in the Question Bank.
+                    Your Question Bank currently has <strong>{totalMockAvailable}</strong> matching questions (
+                    {selectedExam === 'JEE_MAINS' ? 75 : 65} needed for full paper). You can generate a{' '}
+                    <strong>Best-Available Mock Test</strong> with all available questions, or add more questions in the Question Bank.
                   </p>
                 </div>
               )}
@@ -1141,9 +1353,13 @@ export default function CustomTestBuilderPage() {
                   <span className="text-xs text-slate-400 block font-medium">Questions</span>
                   <span className="text-xl font-bold text-slate-800">
                     {builderMode === 'full-mock'
-                      ? isFull65Available
+                      ? selectedExam === 'JEE_MAINS'
+                        ? isFull75Available
+                          ? 75
+                          : Math.min(75, totalJeeAvailable)
+                        : isFull65Available
                         ? 65
-                        : totalMockAvailable
+                        : Math.min(65, totalGateAvailable)
                       : builderMode === 'manual'
                       ? totalQuestions
                       : rules.reduce((s, r) => s + r.count, 0)}
@@ -1153,12 +1369,14 @@ export default function CustomTestBuilderPage() {
                   <span className="text-xs text-slate-400 block font-medium">Total Marks</span>
                   <span className="text-xl font-bold text-indigo-600">
                     {builderMode === 'full-mock'
-                      ? `${
-                          Math.min(5, ga1m.length) * 1 +
-                          Math.min(5, ga2m.length) * 2 +
-                          Math.min(25, core1m.length) * 1 +
-                          Math.min(30, core2m.length) * 2
-                        } M`
+                      ? selectedExam === 'JEE_MAINS'
+                        ? `${Math.min(75, totalJeeAvailable) * 4} M`
+                        : `${
+                            Math.min(5, ga1m.length) * 1 +
+                            Math.min(5, ga2m.length) * 2 +
+                            Math.min(25, core1m.length) * 1 +
+                            Math.min(30, core2m.length) * 2
+                          } M`
                       : builderMode === 'manual'
                       ? `${totalMarks} M`
                       : 'Auto-computed'}
@@ -1173,7 +1391,7 @@ export default function CustomTestBuilderPage() {
                 </span>
                 <span className="font-bold text-slate-800">
                   {builderMode === 'full-mock'
-                    ? isFull65Available
+                    ? isFullAvailable
                       ? '180 Mins (3h)'
                       : formatDurationHuman(calculateDuration(totalMockAvailable))
                     : builderMode === 'manual'
@@ -1229,8 +1447,8 @@ export default function CustomTestBuilderPage() {
                 {generating ? (
                   'Synthesizing Mock Test...'
                 ) : builderMode === 'full-mock' ? (
-                  isFull65Available ? (
-                    'Launch Official GATE Full Mock (65 Qs) →'
+                  isFullAvailable ? (
+                    `Launch Official ${selectedExam === 'JEE_MAINS' ? 'JEE Mains Full Mock (75 Qs)' : 'GATE Full Mock (65 Qs)'} →`
                   ) : (
                     'Generate Best-Available Mock →'
                   )
