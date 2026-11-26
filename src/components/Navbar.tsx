@@ -12,7 +12,7 @@ export default function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const examDropdownRef = useRef<HTMLDivElement>(null);
 
-  const isMasterAdmin = user?.role === 'ADMIN' || ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user?.email?.toLowerCase() || '');
+  const isMasterAdmin = user?.role === 'ADMIN' || ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user?.email?.toLowerCase() || '');
   const isTeacher = user?.role === 'TEACHER';
   const isTeacherOrAdmin = isMasterAdmin || isTeacher;
   const isProPassHolder = Boolean(user?.isSubscribed && user?.subscriptionTier !== 'gate-booster-pass');

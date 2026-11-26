@@ -62,7 +62,7 @@ export const AdminPaymentsPage: React.FC = () => {
   };
 
   const isMasterAdmin =
-    user?.role === 'ADMIN' || ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user?.email?.toLowerCase() || '');
+    user?.role === 'ADMIN' || ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user?.email?.toLowerCase() || '');
 
   const loadPayments = async () => {
     setLoading(true);
@@ -194,7 +194,7 @@ export const AdminPaymentsPage: React.FC = () => {
               Abhiyantra Administration Console
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              Logged in as <strong className="text-slate-800 font-mono">{user?.email || 'brainiacssolutions9@gmail.com'}</strong> (Platform Admin)
+              Logged in as <strong className="text-slate-800 font-mono">{user?.email || 'harshsaini0912@gmail.com'}</strong> (Platform Admin)
             </p>
           </div>
 
@@ -500,7 +500,7 @@ export const AdminPaymentsPage: React.FC = () => {
                     <tbody className="divide-y divide-slate-100">
                       {filteredUsers.map((u) => {
                         const isUpdating = updatingUserId === u.id;
-                        const isPrimaryAdmin = ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(u.email.toLowerCase());
+                        const isPrimaryAdmin = ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(u.email.toLowerCase());
 
                         return (
                           <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">

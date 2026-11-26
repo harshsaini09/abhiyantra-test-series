@@ -59,7 +59,7 @@ export default function QuestionBankPage() {
   const isMasterAdmin = Boolean(
     user?.role === 'ADMIN' ||
       (user?.email &&
-        ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase().trim()))
+        ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase().trim()))
   );
   const isTeacherOrAdmin = isMasterAdmin || user?.role === 'TEACHER';
 

@@ -583,13 +583,12 @@ const handleClearData = async (req: Request, res: Response) => {
   try {
     const { target } = req.body || {}; // 'all' | 'questions' | 'report-cards'
 
-    // Restrict clear data operation to brainiacssolutions9
+    // Restrict clear data operation to master admin
     const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
     const authUser = token ? verifyUserToken(token) : null;
     const isMasterAdmin = authUser && (
       authUser.role === 'ADMIN' ||
-      ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(authUser.email.toLowerCase().trim()) ||
-      authUser.email.toLowerCase().startsWith('brainiacssolutions9@') ||
+      ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(authUser.email.toLowerCase().trim()) ||
       authUser.email.toLowerCase().startsWith('harshsaini0912@')
     );
 

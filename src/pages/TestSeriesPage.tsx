@@ -61,7 +61,7 @@ export const TestSeriesPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, targetExam } = useAuth();
 
-  const isMasterAdmin = user?.role === 'ADMIN' || ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user?.email?.toLowerCase() || '');
+  const isMasterAdmin = user?.role === 'ADMIN' || ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user?.email?.toLowerCase() || '');
   const isTeacher = user?.role === 'TEACHER';
   const isTeacherOrAdmin = isMasterAdmin || isTeacher;
   const hasAccess = isTeacherOrAdmin || !!(user && user.isSubscribed);

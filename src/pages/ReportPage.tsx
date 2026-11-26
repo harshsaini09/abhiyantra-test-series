@@ -38,7 +38,7 @@ export default function ReportPage() {
   const results = (location.state as { results?: TestResults } | null)?.results;
 
   const { user, stagePendingResults } = useAuth();
-  const isTeacherOrAdmin = user?.role === 'TEACHER' || user?.role === 'ADMIN' || ['brainiacssolutions9@gmail.com', 'harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user?.email?.toLowerCase() || '');
+  const isTeacherOrAdmin = user?.role === 'TEACHER' || user?.role === 'ADMIN' || ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user?.email?.toLowerCase() || '');
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'idle'>('idle');
 
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
