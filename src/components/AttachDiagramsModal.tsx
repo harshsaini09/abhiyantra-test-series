@@ -48,7 +48,9 @@ export const AttachDiagramsModal: React.FC<AttachDiagramsModalProps> = ({
   testId,
   onSave,
 }) => {
-  const [questions, setQuestions] = useState<QuestionItem[]>(() => [...initialQuestions]);
+  const [questions, setQuestions] = useState<QuestionItem[]>(() =>
+    Array.isArray(initialQuestions) ? [...initialQuestions] : []
+  );
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [filterMode, setFilterMode] = useState<'ALL' | 'HAS_DIAGRAM' | 'NEEDS_DIAGRAM'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,30 +59,30 @@ export const AttachDiagramsModal: React.FC<AttachDiagramsModalProps> = ({
 
   // Sync state if questions change
   React.useEffect(() => {
-    setQuestions([...initialQuestions]);
-    setCurrentIndex(0);
+    if (Array.isArray(initialQuestions)) {
+      setQuestions([...initialQuestions]);
+      setCurrentIndex(0);
+    }
   }, [initialQuestions]);
 
-  if (!isOpen) return null;
-
-  const currentQ = questions[currentIndex] || questions[0];
-
-  // Helper to get text
-  const getQText = (q: QuestionItem) => q.question || q.questionText || '';
-  const getSubText = (q: QuestionItem) =>
-    typeof q.subject === 'string' ? q.subject : q.subject?.name || '';
-  const getTopText = (q: QuestionItem) =>
-    typeof q.topic === 'string' ? q.topic : q.topic?.name || '';
+  // Helper to get text safely
+  const getQText = (q?: QuestionItem) => String(q?.question || q?.questionText || '');
+  const getSubText = (q?: QuestionItem) =>
+    typeof q?.subject === 'string' ? q.subject : q?.subject?.name || '';
+  const getTopText = (q?: QuestionItem) =>
+    typeof q?.topic === 'string' ? q.topic : q?.topic?.name || '';
 
   // Stats
-  const questionsWithDiagrams = questions.filter((q) => Boolean(q.imageUrl || q.solutionImageUrl)).length;
+  const questionsWithDiagrams = useMemo(() => {
+    return questions.filter((q) => Boolean(q?.imageUrl || q?.solutionImageUrl)).length;
+  }, [questions]);
 
-  // Filtered indices
+  // Filtered indices - ALL HOOKS MUST BE UNCONDITIONALLY CALLED ABOVE EARLY RETURNS
   const filteredIndices = useMemo(() => {
     return questions
       .map((q, idx) => ({ q, idx }))
       .filter(({ q, idx }) => {
-        const hasDiag = Boolean(q.imageUrl || q.solutionImageUrl);
+        const hasDiag = Boolean(q?.imageUrl || q?.solutionImageUrl);
         if (filterMode === 'HAS_DIAGRAM' && !hasDiag) return false;
         if (filterMode === 'NEEDS_DIAGRAM' && hasDiag) return false;
         if (searchQuery.trim()) {
@@ -93,6 +95,11 @@ export const AttachDiagramsModal: React.FC<AttachDiagramsModalProps> = ({
       })
       .map(({ idx }) => idx);
   }, [questions, filterMode, searchQuery]);
+
+  // Early return ONLY after all hooks are evaluated
+  if (!isOpen) return null;
+
+  const currentQ = questions[currentIndex] || questions[0];
 
   // Update image for current question
   const handleUpdateQuestionImage = (url: string | null, isSolution = false) => {
@@ -145,7 +152,7 @@ export const AttachDiagramsModal: React.FC<AttachDiagramsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden my-4 flex flex-col max-h-[92vh]">
         {/* Modal Header */}
         <div className="p-4 sm:p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between gap-4 border-b border-indigo-900/50">

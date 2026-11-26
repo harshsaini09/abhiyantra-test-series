@@ -1266,22 +1266,24 @@ export const TestSeriesPage: React.FC = () => {
       />
 
       {/* Attach & Manage Diagrams Modal */}
-      <AttachDiagramsModal
-        isOpen={diagramModalOpen}
-        onClose={() => setDiagramModalOpen(false)}
-        testTitle={diagramModalTitle}
-        questions={diagramModalQuestions}
-        testId={diagramModalTestId}
-        onSave={(updatedQuestions) => {
-          if (!diagramModalTestId) {
-            // Updated in-memory questions before publishing
-            setParsedQuestions(updatedQuestions);
-          } else {
-            // Updated already-published test in DB
-            loadOfficialTests();
-          }
-        }}
-      />
+      {diagramModalOpen && (
+        <AttachDiagramsModal
+          isOpen={diagramModalOpen}
+          onClose={() => setDiagramModalOpen(false)}
+          testTitle={diagramModalTitle}
+          questions={diagramModalQuestions}
+          testId={diagramModalTestId}
+          onSave={(updatedQuestions) => {
+            if (!diagramModalTestId) {
+              // Updated in-memory questions before publishing
+              setParsedQuestions(updatedQuestions);
+            } else {
+              // Updated already-published test in DB
+              loadOfficialTests();
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
