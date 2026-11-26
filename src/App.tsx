@@ -17,10 +17,12 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/test-series" element={<TestSeriesPage />} />
+        <Route path="/series" element={<TestSeriesPage />} />
         <Route path="/test" element={<TestPage />} />
         <Route path="/report" element={<ReportPage />} />
         <Route path="/report-cards" element={<ReportCardsPage />} />
         <Route path="/question-bank" element={<QuestionBankPage />} />
+        <Route path="/qbank" element={<QuestionBankPage />} />
         <Route path="/custom-builder" element={<CustomTestBuilderPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/admin/payments" element={<AdminPaymentsPage />} />
