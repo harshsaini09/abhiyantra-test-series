@@ -29,6 +29,7 @@ import {
   CheckCircle,
   GraduationCap,
   Atom,
+  Calculator,
 } from 'lucide-react';
 
 interface OfficialTestItem {
@@ -93,10 +94,26 @@ export const TestSeriesPage: React.FC = () => {
   const [uploadCategory, setUploadCategory] = useState<'FULL_MOCK' | 'SUBJECT_PACK' | 'TOPIC_TEST'>('FULL_MOCK');
   const [uploadSubject, setUploadSubject] = useState('');
   const [uploadDuration, setUploadDuration] = useState<number>(180);
+  const [perQuestionMinutes, setPerQuestionMinutes] = useState<number>(2.77);
+  const [totalMarks, setTotalMarks] = useState<number>(0);
   const [parsedQuestions, setParsedQuestions] = useState<any[] | null>(null);
   const [fileName, setFileName] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const resetUploadForm = () => {
+    setIsUploadModalOpen(false);
+    setParsedQuestions(null);
+    setFileName('');
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploadTitle('');
+    setUploadDescription('');
+    setUploadSubject('');
+    setUploadDuration(180);
+    setPerQuestionMinutes(2.77);
+    setTotalMarks(0);
+  };
 
   // Fetch official tests & pricing plans on mount
   const loadOfficialTests = async () => {
@@ -116,8 +133,6 @@ export const TestSeriesPage: React.FC = () => {
   }, [examFilter]);
 
   useEffect(() => {
-    loadOfficialTests();
-
     fetchPricingPlansApi()
       .then((data) => {
         const plan29 = (data.plans || []).find(
@@ -132,13 +147,49 @@ export const TestSeriesPage: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // Handle JSON file selection
+  // Sync Duration when Per-Question Time is modified
+  const handlePerQuestionMinutesChange = (minutesPerQ: number) => {
+    const validMinutes = Math.max(0.1, Number(minutesPerQ) || 0.1);
+    setPerQuestionMinutes(validMinutes);
+    if (parsedQuestions && parsedQuestions.length > 0) {
+      setUploadDuration(Math.max(1, Math.round(validMinutes * parsedQuestions.length)));
+    }
+  };
+
+  // Sync Per-Question Time when Duration is modified
+  const handleDurationChange = (totalMinutes: number) => {
+    const validTotal = Math.max(1, Number(totalMinutes) || 1);
+    setUploadDuration(validTotal);
+    if (parsedQuestions && parsedQuestions.length > 0) {
+      setPerQuestionMinutes(Number((validTotal / parsedQuestions.length).toFixed(2)));
+    }
+  };
+
+  const applyPacingPreset = (minutesPerQ: number) => {
+    handlePerQuestionMinutesChange(minutesPerQ);
+  };
+
+  const handleExamCategoryChange = (newExam: 'GATE' | 'JEE_MAINS') => {
+    setUploadExamCategory(newExam);
+    if (parsedQuestions && parsedQuestions.length > 0) {
+      // Recalculate marks and standard pacing if appropriate
+      const newMarks = parsedQuestions.reduce((sum, q) => {
+        const m = Number(q.marks) || Number(q.mark) || Number(q.weightage);
+        if (m && !isNaN(m) && m > 0) return sum + m;
+        return sum + (newExam === 'JEE_MAINS' ? 4 : 1);
+      }, 0);
+      setTotalMarks(newMarks);
+    }
+  };
+
+  // Handle JSON file selection with auto-fetch and auto-fill
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setFileName(file.name);
     setUploadError(null);
+    setUploadSuccess(null);
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -146,44 +197,192 @@ export const TestSeriesPage: React.FC = () => {
         const rawContent = event.target?.result as string;
         const parsed = JSON.parse(rawContent);
 
+        // 1. Extract Questions array
         let questions: any[] = [];
-        let title = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-        let description = 'Official GATE Mock Test Series Paper';
-        let duration = 180;
-        let subject = '';
-
         if (Array.isArray(parsed)) {
           questions = parsed;
         } else if (parsed && Array.isArray(parsed.questions)) {
           questions = parsed.questions;
-          if (parsed.title) title = parsed.title;
-          if (parsed.description) description = parsed.description;
-          if (parsed.duration || parsed.durationMinutes) duration = parsed.duration || parsed.durationMinutes;
-          if (parsed.subject) subject = parsed.subject;
         } else if (parsed && Array.isArray(parsed.test?.questions)) {
           questions = parsed.test.questions;
-          if (parsed.test.title) title = parsed.test.title;
-          if (parsed.test.description) description = parsed.test.description;
-          if (parsed.test.duration) duration = parsed.test.duration;
-          if (parsed.test.subject) subject = parsed.test.subject;
+        } else if (parsed && Array.isArray(parsed.testData?.questions)) {
+          questions = parsed.testData.questions;
+        } else if (parsed && Array.isArray(parsed.data?.questions)) {
+          questions = parsed.data.questions;
+        } else if (parsed && Array.isArray(parsed.items)) {
+          questions = parsed.items;
+        } else if (parsed && typeof parsed.questions === 'object' && parsed.questions !== null) {
+          questions = Object.values(parsed.questions);
         }
 
         if (questions.length === 0) {
-          setUploadError('Invalid JSON file: No questions array found.');
+          setUploadError('Invalid JSON file: No questions array found in this paper.');
           setParsedQuestions(null);
           return;
         }
 
-        setParsedQuestions(questions);
-        setUploadTitle(title);
-        setUploadDescription(description);
-        setUploadDuration(duration);
-        if (subject) setUploadSubject(subject);
-        if (questions.length >= 50) {
-          setUploadCategory('FULL_MOCK');
+        const count = questions.length;
+
+        // 2. Auto-detect Target Examination (GATE vs JEE Mains)
+        const textToAnalyze = `${file.name} ${parsed.title || ''} ${parsed.description || ''} ${parsed.subject || ''} ${parsed.test?.title || ''}`.toLowerCase();
+        let detectedExam: 'GATE' | 'JEE_MAINS' = 'GATE';
+        if (
+          parsed.examCategory === 'JEE_MAINS' ||
+          parsed.targetExam === 'JEE_MAINS' ||
+          parsed.test?.examCategory === 'JEE_MAINS' ||
+          parsed.testData?.examCategory === 'JEE_MAINS'
+        ) {
+          detectedExam = 'JEE_MAINS';
+        } else if (
+          parsed.examCategory === 'GATE' ||
+          parsed.targetExam === 'GATE' ||
+          parsed.test?.examCategory === 'GATE' ||
+          parsed.testData?.examCategory === 'GATE'
+        ) {
+          detectedExam = 'GATE';
+        } else if (/jee|mains|iit-jee|jee-main|pcm/i.test(textToAnalyze)) {
+          detectedExam = 'JEE_MAINS';
+        } else if (/gate|gate-cs|gate-da|gate-me|gate-ee|gate-ec/i.test(textToAnalyze)) {
+          detectedExam = 'GATE';
+        } else if (count === 75) {
+          detectedExam = 'JEE_MAINS';
+        } else if (count === 65) {
+          detectedExam = 'GATE';
         } else {
-          setUploadCategory('SUBJECT_PACK');
+          detectedExam = examFilter || targetExam || 'GATE';
         }
+
+        // 3. Auto-calculate Total Marks
+        const computedMarks = questions.reduce((sum, q) => {
+          const m = Number(q.marks) || Number(q.mark) || Number(q.weightage);
+          if (m && !isNaN(m) && m > 0) return sum + m;
+          return sum + (detectedExam === 'JEE_MAINS' ? 4 : 1);
+        }, 0);
+
+        // 4. Auto-detect Subject
+        let detectedSubject = parsed.subject || parsed.test?.subject || parsed.testData?.subject || '';
+        if (!detectedSubject) {
+          const subjectCounts = new Map<string, number>();
+          for (const q of questions) {
+            const sub = typeof q.subject === 'string' ? q.subject.trim() : (q.subject?.name ? String(q.subject.name).trim() : null);
+            if (sub && !sub.toLowerCase().includes('general aptitude')) {
+              subjectCounts.set(sub, (subjectCounts.get(sub) || 0) + 1);
+            }
+          }
+          if (subjectCounts.size === 1) {
+            detectedSubject = Array.from(subjectCounts.keys())[0];
+          } else if (subjectCounts.size > 1) {
+            const sorted = Array.from(subjectCounts.entries()).sort((a, b) => b[1] - a[1]);
+            if (sorted[0][1] >= count * 0.6) {
+              detectedSubject = sorted[0][0];
+            } else if (detectedExam === 'JEE_MAINS') {
+              detectedSubject = 'Physics, Chemistry & Math';
+            } else {
+              detectedSubject = 'Full Syllabus Mix';
+            }
+          }
+        }
+
+        // 5. Auto-fetch or calculate Per-Question Time and Total Duration
+        let calculatedDuration = 180;
+        let calculatedPerQMin = detectedExam === 'JEE_MAINS' ? 2.4 : 2.77;
+
+        const rawDuration =
+          parsed.duration ||
+          parsed.durationMinutes ||
+          parsed.totalDuration ||
+          parsed.time ||
+          parsed.test?.duration ||
+          parsed.test?.durationMinutes ||
+          parsed.testData?.duration;
+
+        const rawPerQSec =
+          parsed.perQuestionTime ||
+          parsed.timePerQuestion ||
+          parsed.secondsPerQuestion ||
+          parsed.perQuestionSeconds ||
+          parsed.test?.perQuestionTime ||
+          parsed.test?.timePerQuestion;
+
+        const rawPerQMin = parsed.minutesPerQuestion || parsed.perQuestionMinutes || parsed.test?.perQuestionMinutes;
+
+        const individualQuestionTimes = questions
+          .map((q) => Number(q.timeInSeconds || q.timeLimit || q.durationSeconds || q.allottedSeconds || (q.durationMinutes ? q.durationMinutes * 60 : 0)))
+          .filter((t) => t > 0);
+
+        if (rawDuration && Number(rawDuration) > 0) {
+          calculatedDuration = Math.round(Number(rawDuration));
+          calculatedPerQMin = Number((calculatedDuration / count).toFixed(2));
+        } else if (rawPerQSec && Number(rawPerQSec) > 0) {
+          calculatedPerQMin = Number((Number(rawPerQSec) / 60).toFixed(2));
+          calculatedDuration = Math.max(5, Math.round(calculatedPerQMin * count));
+        } else if (rawPerQMin && Number(rawPerQMin) > 0) {
+          calculatedPerQMin = Number(Number(rawPerQMin).toFixed(2));
+          calculatedDuration = Math.max(5, Math.round(calculatedPerQMin * count));
+        } else if (individualQuestionTimes.length === count) {
+          const sumSec = individualQuestionTimes.reduce((a, b) => a + b, 0);
+          calculatedDuration = Math.max(5, Math.round(sumSec / 60));
+          calculatedPerQMin = Number((calculatedDuration / count).toFixed(2));
+        } else {
+          // Standard Examination Formulas
+          if (count === 65 && detectedExam === 'GATE') {
+            calculatedDuration = 180;
+            calculatedPerQMin = 2.77;
+          } else if (count === 75 && detectedExam === 'JEE_MAINS') {
+            calculatedDuration = 180;
+            calculatedPerQMin = 2.4;
+          } else if (detectedExam === 'JEE_MAINS') {
+            calculatedPerQMin = 2.4;
+            calculatedDuration = Math.max(5, Math.round(count * 2.4));
+          } else {
+            calculatedPerQMin = 2.77;
+            calculatedDuration = Math.max(5, Math.round(count * (180 / 65)));
+          }
+        }
+
+        // 6. Infer Category
+        let detectedCategory: 'FULL_MOCK' | 'SUBJECT_PACK' | 'TOPIC_TEST' = 'FULL_MOCK';
+        if (parsed.category === 'SUBJECT_PACK' || parsed.category === 'TOPIC_TEST' || parsed.category === 'FULL_MOCK') {
+          detectedCategory = parsed.category;
+        } else if (count >= 50 || (detectedExam === 'GATE' && count >= 60) || (detectedExam === 'JEE_MAINS' && count >= 70)) {
+          detectedCategory = 'FULL_MOCK';
+        } else if (count >= 15) {
+          detectedCategory = 'SUBJECT_PACK';
+        } else {
+          detectedCategory = 'TOPIC_TEST';
+        }
+
+        // 7. Format clean Title
+        let cleanTitle = parsed.title || parsed.test?.title || parsed.testData?.title || parsed.name || '';
+        if (!cleanTitle) {
+          const baseName = file.name
+            .replace(/\.[^/.]+$/, '')
+            .replace(/[-_]+/g, ' ')
+            .trim();
+          cleanTitle = baseName
+            .split(' ')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ');
+        }
+
+        // 8. Format clean Description
+        let cleanDesc = parsed.description || parsed.test?.description || parsed.testData?.description || '';
+        if (!cleanDesc) {
+          cleanDesc = `Official ${detectedExam === 'JEE_MAINS' ? 'JEE Mains (NTA Pattern)' : 'GATE (IIT Pattern)'} ${
+            detectedCategory === 'FULL_MOCK' ? 'Full Mock Test' : detectedSubject ? `${detectedSubject} Test` : 'Mock Test'
+          } containing ${count} questions (${computedMarks} Marks). Allocated test duration: ${calculatedDuration} minutes (~${calculatedPerQMin} min/question).`;
+        }
+
+        // 9. Auto-fill all states
+        setParsedQuestions(questions);
+        setUploadExamCategory(detectedExam);
+        setTotalMarks(computedMarks);
+        setUploadTitle(cleanTitle);
+        setUploadDescription(cleanDesc);
+        setUploadSubject(detectedSubject);
+        setUploadCategory(detectedCategory);
+        setUploadDuration(calculatedDuration);
+        setPerQuestionMinutes(calculatedPerQMin);
       } catch (err: any) {
         setUploadError(`Failed to parse JSON file: ${err.message}`);
         setParsedQuestions(null);
@@ -625,13 +824,8 @@ export const TestSeriesPage: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={() => {
-                  setIsUploadModalOpen(false);
-                  setParsedQuestions(null);
-                  setFileName('');
-                  setUploadError(null);
-                }}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                onClick={resetUploadForm}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -663,20 +857,47 @@ export const TestSeriesPage: React.FC = () => {
                     )}
                   </div>
                   <p className="text-[10px] text-slate-400">
-                    Supports full mock JSON with title, questions array, marks, solutions.
+                    Auto-detects questions, per-question pacing, examination type, and calculates duration.
                   </p>
                 </div>
               </div>
 
-              {/* Parsing Feedback Chip */}
+              {/* Auto-Fetched Test Specifications & Blueprint Card */}
               {parsedQuestions && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center justify-between">
-                  <span className="font-semibold">
-                    ✓ Loaded {parsedQuestions.length} Questions
-                  </span>
-                  <span className="text-[11px] text-emerald-700">
-                    {parsedQuestions.reduce((sum, q) => sum + (Number(q.marks) || 1), 0)} Marks Total
-                  </span>
+                <div className="bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/70 border border-indigo-200 rounded-2xl p-4 space-y-3 shadow-xs animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-xs">
+                        <Calculator className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900">Auto-Fetched Paper Blueprint</h4>
+                        <p className="text-[10px] text-slate-500">Auto-calculated from uploaded question paper</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      ✓ Auto-Calculated
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Questions</span>
+                      <span className="font-extrabold text-sm sm:text-base text-slate-900">{parsedQuestions.length} Qs</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Marks</span>
+                      <span className="font-extrabold text-sm sm:text-base text-indigo-700">{totalMarks} M</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Per-Q Time</span>
+                      <span className="font-extrabold text-sm sm:text-base text-amber-700">{perQuestionMinutes} min</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Duration</span>
+                      <span className="font-extrabold text-sm sm:text-base text-emerald-700">{uploadDuration} min</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -687,7 +908,7 @@ export const TestSeriesPage: React.FC = () => {
                 </label>
                 <select
                   value={uploadExamCategory}
-                  onChange={(e: any) => setUploadExamCategory(e.target.value)}
+                  onChange={(e: any) => handleExamCategoryChange(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800"
                 >
                   <option value="GATE">🎓 GATE Examination (IIT Pattern)</option>
@@ -706,7 +927,7 @@ export const TestSeriesPage: React.FC = () => {
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
                   placeholder={uploadExamCategory === 'JEE_MAINS' ? 'e.g. JEE Mains 2026 All India Full Mock #1' : 'e.g. GATE CS 2026 All India Full Mock #1'}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 />
               </div>
 
@@ -720,7 +941,7 @@ export const TestSeriesPage: React.FC = () => {
                   value={uploadDescription}
                   onChange={(e) => setUploadDescription(e.target.value)}
                   placeholder="Brief note or guidelines for students..."
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium text-slate-700"
                 />
               </div>
 
@@ -733,39 +954,112 @@ export const TestSeriesPage: React.FC = () => {
                   <select
                     value={uploadCategory}
                     onChange={(e: any) => setUploadCategory(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
                   >
-                    <option value="FULL_MOCK">Full 65-Q Mock</option>
+                    <option value="FULL_MOCK">
+                      {uploadExamCategory === 'JEE_MAINS' ? 'Full 75-Q Mock' : 'Full 65-Q Mock'}
+                    </option>
                     <option value="SUBJECT_PACK">Subject Pack</option>
                     <option value="TOPIC_TEST">Topic Test</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Subject (Optional)
+                    Subject
                   </label>
                   <input
                     type="text"
                     value={uploadSubject}
                     onChange={(e) => setUploadSubject(e.target.value)}
                     placeholder="e.g. Algorithms"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                   />
                 </div>
               </div>
 
-              {/* Duration */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Duration (Minutes)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={uploadDuration}
-                  onChange={(e) => setUploadDuration(Number(e.target.value))}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+              {/* Auto-Calculated Timing & Pacing Controls */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                    Pacing & Duration Calculator
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    Auto-syncs per question time & total duration
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-700">
+                        Per-Question Time (Minutes)
+                      </label>
+                      <span className="text-[10px] text-amber-700 font-bold">
+                        ~{Math.round(perQuestionMinutes * 60)}s / Q
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      value={perQuestionMinutes}
+                      onChange={(e) => handlePerQuestionMinutesChange(Number(e.target.value))}
+                      className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-700">
+                        Total Duration (Minutes)
+                      </label>
+                      <span className="text-[10px] text-emerald-700 font-bold">
+                        {Math.floor(uploadDuration / 60)}h {uploadDuration % 60}m
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      min="1"
+                      value={uploadDuration}
+                      onChange={(e) => handleDurationChange(Number(e.target.value))}
+                      className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-200/70">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => applyPacingPreset(uploadExamCategory === 'JEE_MAINS' ? 2.4 : 2.77)}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                  >
+                    Exam Standard ({uploadExamCategory === 'JEE_MAINS' ? '2.4 min' : '2.77 min'})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPacingPreset(2.0)}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                  >
+                    2.0 min/Q
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPacingPreset(2.5)}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                  >
+                    2.5 min/Q
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPacingPreset(3.0)}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                  >
+                    3.0 min/Q
+                  </button>
+                </div>
               </div>
 
               {/* Errors & Success Alerts */}
@@ -786,7 +1080,7 @@ export const TestSeriesPage: React.FC = () => {
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsUploadModalOpen(false)}
+                  onClick={resetUploadForm}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                 >
                   Cancel
