@@ -282,7 +282,7 @@ export default function LandingPage() {
               Browse Test Series
             </button>
             <button
-              onClick={() => navigate('/test-builder')}
+              onClick={() => navigate('/custom-builder')}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold rounded-xl border border-slate-600 transition-all cursor-pointer"
             >
               <Database className="w-4 h-4 text-indigo-400" />

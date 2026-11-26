@@ -24,8 +24,11 @@ export default function App() {
         <Route path="/question-bank" element={<QuestionBankPage />} />
         <Route path="/qbank" element={<QuestionBankPage />} />
         <Route path="/custom-builder" element={<CustomTestBuilderPage />} />
+        <Route path="/test-builder" element={<CustomTestBuilderPage />} />
+        <Route path="/builder" element={<CustomTestBuilderPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/admin/payments" element={<AdminPaymentsPage />} />
+        <Route path="*" element={<LandingPage />} />
       </Routes>
     </div>
   );
