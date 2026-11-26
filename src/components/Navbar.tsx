@@ -58,12 +58,12 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <Link to="/" className="flex items-center gap-2 sm:gap-2.5 text-slate-900 hover:text-teal-700 transition-colors group shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink">
+            <Link to="/" className="flex items-center gap-1.5 sm:gap-2 text-slate-900 hover:text-teal-700 transition-colors group shrink-0">
               <img
                 src="/abhiyantra-logo.png"
                 alt="Abhiyantra Logo"
-                className="h-9 sm:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+                className="h-7 sm:h-9 md:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
               />
               <div className="hidden sm:block border-l border-slate-200 pl-2.5">
                 <span className="block text-[10px] uppercase font-bold tracking-wider text-teal-700">
@@ -73,11 +73,11 @@ export default function Navbar() {
             </Link>
 
             {/* Exam Target Switcher Pill */}
-            <div className="relative" ref={examDropdownRef}>
+            <div className="relative shrink-0" ref={examDropdownRef}>
               <button
                 type="button"
                 onClick={() => setExamDropdownOpen(!examDropdownOpen)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                   targetExam === 'JEE_MAINS'
                     ? 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100/80'
                     : 'bg-indigo-50 border-indigo-200 text-indigo-800 hover:bg-indigo-100/80'
@@ -86,12 +86,12 @@ export default function Navbar() {
               >
                 {targetExam === 'JEE_MAINS' ? (
                   <>
-                    <Atom className="w-3.5 h-3.5 text-cyan-600" />
-                    <span>JEE Mains</span>
+                    <Atom className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                    <span>JEE</span>
                   </>
                 ) : (
                   <>
-                    <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                    <GraduationCap className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                     <span>GATE</span>
                   </>
                 )}
@@ -324,7 +324,7 @@ export default function Navbar() {
               </div>
             ) : (
               /* Signed Out: Google Sign In Button */
-              <div className="flex items-center scale-85 sm:scale-90 origin-right">
+              <div className="flex items-center scale-75 sm:scale-90 origin-right shrink-0">
                 <GoogleLogin
                   onSuccess={(credentialResponse) => {
                     if (credentialResponse.credential) {
@@ -336,7 +336,7 @@ export default function Navbar() {
                   }}
                   shape="pill"
                   size="medium"
-                  text="signin_with"
+                  text="signin"
                 />
               </div>
             )}
