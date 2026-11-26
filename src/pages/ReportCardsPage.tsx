@@ -516,7 +516,7 @@ export default function ReportCardsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col w-full max-w-full overflow-x-hidden">
       <Navbar />
 
       {/* ─────────────────────────────────────────────────────────────
@@ -588,7 +588,7 @@ export default function ReportCardsPage() {
         /* ─────────────────────────────────────────────────────────────
             SIGNED IN MAIN VIEW: 4 Tabs Suite
             ───────────────────────────────────────────────────────────── */
-        <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full space-y-8">
+        <main className="flex-1 max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8 w-full max-w-full overflow-hidden space-y-6 sm:space-y-8 min-w-0">
           {/* Welcome Header */}
           <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -772,8 +772,8 @@ export default function ReportCardsPage() {
               )}
 
               {/* Search & List */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-6">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs p-3.5 sm:p-6 space-y-4 sm:space-y-6">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
                   <div className="relative flex-1 max-w-md">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
@@ -781,11 +781,11 @@ export default function ReportCardsPage() {
                       placeholder="Search past tests by title..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                      className="w-full pl-9 pr-3 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-bold">
                       {(['ALL', 'EXAM', 'PRACTICE'] as FilterMode[]).map((mode) => (
                         <button
@@ -846,10 +846,10 @@ export default function ReportCardsPage() {
                       return (
                         <div
                           key={rc.id}
-                          className="py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-slate-50/60 p-3 rounded-2xl transition"
+                          className="py-4 sm:py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 hover:bg-slate-50/60 p-2 sm:p-3 rounded-2xl transition w-full min-w-0"
                         >
-                          <div className="space-y-1.5 min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
+                          <div className="space-y-1.5 min-w-0 w-full flex-1">
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wide border ${
                                   rc.examCategory === 'JEE_MAINS'
@@ -868,7 +868,7 @@ export default function ReportCardsPage() {
                               >
                                 {rc.mode}
                               </span>
-                              <span className="text-xs text-slate-400 flex items-center gap-1 font-medium">
+                              <span className="text-[11px] sm:text-xs text-slate-400 flex items-center gap-1 font-medium">
                                 <Calendar className="w-3.5 h-3.5" />
                                 {new Date(rc.submittedAt).toLocaleDateString(undefined, {
                                   year: 'numeric',
@@ -879,25 +879,25 @@ export default function ReportCardsPage() {
                                 })}
                               </span>
                               <span className="text-slate-300">•</span>
-                              <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                              <span className="text-[11px] sm:text-xs text-slate-500 flex items-center gap-1 font-medium">
                                 <Clock className="w-3.5 h-3.5" />
                                 {formatDurationHuman(rc.timeTakenSeconds)}
                               </span>
                               {avgQTime > 0 && (
                                 <>
-                                  <span className="text-slate-300">•</span>
-                                  <span className="text-xs text-blue-600 font-medium">
+                                  <span className="text-slate-300 hidden sm:inline">•</span>
+                                  <span className="text-[11px] sm:text-xs text-blue-600 font-medium hidden sm:inline">
                                     ⏱ ~{Math.floor(avgQTime / 60)}m {avgQTime % 60}s / Q
                                   </span>
                                 </>
                               )}
                             </div>
 
-                            <h3 className="text-base font-bold text-slate-900 truncate">
+                            <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
                               {rc.testTitle}
                             </h3>
 
-                            <div className="flex items-center gap-3 text-xs font-medium pt-1">
+                            <div className="flex items-center gap-2 sm:gap-3 text-xs font-medium pt-0.5 flex-wrap">
                               <span className="text-emerald-700 font-bold">{rc.correctCount} Correct</span>
                               <span className="text-slate-300">/</span>
                               <span className="text-red-600 font-bold">{rc.incorrectCount} Incorrect</span>
@@ -906,9 +906,10 @@ export default function ReportCardsPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
-                            <div className="text-right">
-                              <span className="text-xl font-extrabold text-slate-900 block">
+                          {/* Score metrics & action buttons - Stacked & responsive on mobile */}
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-2.5 md:pt-0 border-slate-100">
+                            <div className="flex items-center justify-between sm:flex-col sm:items-end gap-1">
+                              <span className="text-lg sm:text-xl font-extrabold text-slate-900">
                                 {rc.score.toFixed(2)}
                                 <span className="text-xs font-semibold text-slate-400"> / {rc.maxMarks}</span>
                               </span>
@@ -921,17 +922,17 @@ export default function ReportCardsPage() {
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
                               <button
                                 onClick={() => handleOpenDetail(rc)}
-                                className="px-3.5 py-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                                className="flex-1 sm:flex-none px-3 py-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer text-center"
                               >
-                                View Report & Solutions →
+                                View Report &amp; Solutions &rarr;
                               </button>
 
                               <button
                                 onClick={() => handleRetestFullTest(rc)}
-                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                               >
                                 <RotateCcw className="w-3.5 h-3.5" />
                                 <span>Retest</span>
@@ -1055,7 +1056,7 @@ export default function ReportCardsPage() {
               )}
 
               {/* Subject & Topic Mastery Table */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs p-3.5 sm:p-6 space-y-4">
                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Target className="w-5 h-5 text-indigo-600" />
                   Subject & Topic Mastery Breakdown
