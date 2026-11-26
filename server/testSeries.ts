@@ -398,4 +398,55 @@ router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res: Respon
   }
 });
 
+// ─── 8. Update Test Details and Questions (Teachers & Admins) ───
+router.put('/:id', requireTeacherOrAdmin, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const { title, description, questions, duration } = req.body;
+
+    if (!user || !user.id) {
+      res.status(401).json({ error: 'Unauthorized.' });
+      return;
+    }
+
+    if (!isDbConfigured || !prisma) {
+      res.status(500).json({ error: 'Database not connected.' });
+      return;
+    }
+
+    const test = await prisma.publishedTest.findUnique({ where: { id } });
+    if (!test) {
+      res.status(404).json({ error: 'Test not found.' });
+      return;
+    }
+
+    const isMasterAdmin = user.role === 'ADMIN' || user.email.toLowerCase() === 'harshsaini0912@gmail.com';
+    if (test.creatorId !== user.id && !isMasterAdmin && user.role !== 'TEACHER') {
+      res.status(403).json({ error: 'Access denied.' });
+      return;
+    }
+
+    const updateData: any = {};
+    if (title) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (duration && Number(duration) > 0) updateData.durationMinutes = Number(duration);
+    if (Array.isArray(questions)) {
+      updateData.questionsJson = JSON.stringify(questions);
+      updateData.totalQuestions = questions.length;
+      updateData.totalMarks = questions.reduce((sum: number, q: any) => sum + (Number(q.marks) || 1), 0);
+    }
+
+    const updated = await prisma.publishedTest.update({
+      where: { id },
+      data: updateData,
+    });
+
+    res.json({ success: true, message: 'Test updated successfully.', test: updated });
+  } catch (err: any) {
+    console.error('Error updating test:', err);
+    res.status(500).json({ error: err.message || 'Failed to update test.' });
+  }
+});
+
 export default router;

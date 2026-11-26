@@ -370,6 +370,8 @@ export interface CreateQuestionPayload {
   options?: string[];
   answer: unknown;
   solution: string;
+  imageUrl?: string | null;
+  solutionImageUrl?: string | null;
 }
 
 export async function createQuestion(payload: CreateQuestionPayload): Promise<QuestionBankItem> {
@@ -1668,5 +1670,78 @@ export async function deleteTestSeriesApi(id: string): Promise<{ success: boolea
   }
   return data;
 }
+
+export interface UploadDiagramPayload {
+  imageBase64: string;
+  filename?: string;
+  questionId?: number | string;
+  isSolution?: boolean;
+}
+
+export interface UploadDiagramResponse {
+  success: boolean;
+  url: string;
+  cdnUrl?: string | null;
+  localUrl: string;
+  githubUrl?: string | null;
+  filename: string;
+  storage: 'github_cdn' | 'local_public';
+  sizeBytes: number;
+}
+
+export async function uploadDiagramApi(payload: UploadDiagramPayload): Promise<UploadDiagramResponse> {
+  const res = await fetch(`${API_BASE}/diagrams/upload`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to upload diagram.');
+  }
+  return data;
+}
+
+export async function removeDiagramApi(payload: { questionId?: number | string; isSolution?: boolean }): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE}/diagrams/remove`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to remove diagram.');
+  }
+  return data;
+}
+
+export async function updateTestSeriesApi(
+  id: string,
+  payload: { title?: string; description?: string; duration?: number; questions?: any[] }
+): Promise<{ success: boolean; message: string; test?: any }> {
+  const res = await fetch(`${API_BASE}/test-series/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update test series.');
+  }
+  return data;
+}
+
 
 

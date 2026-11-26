@@ -16,6 +16,7 @@ import {
   getLocalStats,
   getLocalHierarchy,
   getLocalQuestions,
+  removeDiagramApi,
 } from '../utils/api';
 import type {
   SubjectWithTopics,
@@ -46,10 +47,12 @@ import {
   Bookmark,
   Trash2,
   Lock,
+  Image as ImageIcon,
 } from 'lucide-react';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
 import TikzDiagram from '../components/TikzDiagram';
+import { DiagramUploader } from '../components/DiagramUploader';
 
 export default function QuestionBankPage() {
   const navigate = useNavigate();
@@ -142,6 +145,44 @@ export default function QuestionBankPage() {
   const [formNatMax, setFormNatMax] = useState('');
   const [formNatIsRange, setFormNatIsRange] = useState(false);
   const [formSolution, setFormSolution] = useState('');
+  const [formImageUrl, setFormImageUrl] = useState('');
+  const [formSolutionImageUrl, setFormSolutionImageUrl] = useState('');
+
+  // Inline Card Diagram Editor state (Teacher / Admin)
+  const [openDiagramEditorId, setOpenDiagramEditorId] = useState<number | null>(null);
+
+  const handleCardDiagramUpdate = (questionId: number, url: string, isSolution: boolean) => {
+    setQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id === questionId) {
+          return {
+            ...q,
+            ...(isSolution ? { solutionImageUrl: url } : { imageUrl: url }),
+          };
+        }
+        return q;
+      })
+    );
+  };
+
+  const handleCardDiagramRemove = async (questionId: number, isSolution: boolean) => {
+    try {
+      await removeDiagramApi({ questionId, isSolution });
+      setQuestions((prev) =>
+        prev.map((q) => {
+          if (q.id === questionId) {
+            return {
+              ...q,
+              ...(isSolution ? { solutionImageUrl: undefined } : { imageUrl: undefined }),
+            };
+          }
+          return q;
+        })
+      );
+    } catch (err) {
+      console.warn('Failed to remove diagram:', err);
+    }
+  };
 
   // Load initial data with background revalidation
   const loadData = useCallback(async () => {
@@ -278,6 +319,8 @@ export default function QuestionBankPage() {
         options: optionsPayload,
         answer: answerPayload,
         solution: formSolution.trim(),
+        imageUrl: formImageUrl.trim() || undefined,
+        solutionImageUrl: formSolutionImageUrl.trim() || undefined,
       });
       setShowAddModal(false);
       // Reset form
@@ -285,6 +328,8 @@ export default function QuestionBankPage() {
       setFormOptions(['', '', '', '']);
       setFormSolution('');
       setFormNatAnswer('');
+      setFormImageUrl('');
+      setFormSolutionImageUrl('');
       loadData();
     } catch (err: unknown) {
       setModalError((err as Error).message || 'Failed to create question.');
@@ -695,6 +740,27 @@ export default function QuestionBankPage() {
 
                       {/* Action buttons */}
                       <div className="flex items-center gap-1.5">
+                        {isTeacherOrAdmin && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenDiagramEditorId(openDiagramEditorId === q.id ? null : q.id)
+                            }
+                            title="Attach or replace question/solution diagram"
+                            className={`p-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
+                              openDiagramEditorId === q.id
+                                ? 'text-indigo-700 bg-indigo-100 ring-1 ring-indigo-400'
+                                : q.imageUrl || q.solutionImageUrl
+                                ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
+                                : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            <span className="text-[11px] font-bold">
+                              {q.imageUrl || q.solutionImageUrl ? 'Diagram' : '+ Diagram'}
+                            </span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleToggleBookmark(q)}
@@ -723,6 +789,54 @@ export default function QuestionBankPage() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Inline Diagram Editor for Faculty */}
+                    {openDiagramEditorId === q.id && (
+                      <div className="p-4 bg-slate-50 border-b border-slate-200/80 space-y-3 animate-in fade-in duration-150">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+                            Manage Diagram &amp; Figures (Question #{idx + 1})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setOpenDiagramEditorId(null)}
+                            className="text-xs font-bold text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-200 transition"
+                          >
+                            Close ✕
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                              Question Diagram
+                            </label>
+                            <DiagramUploader
+                              questionId={q.id}
+                              currentUrl={q.imageUrl}
+                              onUploadSuccess={(url) => handleCardDiagramUpdate(q.id, url, false)}
+                              onRemove={() => handleCardDiagramRemove(q.id, false)}
+                              compact
+                              label="Drop Question Diagram or Ctrl+V"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                              Solution Diagram / Figure
+                            </label>
+                            <DiagramUploader
+                              questionId={q.id}
+                              isSolution
+                              currentUrl={q.solutionImageUrl}
+                              onUploadSuccess={(url) => handleCardDiagramUpdate(q.id, url, true)}
+                              onRemove={() => handleCardDiagramRemove(q.id, true)}
+                              compact
+                              label="Drop Solution Diagram or Ctrl+V"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Question Text */}
                     <div className="p-4 sm:p-5 space-y-4">
@@ -1037,6 +1151,35 @@ export default function QuestionBankPage() {
                   required
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none"
                 />
+              </div>
+
+              {/* Diagrams for New Question */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Question Diagram (Optional)
+                  </label>
+                  <DiagramUploader
+                    currentUrl={formImageUrl}
+                    onUploadSuccess={(url) => setFormImageUrl(url)}
+                    onRemove={() => setFormImageUrl('')}
+                    compact
+                    label="Drop Question Diagram or Ctrl+V"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Solution Diagram (Optional)
+                  </label>
+                  <DiagramUploader
+                    isSolution
+                    currentUrl={formSolutionImageUrl}
+                    onUploadSuccess={(url) => setFormSolutionImageUrl(url)}
+                    onRemove={() => setFormSolutionImageUrl('')}
+                    compact
+                    label="Drop Solution Diagram or Ctrl+V"
+                  />
+                </div>
               </div>
 
               {/* Modal Buttons */}

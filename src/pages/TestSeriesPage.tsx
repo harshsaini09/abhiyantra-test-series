@@ -32,8 +32,10 @@ import {
   Calculator,
   Copy,
   Check,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { AI_SYSTEM_PROMPT } from '../utils/sampleData';
+import { AttachDiagramsModal } from '../components/AttachDiagramsModal';
 
 interface OfficialTestItem {
   id: string;
@@ -102,6 +104,40 @@ export const TestSeriesPage: React.FC = () => {
   const [parsedQuestions, setParsedQuestions] = useState<any[] | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+
+  // Diagram Manager Modal state
+  const [diagramModalOpen, setDiagramModalOpen] = useState(false);
+  const [diagramModalTestId, setDiagramModalTestId] = useState<string | undefined>(undefined);
+  const [diagramModalTitle, setDiagramModalTitle] = useState<string>('');
+  const [diagramModalQuestions, setDiagramModalQuestions] = useState<any[]>([]);
+  const [loadingDiagramQuestions, setLoadingDiagramQuestions] = useState(false);
+
+  const handleOpenDiagramManagerForTest = async (testId: string, title: string) => {
+    try {
+      setLoadingDiagramQuestions(true);
+      const res = await fetchOfficialTestByIdApi(testId);
+      if (res && res.test && Array.isArray(res.test.questions)) {
+        setDiagramModalTestId(testId);
+        setDiagramModalTitle(title);
+        setDiagramModalQuestions(res.test.questions);
+        setDiagramModalOpen(true);
+      } else {
+        alert('Could not find questions for this test.');
+      }
+    } catch (err: any) {
+      alert(`Failed to load test questions: ${err?.message || 'Error'}`);
+    } finally {
+      setLoadingDiagramQuestions(false);
+    }
+  };
+
+  const handleOpenDiagramManagerForUpload = () => {
+    if (!parsedQuestions || parsedQuestions.length === 0) return;
+    setDiagramModalTestId(undefined);
+    setDiagramModalTitle(uploadTitle || 'Uploaded Test Paper');
+    setDiagramModalQuestions(parsedQuestions);
+    setDiagramModalOpen(true);
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -731,13 +767,24 @@ export const TestSeriesPage: React.FC = () => {
                     </div>
 
                     {isTeacherOrAdmin && (
-                      <button
-                        onClick={() => handleDeleteTest(test.id, test.title)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                        title="Delete Official Test"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleOpenDiagramManagerForTest(test.id, test.title)}
+                          disabled={loadingDiagramQuestions}
+                          className="px-2 py-1 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-lg transition cursor-pointer flex items-center gap-1 text-[11px] font-bold shadow-2xs"
+                          title="Attach or Manage Diagrams for this Paper"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Diagrams</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTest(test.id, test.title)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                          title="Delete Official Test"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -936,6 +983,28 @@ export const TestSeriesPage: React.FC = () => {
                       <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Duration</span>
                       <span className="font-extrabold text-sm sm:text-base text-emerald-700">{uploadDuration} min</span>
                     </div>
+                  </div>
+
+                  {/* Diagram Management Action Trigger */}
+                  <div className="pt-2 border-t border-indigo-100 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                      <ImageIcon className="w-4 h-4 text-indigo-600" />
+                      <span>
+                        Diagrams:{' '}
+                        <strong className="text-indigo-700">
+                          {parsedQuestions.filter((q) => Boolean(q.imageUrl || q.solutionImageUrl)).length}
+                        </strong>{' '}
+                        / {parsedQuestions.length} attached
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleOpenDiagramManagerForUpload}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>Attach / Review Diagrams</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -1155,6 +1224,24 @@ export const TestSeriesPage: React.FC = () => {
         onSuccess={() => {
           setIsPaymentModalOpen(false);
           loadOfficialTests();
+        }}
+      />
+
+      {/* Attach & Manage Diagrams Modal */}
+      <AttachDiagramsModal
+        isOpen={diagramModalOpen}
+        onClose={() => setDiagramModalOpen(false)}
+        testTitle={diagramModalTitle}
+        questions={diagramModalQuestions}
+        testId={diagramModalTestId}
+        onSave={(updatedQuestions) => {
+          if (!diagramModalTestId) {
+            // Updated in-memory questions before publishing
+            setParsedQuestions(updatedQuestions);
+          } else {
+            // Updated already-published test in DB
+            loadOfficialTests();
+          }
         }}
       />
     </div>

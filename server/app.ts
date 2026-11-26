@@ -12,6 +12,8 @@ import analyticsRouter from './analytics.js';
 import paymentsRouter from './payments.js';
 import razorpayRouter from './razorpay.js';
 import testSeriesRouter from './testSeries.js';
+import diagramsRouter from './diagrams.js';
+import path from 'path';
 
 const app = express();
 
@@ -46,6 +48,13 @@ app.use('/', razorpayRouter);
 // ─── Test Series Routes (Official Teacher Series & Personal Series) ───
 app.use('/api/test-series', testSeriesRouter);
 app.use('/test-series', testSeriesRouter);
+
+// ─── Diagram Upload & Management Routes ───
+app.use('/api/diagrams', diagramsRouter);
+app.use('/diagrams', diagramsRouter);
+app.use('/api/upload/diagram', diagramsRouter);
+app.use('/public/diagrams', express.static(path.join(process.cwd(), 'public', 'diagrams')));
+app.use('/diagrams', express.static(path.join(process.cwd(), 'public', 'diagrams')));
 
 // ─── 1. Health Check ───
 const handleHealth = (_req: Request, res: Response) => {
@@ -348,7 +357,7 @@ app.get('/questions/:id', handleQuestionById);
 // ─── 7. Manual Question Creation ───
 const handleCreateQuestion = async (req: Request, res: Response) => {
   try {
-    const { subject, topic, type, marks, question, options, answer, solution } = req.body;
+    const { subject, topic, type, marks, question, options, answer, solution, imageUrl, solutionImageUrl } = req.body;
 
     if (!subject || !topic || !type || !marks || !question || answer === undefined || !solution) {
       res.status(400).json({ error: 'Missing required question fields.' });
@@ -388,6 +397,8 @@ const handleCreateQuestion = async (req: Request, res: Response) => {
         optionsJson: options ? JSON.stringify(options) : null,
         answerJson: JSON.stringify(answer),
         solution: solution.trim(),
+        imageUrl: imageUrl || null,
+        solutionImageUrl: solutionImageUrl || null,
         sourceTestTitle: 'Manual Entry',
       },
       include: {
