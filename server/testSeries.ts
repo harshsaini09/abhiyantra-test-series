@@ -30,9 +30,23 @@ function sanitizeTestData(input: any, defaultTitle = 'GATE Test Paper') {
     duration = input.data.duration || duration;
   }
 
+  // Normalize questions so solution / explanation / questionText are always populated
+  const normalizedQuestions = questions.map((q: any, idx: number) => {
+    const sol = (q.solution || q.explanation || q.detailedSolution || q.solutionText || q.rationale || '').toString().trim();
+    const qText = (q.question || q.questionText || q.text || q.statement || '').toString().trim();
+    return {
+      ...q,
+      id: q.id !== undefined ? q.id : idx + 1,
+      question: qText,
+      questionText: qText,
+      solution: sol,
+      explanation: sol,
+    };
+  });
+
   // Calculate total marks
-  const totalMarks = questions.reduce((sum: number, q: any) => sum + (Number(q.marks) || 1), 0);
-  const totalQuestions = questions.length;
+  const totalMarks = normalizedQuestions.reduce((sum: number, q: any) => sum + (Number(q.marks) || 1), 0);
+  const totalQuestions = normalizedQuestions.length;
 
   return {
     title,
@@ -40,7 +54,7 @@ function sanitizeTestData(input: any, defaultTitle = 'GATE Test Paper') {
     duration,
     totalQuestions,
     totalMarks,
-    questions,
+    questions: normalizedQuestions,
   };
 }
 
@@ -114,7 +128,20 @@ router.get('/official/:id', async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const parsedQuestions = JSON.parse(test.questionsJson);
+    const rawQuestions = JSON.parse(test.questionsJson);
+    const parsedQuestions = Array.isArray(rawQuestions)
+      ? rawQuestions.map((q: any, idx: number) => {
+          const sol = (q.solution || q.explanation || q.detailedSolution || q.solutionText || q.rationale || '').toString().trim();
+          const qText = (q.question || q.questionText || q.text || q.statement || '').toString().trim();
+          return {
+            ...q,
+            id: q.id !== undefined ? q.id : idx + 1,
+            question: qText || q.question,
+            solution: sol || q.solution || '',
+            explanation: sol || q.explanation || '',
+          };
+        })
+      : rawQuestions;
     res.json({
       test: {
         id: test.id,
@@ -267,7 +294,20 @@ router.get('/my-personal/:id', requireAuth, async (req: AuthenticatedRequest, re
       return;
     }
 
-    const parsedQuestions = JSON.parse(test.questionsJson);
+    const rawQuestions = JSON.parse(test.questionsJson);
+    const parsedQuestions = Array.isArray(rawQuestions)
+      ? rawQuestions.map((q: any, idx: number) => {
+          const sol = (q.solution || q.explanation || q.detailedSolution || q.solutionText || q.rationale || '').toString().trim();
+          const qText = (q.question || q.questionText || q.text || q.statement || '').toString().trim();
+          return {
+            ...q,
+            id: q.id !== undefined ? q.id : idx + 1,
+            question: qText || q.question,
+            solution: sol || q.solution || '',
+            explanation: sol || q.explanation || '',
+          };
+        })
+      : rawQuestions;
     res.json({
       test: {
         id: test.id,

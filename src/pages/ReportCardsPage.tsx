@@ -294,10 +294,18 @@ export default function ReportCardsPage() {
 
     if (rc.detailedReviewJson && rc.detailedReviewJson.length > 0) {
       questions = rc.detailedReviewJson
-        .map((qr, idx) => ({
-          ...qr.question,
-          id: idx + 1,
-        }))
+        .map((qr, idx) => {
+          const q = qr.question || {};
+          const sol = (q.solution || (q as any).explanation || (q as any).detailedSolution || (q as any).solutionText || (q as any).rationale || '').toString().trim();
+          const qText = (q.question || (q as any).questionText || (q as any).text || (q as any).statement || '').toString().trim();
+          return {
+            ...q,
+            id: idx + 1,
+            question: qText || q.question,
+            solution: sol,
+            explanation: sol,
+          };
+        })
         .filter((q) => q && q.question);
     }
 
@@ -306,10 +314,18 @@ export default function ReportCardsPage() {
         const fullDetail = await fetchReportCardDetailApi(rc.id);
         if (fullDetail?.detailedReviewJson && fullDetail.detailedReviewJson.length > 0) {
           questions = fullDetail.detailedReviewJson
-            .map((qr, idx) => ({
-              ...qr.question,
-              id: idx + 1,
-            }))
+            .map((qr, idx) => {
+              const q = qr.question || {};
+              const sol = (q.solution || (q as any).explanation || (q as any).detailedSolution || (q as any).solutionText || (q as any).rationale || '').toString().trim();
+              const qText = (q.question || (q as any).questionText || (q as any).text || (q as any).statement || '').toString().trim();
+              return {
+                ...q,
+                id: idx + 1,
+                question: qText || q.question,
+                solution: sol,
+                explanation: sol,
+              };
+            })
             .filter((q) => q && q.question);
         }
       } catch {
@@ -1313,7 +1329,7 @@ export default function ReportCardsPage() {
 
                             <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-1.5 text-xs text-indigo-950">
                               <span className="font-bold text-indigo-900 block">Official Solution:</span>
-                              <RichContent content={q.solution || 'No detailed solution stored.'} />
+                              <RichContent content={q.solution || (q as any).explanation || (q as any).detailedSolution || (q as any).solutionText || (q as any).rationale || 'No detailed solution stored.'} />
                             </div>
                           </div>
                         )}
@@ -1490,7 +1506,7 @@ export default function ReportCardsPage() {
                             )}
                             <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-950 space-y-1">
                               <span className="font-bold text-indigo-900 block">Solution:</span>
-                              <RichContent content={q.solution || 'No detailed solution stored.'} />
+                              <RichContent content={q.solution || (q as any).explanation || (q as any).detailedSolution || (q as any).solutionText || (q as any).rationale || 'No detailed solution stored.'} />
                             </div>
                           </div>
                         )}

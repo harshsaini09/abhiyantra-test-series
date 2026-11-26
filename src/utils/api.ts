@@ -315,7 +315,7 @@ export async function ingestTestData(testData: TestData): Promise<IngestResponse
         questionText: q.question,
         options: q.options,
         answer: q.answer,
-        solution: q.solution,
+        solution: q.solution || (q as any).explanation || '',
         sourceTestTitle: testData.title,
         isArchived: false,
         createdAt: new Date().toISOString(),
@@ -464,7 +464,7 @@ export async function generateCustomTest(payload: CustomTestPayload): Promise<Te
       question: q.questionText,
       options: q.options,
       answer: q.answer,
-      solution: q.solution,
+      solution: q.solution || (q as any).explanation || '',
     })),
   };
 }

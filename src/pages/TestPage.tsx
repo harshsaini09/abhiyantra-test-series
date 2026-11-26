@@ -63,7 +63,24 @@ export default function TestPage() {
     mode?: TestMode;
   };
 
-  const testData = stateData.testData || (savedOnMount && !savedOnMount.isSubmitted ? savedOnMount.testData : undefined);
+  const rawTestData = stateData.testData || (savedOnMount && !savedOnMount.isSubmitted ? savedOnMount.testData : undefined);
+  const testData = useMemo(() => {
+    if (!rawTestData) return undefined;
+    return {
+      ...rawTestData,
+      questions: rawTestData.questions.map((q, idx) => {
+        const sol = (q.solution || (q as any).explanation || (q as any).detailedSolution || (q as any).solutionText || (q as any).rationale || '').toString().trim();
+        const qText = (q.question || (q as any).questionText || (q as any).text || (q as any).statement || '').toString().trim();
+        return {
+          ...q,
+          id: q.id !== undefined ? q.id : idx + 1,
+          question: qText || q.question,
+          solution: sol,
+          explanation: sol,
+        };
+      }),
+    };
+  }, [rawTestData]);
   const mode = stateData.mode || (savedOnMount && !savedOnMount.isSubmitted ? savedOnMount.mode : 'exam');
 
   // ─── guard: no data ───
@@ -389,7 +406,7 @@ export default function TestPage() {
     setPracticeResult({
       isCorrect: result.isCorrect,
       marks: result.marksAwarded,
-      solution: question.solution,
+      solution: question.solution || (question as any).explanation || '',
     });
     updateResponse({ practiceChecked: true, practiceResult: result.isCorrect ? 'correct' : 'incorrect' });
   }
@@ -687,7 +704,7 @@ export default function TestPage() {
                   </div>
                 )}
                 <div className="text-sm leading-relaxed text-slate-700">
-                  <RichContent content={practiceResult.solution} />
+                  <RichContent content={practiceResult.solution || question.solution || (question as any).explanation || ''} />
                 </div>
               </div>
             </div>

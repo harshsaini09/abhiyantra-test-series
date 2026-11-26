@@ -50,8 +50,30 @@ export default function ReportCardTestReview({
   const [showMobilePalette, setShowMobilePalette] = useState(false);
 
   const reviews: QuestionResult[] = useMemo(() => {
-    if (reportCard.detailedReviewJson && Array.isArray(reportCard.detailedReviewJson)) {
-      return reportCard.detailedReviewJson;
+    let raw: any = reportCard.detailedReviewJson;
+    if (typeof raw === 'string') {
+      try {
+        raw = JSON.parse(raw);
+      } catch {
+        raw = [];
+      }
+    }
+    if (Array.isArray(raw)) {
+      return raw.map((qr: any) => {
+        if (!qr || !qr.question) return qr;
+        const q = qr.question;
+        const sol = (q.solution || q.explanation || q.detailedSolution || q.solutionText || q.rationale || '').toString().trim();
+        const qText = (q.question || q.questionText || q.text || q.statement || '').toString().trim();
+        return {
+          ...qr,
+          question: {
+            ...q,
+            question: qText || q.question,
+            solution: sol || q.solution || '',
+            explanation: sol || q.explanation || '',
+          },
+        };
+      });
     }
     return [];
   }, [reportCard]);
@@ -554,7 +576,7 @@ export default function ReportCardTestReview({
                     Detailed Solution &amp; Step-by-Step Explanation
                   </h3>
                   <span className="text-xs text-indigo-600 font-semibold">
-                    Official GATE Assessment Solution
+                    Official {reportCard.examCategory === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} Assessment Solution
                   </span>
                 </div>
               </div>
@@ -589,7 +611,7 @@ export default function ReportCardTestReview({
 
             {/* Solution Text with Math Rendering */}
             <div className="text-slate-800 text-sm sm:text-base leading-relaxed space-y-3">
-              <RichContent content={q.solution || 'Detailed step-by-step solution provided in test paper.'} />
+              <RichContent content={q.solution || q.explanation || (q as any).detailedSolution || (q as any).solutionText || (q as any).rationale || 'Detailed step-by-step solution provided in test paper.'} />
             </div>
           </div>
         </main>

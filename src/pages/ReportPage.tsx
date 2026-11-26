@@ -723,7 +723,7 @@ export default function ReportPage() {
                       )}
 
                       {/* Solution / Explanation */}
-                      {qr.question.solution && (
+                      {(qr.question.solution || qr.question.explanation || (qr.question as any).detailedSolution) && (
                         <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-xl p-4.5 space-y-2.5">
                           <p className="text-xs font-bold uppercase tracking-wider text-indigo-700">Official Solution &amp; Explanation</p>
                           {qr.question.solutionImageUrl && (
@@ -732,7 +732,7 @@ export default function ReportPage() {
                             </div>
                           )}
                           <div className="text-sm text-slate-800 leading-relaxed">
-                            <RichContent content={qr.question.solution} />
+                            <RichContent content={qr.question.solution || qr.question.explanation || (qr.question as any).detailedSolution || ''} />
                           </div>
                         </div>
                       )}

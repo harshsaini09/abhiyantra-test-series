@@ -423,8 +423,21 @@ export const TestSeriesPage: React.FC = () => {
           } containing ${count} questions (${computedMarks} Marks). Allocated test duration: ${calculatedDuration} minutes (~${calculatedPerQMin} min/question).`;
         }
 
-        // 9. Auto-fill all states
-        setParsedQuestions(questions);
+        // 9. Normalize questions to ensure solution, explanation, questionText and id are populated
+        const normalizedQuestions = questions.map((q: any, idx: number) => {
+          const sol = (q.solution || q.explanation || q.detailedSolution || q.solutionText || q.rationale || '').toString().trim();
+          const qText = (q.question || q.questionText || q.text || q.statement || '').toString().trim();
+          return {
+            ...q,
+            id: q.id !== undefined ? q.id : idx + 1,
+            question: qText,
+            questionText: qText,
+            solution: sol,
+            explanation: sol,
+          };
+        });
+
+        setParsedQuestions(normalizedQuestions);
         setUploadExamCategory(detectedExam);
         setTotalMarks(computedMarks);
         setUploadTitle(cleanTitle);

@@ -103,7 +103,7 @@ export default function QuestionBankPage() {
     question: q.questionText,
     options: q.options || undefined,
     answer: q.answer,
-    solution: q.solution,
+    solution: q.solution || (q as any).explanation || '',
     marks: q.marks,
     subject: q.subject.name,
     topic: q.topic.name,
@@ -930,7 +930,7 @@ export default function QuestionBankPage() {
                               </div>
                             )}
                             <div className="leading-relaxed">
-                              <RichContent content={q.solution} />
+                              <RichContent content={q.solution || (q as any).explanation || ''} />
                             </div>
                           </div>
                         )}

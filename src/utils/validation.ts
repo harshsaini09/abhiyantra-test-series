@@ -220,13 +220,17 @@ export function validateTestJSON(data: unknown): { valid: boolean; errors: Valid
       }
     }
 
-    // solution
-    if (!question.solution || typeof question.solution !== 'string') {
+    // solution / explanation normalization
+    const solText = (question.solution || (question as any).explanation || (question as any).detailedSolution || (question as any).solutionText || (question as any).rationale || '').toString().trim();
+    if (!solText) {
       errors.push({
         field: `${prefix}.solution`,
-        message: `Question ${idx + 1}: "solution" is required and must be a string.`,
+        message: `Question ${idx + 1}: "solution" or "explanation" is required and must be a string.`,
         questionIndex: idx,
       });
+    } else {
+      question.solution = solText;
+      (question as any).explanation = solText;
     }
   });
 

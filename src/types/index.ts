@@ -22,9 +22,12 @@ export interface Question {
   subject?: string;
   topic?: string;
   question: string;
+  questionText?: string;
   options?: string[];
   answer: number | number[] | NATAnswer;
   solution: string;
+  explanation?: string | null;
+  detailedSolution?: string | null;
   imageUrl?: string | null;
   solutionImageUrl?: string | null;
   section?: 'GA' | 'SUBJECT' | string;
@@ -89,9 +92,12 @@ export interface QuestionBankItem {
   type: QuestionType;
   marks: MarkValue;
   questionText: string;
+  question?: string;
   options?: string[];
   answer: number | number[] | NATAnswer;
   solution: string;
+  explanation?: string | null;
+  detailedSolution?: string | null;
   imageUrl?: string | null;
   solutionImageUrl?: string | null;
   section?: 'GA' | 'SUBJECT' | string;
