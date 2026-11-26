@@ -334,15 +334,29 @@ export default function GateCalculator({ isOpen, onClose }: GateCalculatorProps)
 
   if (!isOpen) return null;
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
   return (
     <div
-      style={{
-        position: 'fixed',
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        zIndex: 9999,
-      }}
-      className="w-[505px] max-w-[98vw] bg-[#e6e6e6] border border-[#7f9db9] shadow-[0_10px_30px_rgba(0,0,0,0.45)] select-none font-sans text-[#222]"
+      style={
+        isMobile
+          ? {
+              position: 'fixed',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 9999,
+              width: '95vw',
+              maxWidth: '480px',
+            }
+          : {
+              position: 'fixed',
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              zIndex: 9999,
+            }
+      }
+      className="w-full sm:w-[505px] max-w-[98vw] bg-[#e6e6e6] border border-[#7f9db9] shadow-[0_10px_30px_rgba(0,0,0,0.45)] select-none font-sans text-[#222] rounded-lg overflow-hidden"
     >
       {/* ─── TCS-iON Blue Title Bar ─── */}
       <div

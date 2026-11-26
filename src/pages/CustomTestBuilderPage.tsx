@@ -720,9 +720,9 @@ export default function CustomTestBuilderPage() {
       </header>
 
       {/* ─── Main Content ─── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 flex flex-col lg:flex-row gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 flex flex-col lg:flex-row gap-6 min-w-0">
         {/* ─── LEFT PANEL: Question Selection or Rule Configuration ─── */}
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 min-w-0 space-y-4">
           {errorMsg && (
             <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-sm font-semibold flex items-center gap-2">
               <AlertCircle className="w-5 h-5 shrink-0" />

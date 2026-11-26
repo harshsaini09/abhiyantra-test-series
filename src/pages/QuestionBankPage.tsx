@@ -552,7 +552,7 @@ export default function QuestionBankPage() {
         </aside>
 
         {/* ─── RIGHT: Question List & Filter Toolbar ─── */}
-        <main className="flex-1 space-y-4">
+        <main className="flex-1 min-w-0 space-y-4">
           {/* Filter Bar */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-3">

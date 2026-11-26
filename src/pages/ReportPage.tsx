@@ -436,8 +436,8 @@ export default function ReportPage() {
             Performance Breakdown
           </h2>
 
-          <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
-            <table className="w-full text-sm text-left">
+          <div className="overflow-x-auto w-full max-w-full bg-white rounded-xl shadow-sm border border-slate-200">
+            <table className="w-full min-w-[540px] text-sm text-left">
               <thead>
                 <tr className="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
                   <th className="px-4 py-3">Category</th>

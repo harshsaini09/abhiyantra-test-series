@@ -344,19 +344,19 @@ export default function Navbar() {
         </div>
 
         {/* Mobile & Small Tablet Navigation Bar */}
-        <div className="flex md:hidden items-center justify-around py-2 border-t border-slate-100">
+        <div className="flex md:hidden items-center justify-around py-2 border-t border-slate-100 overflow-x-auto no-scrollbar gap-1 px-1">
           {links.map((link) => {
             const isActive = isLinkActive(link.to);
             return (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`flex flex-col items-center gap-1 text-[11px] font-semibold py-1.5 px-2.5 rounded-lg transition-colors ${
+                className={`flex flex-col items-center gap-1 text-[11px] font-semibold py-1.5 px-2 rounded-lg transition-colors shrink-0 ${
                   isActive ? 'text-indigo-700 bg-indigo-50 font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {link.icon}
-                <span>{link.shortLabel}</span>
+                <span className="truncate max-w-[55px] text-center">{link.shortLabel}</span>
               </Link>
             );
           })}

@@ -414,7 +414,7 @@ function CodeBlockView({ code, language }: { code: string; language: string }) {
   };
 
   return (
-    <div className="my-3 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 shadow-md text-xs sm:text-sm">
+    <div className="my-3 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 shadow-md text-xs sm:text-sm w-full max-w-full">
       <div className="flex items-center justify-between px-3.5 py-1.5 bg-slate-800/80 border-b border-slate-700 text-slate-300">
         <span className="font-mono text-xs uppercase font-semibold text-indigo-300">
           {language || 'code'}
@@ -461,7 +461,7 @@ function KatexMath({ math, displayMode }: { math: string; displayMode: boolean }
   if (displayMode) {
     return (
       <div
-        className="my-2 py-1.5 px-2 overflow-x-auto text-center"
+        className="my-2 py-1.5 px-2 overflow-x-auto text-center w-full max-w-full"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
@@ -469,7 +469,7 @@ function KatexMath({ math, displayMode }: { math: string; displayMode: boolean }
 
   return (
     <span
-      className="inline-math px-0.5"
+      className="inline-math px-0.5 max-w-full overflow-x-auto"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -478,7 +478,7 @@ function KatexMath({ math, displayMode }: { math: string; displayMode: boolean }
 function BlankField() {
   return (
     <span
-      className="inline-block border-b-2 border-slate-700 min-w-[65px] sm:min-w-[85px] mx-1.5 h-[1.1em] align-baseline relative top-[-1px] select-none"
+      className="inline-block border-b-2 border-slate-700 min-w-[50px] sm:min-w-[85px] mx-1 h-[1.1em] align-baseline relative top-[-1px] select-none"
       title="Fill in the blank"
       aria-label="fill in the blank"
     />
@@ -489,7 +489,7 @@ function TableView({ tableData }: { tableData: TableData }) {
   const { caption, headers, alignments = [], rows } = tableData;
 
   return (
-    <div className="my-3 overflow-x-auto flex flex-col items-start sm:items-center">
+    <div className="my-3 overflow-x-auto w-full max-w-full flex flex-col items-start sm:items-center">
       <table className="border-collapse border-2 border-slate-700 bg-white text-xs sm:text-sm shadow-xs rounded-sm overflow-hidden min-w-[240px]">
         {caption && (
           <thead>
