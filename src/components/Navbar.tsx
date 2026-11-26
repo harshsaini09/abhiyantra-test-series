@@ -71,71 +71,6 @@ export default function Navbar() {
                 </span>
               </div>
             </Link>
-
-            {/* Exam Target Switcher Pill */}
-            <div className="relative shrink-0" ref={examDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setExamDropdownOpen(!examDropdownOpen)}
-                className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-                  targetExam === 'JEE_MAINS'
-                    ? 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100/80'
-                    : 'bg-indigo-50 border-indigo-200 text-indigo-800 hover:bg-indigo-100/80'
-                }`}
-                title="Switch Target Examination"
-              >
-                {targetExam === 'JEE_MAINS' ? (
-                  <>
-                    <Atom className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
-                    <span>JEE</span>
-                  </>
-                ) : (
-                  <>
-                    <GraduationCap className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                    <span>GATE</span>
-                  </>
-                )}
-                <ChevronDown className="w-3 h-3 text-slate-400" />
-              </button>
-
-              {examDropdownOpen && (
-                <div className="absolute left-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Target Examination
-                  </div>
-                  <button
-                    onClick={() => {
-                      setTargetExam('GATE');
-                      setExamDropdownOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
-                      targetExam === 'GATE' ? 'text-indigo-600 bg-indigo-50/50 font-bold' : 'text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="w-4 h-4 text-indigo-600" />
-                      <span>GATE Exam</span>
-                    </div>
-                    {targetExam === 'GATE' && <Check className="w-3.5 h-3.5 text-indigo-600" />}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTargetExam('JEE_MAINS');
-                      setExamDropdownOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
-                      targetExam === 'JEE_MAINS' ? 'text-cyan-600 bg-cyan-50/50 font-bold' : 'text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Atom className="w-4 h-4 text-cyan-600" />
-                      <span>JEE Mains</span>
-                    </div>
-                    {targetExam === 'JEE_MAINS' && <Check className="w-3.5 h-3.5 text-cyan-600" />}
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Center Navigation Links (Tablet landscape & Desktop) */}
@@ -169,7 +104,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2 p-1 sm:p-1.5 sm:pl-2 sm:pr-3 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 sm:pl-2 sm:pr-3 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs"
                 >
                   {user.avatarUrl ? (
                     <img
@@ -183,7 +118,7 @@ export default function Navbar() {
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="text-left hidden sm:block max-w-[120px] lg:max-w-[150px]">
+                  <div className="text-left hidden sm:block max-w-[110px] lg:max-w-[140px]">
                     <div className="flex items-center gap-1">
                       <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
                       {isMasterAdmin ? (
@@ -206,6 +141,28 @@ export default function Navbar() {
                     </div>
                     <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
                   </div>
+
+                  {/* Target Examination Switcher Pill inside Login User Drop Button */}
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold ${
+                      targetExam === 'JEE_MAINS'
+                        ? 'bg-cyan-50 border-cyan-200 text-cyan-800'
+                        : 'bg-indigo-50 border-indigo-200 text-indigo-800'
+                    }`}
+                  >
+                    {targetExam === 'JEE_MAINS' ? (
+                      <>
+                        <Atom className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                        <span>JEE</span>
+                      </>
+                    ) : (
+                      <>
+                        <GraduationCap className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        <span>GATE</span>
+                      </>
+                    )}
+                  </span>
+
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
 
@@ -248,6 +205,56 @@ export default function Navbar() {
                             ? 'Pro Student (Active Pass)'
                             : 'Registered Student'}
                         </span>
+                      </div>
+                    </div>
+
+                    {/* Target Examination Switcher inside User Dropdown */}
+                    <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50/70">
+                      <div className="flex items-center justify-between mb-1.5 px-0.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Target Examination
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full border ${
+                            targetExam === 'JEE_MAINS'
+                              ? 'bg-cyan-100/70 border-cyan-200 text-cyan-800'
+                              : 'bg-indigo-100/70 border-indigo-200 text-indigo-800'
+                          }`}
+                        >
+                          {targetExam === 'JEE_MAINS' ? 'JEE Mains Active' : 'GATE Active'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTargetExam('GATE');
+                          }}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            targetExam === 'GATE'
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          }`}
+                        >
+                          <GraduationCap className="w-3.5 h-3.5" />
+                          <span>GATE</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTargetExam('JEE_MAINS');
+                          }}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            targetExam === 'JEE_MAINS'
+                              ? 'bg-cyan-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          }`}
+                        >
+                          <Atom className="w-3.5 h-3.5" />
+                          <span>JEE Mains</span>
+                        </button>
                       </div>
                     </div>
 
@@ -323,21 +330,89 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              /* Signed Out: Google Sign In Button */
-              <div className="flex items-center scale-75 sm:scale-90 origin-right shrink-0">
-                <GoogleLogin
-                  onSuccess={(credentialResponse) => {
-                    if (credentialResponse.credential) {
-                      login(credentialResponse.credential);
-                    }
-                  }}
-                  onError={() => {
-                    console.error('Google Sign In failed');
-                  }}
-                  shape="pill"
-                  size="medium"
-                  text="signin"
-                />
+              /* Signed Out: Exam Target Switcher + Google Sign In Button */
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="relative shrink-0" ref={examDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setExamDropdownOpen(!examDropdownOpen)}
+                    className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                      targetExam === 'JEE_MAINS'
+                        ? 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100/80'
+                        : 'bg-indigo-50 border-indigo-200 text-indigo-800 hover:bg-indigo-100/80'
+                    }`}
+                    title="Switch Target Examination"
+                  >
+                    {targetExam === 'JEE_MAINS' ? (
+                      <>
+                        <Atom className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                        <span>JEE</span>
+                      </>
+                    ) : (
+                      <>
+                        <GraduationCap className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        <span>GATE</span>
+                      </>
+                    )}
+                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                  </button>
+
+                  {examDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Target Examination
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTargetExam('GATE');
+                          setExamDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
+                          targetExam === 'GATE' ? 'text-indigo-600 bg-indigo-50/50 font-bold' : 'text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <GraduationCap className="w-4 h-4 text-indigo-600" />
+                          <span>GATE Exam</span>
+                        </div>
+                        {targetExam === 'GATE' && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTargetExam('JEE_MAINS');
+                          setExamDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
+                          targetExam === 'JEE_MAINS' ? 'text-cyan-600 bg-cyan-50/50 font-bold' : 'text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Atom className="w-4 h-4 text-cyan-600" />
+                          <span>JEE Mains</span>
+                        </div>
+                        {targetExam === 'JEE_MAINS' && <Check className="w-3.5 h-3.5 text-cyan-600" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center scale-75 sm:scale-90 origin-right shrink-0">
+                  <GoogleLogin
+                    onSuccess={(credentialResponse) => {
+                      if (credentialResponse.credential) {
+                        login(credentialResponse.credential);
+                      }
+                    }}
+                    onError={() => {
+                      console.error('Google Sign In failed');
+                    }}
+                    shape="pill"
+                    size="medium"
+                    text="signin"
+                  />
+                </div>
               </div>
             )}
           </div>
