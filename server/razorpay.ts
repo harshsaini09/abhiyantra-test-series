@@ -236,8 +236,9 @@ export async function handleSyncRazorpay(req: AuthenticatedRequest, res: Respons
     const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
     const authUser = token ? verifyUserToken(token) : null;
     const isMasterAdmin = authUser && (
-      authUser.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
-      authUser.email.toLowerCase().startsWith('harshsaini0912@')
+      authUser.role === 'ADMIN' ||
+      authUser.email.toLowerCase().trim() === 'brainiacssolutions9@gmail.com' ||
+      authUser.email.toLowerCase().startsWith('brainiacssolutions9@')
     );
 
     if (authUser && !isMasterAdmin) {

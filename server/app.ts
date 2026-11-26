@@ -583,17 +583,18 @@ const handleClearData = async (req: Request, res: Response) => {
   try {
     const { target } = req.body || {}; // 'all' | 'questions' | 'report-cards'
 
-    // Restrict clear data operation to harshsaini0912
+    // Restrict clear data operation to brainiacssolutions9
     const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
     const authUser = token ? verifyUserToken(token) : null;
     const isMasterAdmin = authUser && (
-      authUser.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
-      authUser.email.toLowerCase().trim() === 'harshsaini0912@gmail' ||
-      authUser.email.toLowerCase().startsWith('harshsaini0912@')
+      authUser.role === 'ADMIN' ||
+      authUser.email.toLowerCase().trim() === 'brainiacssolutions9@gmail.com' ||
+      authUser.email.toLowerCase().trim() === 'brainiacssolutions9@gmail' ||
+      authUser.email.toLowerCase().startsWith('brainiacssolutions9@')
     );
 
     if (authUser && !isMasterAdmin) {
-      res.status(403).json({ error: 'Access denied: Only harshsaini0912@gmail has permission to clear database data.' });
+      res.status(403).json({ error: 'Access denied: Only brainiacssolutions9@gmail.com has permission to clear database data.' });
       return;
     }
 

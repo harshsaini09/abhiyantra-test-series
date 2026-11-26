@@ -58,9 +58,9 @@ export default function QuestionBankPage() {
   const { user, loading: authLoading, targetExam } = useAuth();
   const isMasterAdmin = Boolean(
     user?.email &&
-      (user.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
-        user.email.toLowerCase().trim() === 'harshsaini0912@gmail' ||
-        user.email.toLowerCase().startsWith('harshsaini0912@') ||
+      (user.email.toLowerCase().trim() === 'brainiacssolutions9@gmail.com' ||
+        user.email.toLowerCase().trim() === 'brainiacssolutions9@gmail' ||
+        user.email.toLowerCase().startsWith('brainiacssolutions9@') ||
         user?.role === 'ADMIN')
   );
   const isTeacherOrAdmin = isMasterAdmin || user?.role === 'TEACHER';
@@ -368,9 +368,9 @@ export default function QuestionBankPage() {
             <button
               onClick={() => {
                 const adminProfile = {
-                  id: 'admin_harshsaini0912',
-                  email: 'harshsaini0912@gmail.com',
-                  name: 'Harsh Saini (Admin)',
+                  id: 'admin_brainiacssolutions9',
+                  email: 'brainiacssolutions9@gmail.com',
+                  name: 'Brainiacs Solutions Admin',
                   role: 'ADMIN' as const,
                   isSubscribed: true,
                   targetExam: 'GATE' as const,
@@ -380,7 +380,7 @@ export default function QuestionBankPage() {
               }}
               className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition border border-indigo-200 cursor-pointer"
             >
-              🔑 Continue as Platform Admin (harshsaini0912@gmail.com)
+              🔑 Continue as Platform Admin (brainiacssolutions9@gmail.com)
             </button>
             <button
               onClick={() => navigate('/test-series')}

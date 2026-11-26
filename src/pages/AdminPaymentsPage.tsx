@@ -62,7 +62,7 @@ export const AdminPaymentsPage: React.FC = () => {
   };
 
   const isMasterAdmin =
-    user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
+    user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'brainiacssolutions9@gmail.com';
 
   const loadPayments = async () => {
     setLoading(true);
@@ -132,7 +132,7 @@ export const AdminPaymentsPage: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-slate-900">Access Restricted</h2>
           <p className="text-xs text-slate-500">
-            This dashboard is reserved strictly for Master Admin (<span className="font-mono text-slate-700">harshsaini0912@gmail.com</span>).
+            This dashboard is reserved strictly for Master Admin (<span className="font-mono text-slate-700">brainiacssolutions9@gmail.com</span>).
           </p>
           <button
             onClick={() => navigate('/')}
@@ -194,7 +194,7 @@ export const AdminPaymentsPage: React.FC = () => {
               Abhiyantra Administration Console
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              Logged in as <strong className="text-slate-800 font-mono">harshsaini0912@gmail.com</strong> (Platform Admin)
+              Logged in as <strong className="text-slate-800 font-mono">{user?.email || 'brainiacssolutions9@gmail.com'}</strong> (Platform Admin)
             </p>
           </div>
 
@@ -500,7 +500,7 @@ export const AdminPaymentsPage: React.FC = () => {
                     <tbody className="divide-y divide-slate-100">
                       {filteredUsers.map((u) => {
                         const isUpdating = updatingUserId === u.id;
-                        const isPrimaryAdmin = u.email.toLowerCase() === 'harshsaini0912@gmail.com';
+                        const isPrimaryAdmin = u.email.toLowerCase() === 'brainiacssolutions9@gmail.com';
 
                         return (
                           <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">

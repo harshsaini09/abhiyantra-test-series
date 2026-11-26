@@ -5,7 +5,7 @@ import { requireAuth, AuthenticatedRequest } from './auth.js';
 const router = Router();
 
 // Master Admin Email
-export const ADMIN_EMAIL = 'harshsaini0912@gmail.com';
+export const ADMIN_EMAIL = 'brainiacssolutions9@gmail.com';
 
 // Configurable UPI details (0% fee, direct payment to owner)
 export const UPI_PAYEE_ID = process.env.UPI_PAYEE_ID || 'harshsaini0912@okhdfcbank';

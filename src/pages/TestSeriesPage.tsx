@@ -61,7 +61,7 @@ export const TestSeriesPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, targetExam } = useAuth();
 
-  const isMasterAdmin = user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'harshsaini0912@gmail.com';
+  const isMasterAdmin = user?.role === 'ADMIN' || user?.email?.toLowerCase() === 'brainiacssolutions9@gmail.com';
   const isTeacher = user?.role === 'TEACHER';
   const isTeacherOrAdmin = isMasterAdmin || isTeacher;
   const hasAccess = isTeacherOrAdmin || !!(user && user.isSubscribed);
@@ -611,9 +611,9 @@ export const TestSeriesPage: React.FC = () => {
               <button
                 onClick={() => {
                   const adminProfile = {
-                    id: 'admin_harshsaini0912',
-                    email: 'harshsaini0912@gmail.com',
-                    name: 'Harsh Saini (Admin)',
+                    id: 'admin_brainiacssolutions9',
+                    email: 'brainiacssolutions9@gmail.com',
+                    name: 'Brainiacs Solutions Admin',
                     role: 'ADMIN' as const,
                     isSubscribed: true,
                     targetExam: 'GATE' as const,

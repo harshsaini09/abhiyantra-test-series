@@ -43,9 +43,9 @@ export default function CustomTestBuilderPage() {
   const { user, loading: authLoading, targetExam } = useAuth();
   const isMasterAdmin = Boolean(
     user?.email &&
-      (user.email.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
-        user.email.toLowerCase().trim() === 'harshsaini0912@gmail' ||
-        user.email.toLowerCase().startsWith('harshsaini0912@') ||
+      (user.email.toLowerCase().trim() === 'brainiacssolutions9@gmail.com' ||
+        user.email.toLowerCase().trim() === 'brainiacssolutions9@gmail' ||
+        user.email.toLowerCase().startsWith('brainiacssolutions9@') ||
         user?.role === 'ADMIN')
   );
   const isTeacherOrAdmin = isMasterAdmin || user?.role === 'TEACHER';

@@ -36,7 +36,7 @@ export function signUserToken(user: AuthUser): string {
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl,
-      role: user.role || (user.email.toLowerCase() === 'harshsaini0912@gmail.com' ? 'ADMIN' : 'STUDENT'),
+      role: user.role || (user.email.toLowerCase() === 'brainiacssolutions9@gmail.com' ? 'ADMIN' : 'STUDENT'),
     },
     JWT_SECRET,
     { expiresIn: '30d' }
@@ -59,7 +59,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
   if (token) {
     const user = verifyUserToken(token);
     if (user) {
-      if (user.email.toLowerCase() === 'harshsaini0912@gmail.com') {
+      if (user.email.toLowerCase() === 'brainiacssolutions9@gmail.com') {
         user.role = 'ADMIN';
       }
       req.user = user;
@@ -73,7 +73,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
   if (userEmail && typeof userEmail === 'string' && userEmail.includes('@')) {
     const email = userEmail.toLowerCase().trim();
     const userName = (req.headers['x-user-name'] as string) || req.body?.userName || email.split('@')[0];
-    const isAdminUser = email === 'harshsaini0912@gmail.com';
+    const isAdminUser = email === 'brainiacssolutions9@gmail.com';
 
     try {
       if (isDbConfigured && prisma) {
@@ -134,7 +134,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
 export async function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   await requireAuth(req, res, () => {
     const user = req.user;
-    if (user && (user.role === 'ADMIN' || user.email.toLowerCase() === 'harshsaini0912@gmail.com')) {
+    if (user && (user.role === 'ADMIN' || user.email.toLowerCase() === 'brainiacssolutions9@gmail.com')) {
       next();
     } else {
       res.status(403).json({ error: 'Access denied. Master Admin privileges required.' });
@@ -145,7 +145,7 @@ export async function requireAdmin(req: AuthenticatedRequest, res: Response, nex
 export async function requireTeacherOrAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   await requireAuth(req, res, () => {
     const user = req.user;
-    if (user && (user.role === 'ADMIN' || user.role === 'TEACHER' || user.email.toLowerCase() === 'harshsaini0912@gmail.com')) {
+    if (user && (user.role === 'ADMIN' || user.role === 'TEACHER' || user.email.toLowerCase() === 'brainiacssolutions9@gmail.com')) {
       next();
     } else {
       res.status(403).json({ error: 'Access denied. Teacher or Admin privileges required.' });
@@ -212,7 +212,7 @@ router.post('/google', async (req: Request, res: Response): Promise<void> => {
     let user: AuthUser;
 
     // Upsert user in PostgreSQL if database is connected
-    const isAdminUser = email === 'harshsaini0912@gmail.com';
+    const isAdminUser = email === 'brainiacssolutions9@gmail.com';
 
     if (isDbConfigured && prisma) {
       try {
@@ -317,7 +317,7 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
             dbUser.isSubscribed &&
             (!dbUser.subscriptionUntil || new Date(dbUser.subscriptionUntil) > new Date())
           );
-          const isAdminUser = dbUser.email === 'harshsaini0912@gmail.com';
+          const isAdminUser = dbUser.email === 'brainiacssolutions9@gmail.com';
           res.status(200).json({
             user: {
               id: dbUser.id,
@@ -375,7 +375,7 @@ router.post('/target-exam', requireAuth, async (req: AuthenticatedRequest, res: 
       const existingUser = await prisma.user.findUnique({ where: { email: user.email } });
       if (existingUser) {
         // Enforce 1-time selection: Students cannot switch once an exam is set
-        const isStaff = existingUser.role === 'ADMIN' || existingUser.role === 'TEACHER' || user.email === 'harshsaini0912@gmail.com';
+        const isStaff = existingUser.role === 'ADMIN' || existingUser.role === 'TEACHER' || user.email === 'brainiacssolutions9@gmail.com';
         if (!isStaff && existingUser.targetExam && existingUser.targetExam !== targetExam) {
           res.status(403).json({
             error: `Your target examination is locked to ${existingUser.targetExam}. Students cannot switch between tracks.`,
@@ -463,7 +463,7 @@ router.post('/admin/users/:id/role', requireAdmin, async (req: AuthenticatedRequ
     }
 
     // Safety guard: prevent removing ADMIN role from the primary master email
-    if (targetUser.email.toLowerCase() === 'harshsaini0912@gmail.com' && role !== 'ADMIN') {
+    if (targetUser.email.toLowerCase() === 'brainiacssolutions9@gmail.com' && role !== 'ADMIN') {
       res.status(400).json({ error: 'Cannot demote the primary master admin account.' });
       return;
     }

@@ -154,9 +154,9 @@ export default function ReportCardsPage() {
 
   // Admin & Faculty Action State
   const isMasterAdmin =
-    user?.email?.toLowerCase().trim() === 'harshsaini0912@gmail.com' ||
-    user?.email?.toLowerCase().trim() === 'harshsaini0912@gmail' ||
-    user?.email?.toLowerCase().startsWith('harshsaini0912@') ||
+    user?.email?.toLowerCase().trim() === 'brainiacssolutions9@gmail.com' ||
+    user?.email?.toLowerCase().trim() === 'brainiacssolutions9@gmail' ||
+    user?.email?.toLowerCase().startsWith('brainiacssolutions9@') ||
     user?.role === 'ADMIN';
   const isTeacherOrAdmin = isMasterAdmin || user?.role === 'TEACHER';
 
@@ -651,7 +651,7 @@ export default function ReportCardsPage() {
                     onClick={handleClearReportCards}
                     disabled={isClearing || (reportCards.length === 0 && mistakes.length === 0)}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 text-xs font-semibold border border-rose-500/30 transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    title="Empty all test history and report cards (harshsaini0912@gmail only)"
+                    title="Empty all test history and report cards (brainiacssolutions9@gmail.com only)"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                     <span>{isClearing ? 'Clearing...' : 'Clear History'}</span>
