@@ -51,7 +51,6 @@ import {
 } from 'lucide-react';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
-import TikzDiagram from '../components/TikzDiagram';
 import { DiagramUploader } from '../components/DiagramUploader';
 
 export default function QuestionBankPage() {
@@ -109,7 +108,6 @@ export default function QuestionBankPage() {
     subject: q.subject.name,
     topic: q.topic.name,
     imageUrl: q.imageUrl,
-    tikzCode: q.tikzCode,
     contentHash: q.contentHash,
   });
 
@@ -863,12 +861,6 @@ export default function QuestionBankPage() {
                         </div>
                       )}
 
-                      {q.tikzCode && (
-                        <div className="max-w-md">
-                          <TikzDiagram code={q.tikzCode} caption="Question Diagram" />
-                        </div>
-                      )}
-
                       <div className="text-base text-slate-800 font-medium leading-relaxed">
                         <RichContent content={q.questionText} />
                       </div>
@@ -935,11 +927,6 @@ export default function QuestionBankPage() {
                             {q.solutionImageUrl && (
                               <div className="max-w-md">
                                 <QuestionImage src={q.solutionImageUrl} alt="Solution Visual" />
-                              </div>
-                            )}
-                            {q.solutionTikzCode && (
-                              <div className="max-w-md">
-                                <TikzDiagram code={q.solutionTikzCode} caption="Solution Diagram" />
                               </div>
                             )}
                             <div className="leading-relaxed">

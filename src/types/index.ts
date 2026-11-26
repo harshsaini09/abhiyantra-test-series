@@ -26,9 +26,7 @@ export interface Question {
   answer: number | number[] | NATAnswer;
   solution: string;
   imageUrl?: string | null;
-  tikzCode?: string | null;
   solutionImageUrl?: string | null;
-  solutionTikzCode?: string | null;
   section?: 'GA' | 'SUBJECT' | string;
   contentHash?: string;
 }
@@ -95,9 +93,7 @@ export interface QuestionBankItem {
   answer: number | number[] | NATAnswer;
   solution: string;
   imageUrl?: string | null;
-  tikzCode?: string | null;
   solutionImageUrl?: string | null;
-  solutionTikzCode?: string | null;
   section?: 'GA' | 'SUBJECT' | string;
   sourceTestTitle?: string | null;
   isArchived: boolean;

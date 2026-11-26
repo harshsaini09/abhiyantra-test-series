@@ -1,6 +1,6 @@
 // ============================================================
 // Sample Test Data — used for "Try Sample Test" feature
-// Demonstrates LaTeX Math, Fenced Code, TikZ Diagrams, and Sections
+// Demonstrates LaTeX Math, Fenced Code, Figures, and Sections
 // ============================================================
 import type { TestData } from '../types';
 
@@ -128,8 +128,7 @@ export const sampleTestData: TestData = {
       marks: 2,
       subject: "Theory of Computation",
       topic: "Finite Automata & Graph Representations",
-      tikzCode: "\\begin{tikzpicture}[->, >=stealth, node distance=2.5cm, every state/.style={thick, fill=blue!10}, auto]\n  \\node[state, initial] (q0) {$q_0$};\n  \\node[state, accepting] (q1) [right of=q0] {$q_1$};\n  \\path (q0) edge [loop above] node {0} (q0)\n             edge [bend left]  node {1} (q1)\n        (q1) edge [bend left]  node {0} (q0)\n             edge [loop above] node {1} (q1);\n\\end{tikzpicture}",
-      question: "Consider the deterministic finite automaton (DFA) shown in the state transition diagram above. Which of the following regular expressions corresponds to the language accepted by this automaton?",
+      question: "Consider a deterministic finite automaton (DFA) with states $\\{q_0, q_1\\}$ where $q_0$ is initial and $q_1$ is accepting. Transition $\\delta(q_0, 0) = q_0$, $\\delta(q_0, 1) = q_1$, $\\delta(q_1, 0) = q_0$, and $\\delta(q_1, 1) = q_1$. Which of the following regular expressions corresponds to the language accepted by this automaton?",
       options: [
         "$(0 + 1)^* 1$",
         "$(0 + 1)^* 1 (0 + 1)^*$",

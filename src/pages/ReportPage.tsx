@@ -28,7 +28,6 @@ import type { TestResults, QuestionResult, Question } from '../types';
 import { toggleBookmarkApi, fetchBookmarksApi, computeQuestionHash } from '../utils/api';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
-import TikzDiagram from '../components/TikzDiagram';
 import Navbar from '../components/Navbar';
 
 type FilterTab = 'all' | 'correct' | 'incorrect' | 'unattempted';
@@ -622,16 +621,10 @@ export default function ReportPage() {
                   {/* Expanded content */}
                   {isExpanded && (
                     <div className="px-5 pb-5 space-y-4 border-t border-slate-100 pt-4">
-                      {/* Question Visuals: Image & TikZ Diagram */}
+                      {/* Question Visuals: Image */}
                       {qr.question.imageUrl && (
                         <div className="max-w-md">
                           <QuestionImage src={qr.question.imageUrl} alt={`Question ${qr.question.id} Diagram`} />
-                        </div>
-                      )}
-
-                      {qr.question.tikzCode && (
-                        <div className="max-w-md">
-                          <TikzDiagram code={qr.question.tikzCode} caption="Question Diagram" />
                         </div>
                       )}
 
@@ -736,11 +729,6 @@ export default function ReportPage() {
                           {qr.question.solutionImageUrl && (
                             <div className="max-w-md">
                               <QuestionImage src={qr.question.solutionImageUrl} alt="Solution Diagram" />
-                            </div>
-                          )}
-                          {qr.question.solutionTikzCode && (
-                            <div className="max-w-md">
-                              <TikzDiagram code={qr.question.solutionTikzCode} caption="Solution Figure" />
                             </div>
                           )}
                           <div className="text-sm text-slate-800 leading-relaxed">

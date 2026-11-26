@@ -15,9 +15,7 @@ export interface IngestQuestionInput {
   solution?: string;
   explanation?: string;
   imageUrl?: string | null;
-  tikzCode?: string | null;
   solutionImageUrl?: string | null;
-  solutionTikzCode?: string | null;
 }
 
 export interface IngestTestInput {
@@ -98,9 +96,7 @@ export async function ingestQuestions(data: IngestTestInput): Promise<IngestResu
     optionsJson: string | null;
     answerJson: string;
     imageUrl: string | null;
-    tikzCode: string | null;
     solutionImageUrl: string | null;
-    solutionTikzCode: string | null;
   }
 
   const prepared: PreparedQuestion[] = [];
@@ -130,9 +126,7 @@ export async function ingestQuestions(data: IngestTestInput): Promise<IngestResu
       optionsJson: q.options ? JSON.stringify(q.options) : null,
       answerJson: q.answer !== undefined ? JSON.stringify(q.answer) : '0',
       imageUrl: q.imageUrl || null,
-      tikzCode: q.tikzCode || null,
       solutionImageUrl: q.solutionImageUrl || null,
-      solutionTikzCode: q.solutionTikzCode || null,
     });
   }
 
@@ -175,9 +169,7 @@ export async function ingestQuestions(data: IngestTestInput): Promise<IngestResu
           answerJson: p.answerJson,
           solution: p.solutionText,
           imageUrl: p.imageUrl,
-          tikzCode: p.tikzCode,
           solutionImageUrl: p.solutionImageUrl,
-          solutionTikzCode: p.solutionTikzCode,
           sourceTestTitle: testTitle,
           isArchived: false,
         },

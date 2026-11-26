@@ -581,12 +581,12 @@ export default function LandingPage() {
                 <tr>
                   <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">imageUrl</td>
                   <td className="px-3.5 py-2.5">string (optional)</td>
-                  <td className="px-3.5 py-2.5">Responsive question diagram image (https:// or data:image/...) with click-to-zoom</td>
+                  <td className="px-3.5 py-2.5">Question diagram image URL (CDN, GitHub, or local asset) with click-to-zoom Lightbox</td>
                 </tr>
                 <tr>
-                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">tikzCode</td>
+                  <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">solutionImageUrl</td>
                   <td className="px-3.5 py-2.5">string (optional)</td>
-                  <td className="px-3.5 py-2.5">LaTeX \begin&#123;tikzpicture&#125; code rendered directly into crisp SVG</td>
+                  <td className="px-3.5 py-2.5">Detailed solution figure image URL with click-to-zoom Lightbox</td>
                 </tr>
                 <tr>
                   <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">section</td>

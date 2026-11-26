@@ -13,7 +13,6 @@ import type {
 import { calculateDuration, formatDurationHuman } from '../utils/scoring';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
-import TikzDiagram from '../components/TikzDiagram';
 import {
   Wrench,
   Play,
@@ -385,9 +384,7 @@ export default function CustomTestBuilderPage() {
             answer: q.answer,
             solution: q.solution,
             imageUrl: q.imageUrl,
-            tikzCode: q.tikzCode,
             solutionImageUrl: q.solutionImageUrl,
-            solutionTikzCode: q.solutionTikzCode,
           })),
         };
       }
@@ -442,9 +439,7 @@ export default function CustomTestBuilderPage() {
           answer: q.answer,
           solution: q.solution,
           imageUrl: q.imageUrl,
-          tikzCode: q.tikzCode,
           solutionImageUrl: q.solutionImageUrl,
-          solutionTikzCode: q.solutionTikzCode,
         })),
       };
     } else if (builderMode === 'manual') {
@@ -466,9 +461,7 @@ export default function CustomTestBuilderPage() {
           answer: q.answer,
           solution: q.solution,
           imageUrl: q.imageUrl,
-          tikzCode: q.tikzCode,
           solutionImageUrl: q.solutionImageUrl,
-          solutionTikzCode: q.solutionTikzCode,
         })),
       };
     } else {
@@ -875,11 +868,6 @@ export default function CustomTestBuilderPage() {
                             {q.imageUrl && (
                               <div className="max-w-xs my-2">
                                 <QuestionImage src={q.imageUrl} alt="Question Diagram" />
-                              </div>
-                            )}
-                            {q.tikzCode && (
-                              <div className="max-w-xs my-2">
-                                <TikzDiagram code={q.tikzCode} />
                               </div>
                             )}
                             <div className="text-sm font-medium text-slate-800 leading-relaxed">

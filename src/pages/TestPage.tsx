@@ -15,7 +15,6 @@ import {
 import GateCalculator from '../components/GateCalculator';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
-import TikzDiagram from '../components/TikzDiagram';
 
 import type {
   TestData,
@@ -551,16 +550,10 @@ export default function TestPage() {
             )}
           </div>
 
-          {/* Question Visuals: Image & TikZ Diagram */}
+          {/* Question Visuals: Image */}
           {question.imageUrl && (
             <div className="mb-5 max-w-xl">
               <QuestionImage src={question.imageUrl} alt={`Question ${currentIdx + 1} Diagram`} />
-            </div>
-          )}
-
-          {question.tikzCode && (
-            <div className="mb-5 max-w-xl">
-              <TikzDiagram code={question.tikzCode} caption={`Figure for Question ${currentIdx + 1}`} />
             </div>
           )}
 
@@ -691,11 +684,6 @@ export default function TestPage() {
                 {question.solutionImageUrl && (
                   <div className="mb-3 max-w-lg">
                     <QuestionImage src={question.solutionImageUrl} alt="Solution Diagram" />
-                  </div>
-                )}
-                {question.solutionTikzCode && (
-                  <div className="mb-3 max-w-lg">
-                    <TikzDiagram code={question.solutionTikzCode} caption="Solution Figure" />
                   </div>
                 )}
                 <div className="text-sm leading-relaxed text-slate-700">

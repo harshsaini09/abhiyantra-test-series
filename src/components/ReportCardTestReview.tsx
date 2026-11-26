@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import RichContent from './RichContent';
 import { QuestionImage } from './ImageLightbox';
-import TikzDiagram from './TikzDiagram';
 import type {
   SavedReportCard,
   QuestionResult,
@@ -327,11 +326,6 @@ export default function ReportCardTestReview({
                 <QuestionImage src={q.imageUrl} alt={`Question ${currentIdx + 1} Diagram`} />
               </div>
             )}
-            {q.tikzCode && (
-              <div className="my-4 max-w-xl">
-                <TikzDiagram code={q.tikzCode} caption={`Figure for Question ${currentIdx + 1}`} />
-              </div>
-            )}
           </div>
 
           {/* ─── OPTIONS & STUDENT'S MARKED ANSWER DISPLAY ─── */}
@@ -586,15 +580,10 @@ export default function ReportCardTestReview({
               )}
             </div>
 
-            {/* Solution Figures / TikZ */}
+            {/* Solution Figures / Diagrams */}
             {q.solutionImageUrl && (
               <div className="my-3 max-w-xl">
                 <QuestionImage src={q.solutionImageUrl} alt="Solution Diagram" />
-              </div>
-            )}
-            {q.solutionTikzCode && (
-              <div className="my-3 max-w-xl">
-                <TikzDiagram code={q.solutionTikzCode} caption="Solution Figure" />
               </div>
             )}
 
