@@ -607,25 +607,7 @@ export const TestSeriesPage: React.FC = () => {
               </button>
             )}
 
-            {!isTeacherOrAdmin && (
-              <button
-                onClick={() => {
-                  const adminProfile = {
-                    id: 'admin_brainiacssolutions9',
-                    email: 'brainiacssolutions9@gmail.com',
-                    name: 'Brainiacs Solutions Admin',
-                    role: 'ADMIN' as const,
-                    isSubscribed: true,
-                    targetExam: 'GATE' as const,
-                  };
-                  localStorage.setItem('abhiyantra_user_profile', JSON.stringify(adminProfile));
-                  window.location.reload();
-                }}
-                className="px-4 py-2.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 font-bold rounded-xl text-xs border border-indigo-400/40 transition flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <span>🔑 Switch to Faculty/Admin View</span>
-              </button>
-            )}
+
 
             {!hasAccess ? (
               <button

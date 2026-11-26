@@ -366,25 +366,8 @@ export default function QuestionBankPage() {
               The Question Bank repository is restricted to verified Instructors, Faculty, and Platform Administrators. Students can practice authentic full-length tests directly from the examination portal.
             </p>
             <button
-              onClick={() => {
-                const adminProfile = {
-                  id: 'admin_brainiacssolutions9',
-                  email: 'brainiacssolutions9@gmail.com',
-                  name: 'Brainiacs Solutions Admin',
-                  role: 'ADMIN' as const,
-                  isSubscribed: true,
-                  targetExam: 'GATE' as const,
-                };
-                localStorage.setItem('abhiyantra_user_profile', JSON.stringify(adminProfile));
-                window.location.reload();
-              }}
-              className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition border border-indigo-200 cursor-pointer"
-            >
-              🔑 Continue as Platform Admin (brainiacssolutions9@gmail.com)
-            </button>
-            <button
               onClick={() => navigate('/test-series')}
-              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition border border-slate-200 cursor-pointer"
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition cursor-pointer"
             >
               Explore {targetExam === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} Mock Tests
             </button>
