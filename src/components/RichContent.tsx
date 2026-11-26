@@ -17,10 +17,18 @@ interface RichContentProps {
   inline?: boolean;
 }
 
+export interface TableData {
+  caption?: string;
+  headers: string[];
+  alignments: ('left' | 'center' | 'right')[];
+  rows: string[][];
+}
+
 interface Segment {
-  type: 'text' | 'inline-code' | 'code-block' | 'inline-math' | 'display-math' | 'blank';
+  type: 'text' | 'inline-code' | 'code-block' | 'inline-math' | 'display-math' | 'blank' | 'table';
   content: string;
   language?: string;
+  tableData?: TableData;
 }
 
 /**
@@ -161,25 +169,127 @@ function cleanMathForKatex(rawMath: string): string {
   return math;
 }
 
+function parseMarkdownTable(tableStr: string): TableData | null {
+  const lines = tableStr
+    .trim()
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && l.includes('|'));
+
+  if (lines.length < 2) return null;
+
+  const parseRow = (line: string): string[] => {
+    return line
+      .replace(/^\|/, '')
+      .replace(/\|$/, '')
+      .split('|')
+      .map((c) => c.trim());
+  };
+
+  const headers = parseRow(lines[0]);
+  const separatorLine = lines[1];
+
+  // Must have separator row with dashes (e.g. |---|---|)
+  if (!/^[|:\s-]+$/.test(separatorLine)) {
+    return null;
+  }
+
+  const alignments: ('left' | 'center' | 'right')[] = parseRow(separatorLine).map((c) => {
+    if (c.startsWith(':') && c.endsWith(':')) return 'center';
+    if (c.endsWith(':')) return 'right';
+    return 'left';
+  });
+
+  const rows = lines.slice(2).map(parseRow);
+  return { headers, alignments, rows };
+}
+
+function parseLatexTable(tabularStr: string): TableData | null {
+  const match = tabularStr.match(/\\begin\{tabular\}(?:\{[^}]*\})?([\s\S]*?)\\end\{tabular\}/);
+  if (!match) return null;
+
+  const body = match[1];
+  const rawRows = body
+    .split(/\\\\/g)
+    .map((r) => r.replace(/\\hline/g, '').replace(/\\cline\{[^}]*\}/g, '').trim())
+    .filter((r) => r.length > 0);
+
+  if (rawRows.length < 1) return null;
+
+  const parseRow = (row: string) => row.split('&').map((c) => c.trim());
+  const headers = parseRow(rawRows[0]);
+  const rows = rawRows.slice(1).map(parseRow);
+
+  return {
+    headers,
+    alignments: headers.map(() => 'center'),
+    rows,
+  };
+}
+
 function tokenize(text: string): Segment[] {
   if (!text) return [];
   const processedText = preprocessMath(text);
 
   const segments: Segment[] = [];
-  // Regex to match code blocks ```lang ... ```
-  const codeBlockRegex = /```([a-zA-Z0-9_-]*)\n?([\s\S]*?)```/g;
+  // Unified block regex matching:
+  // 1. Code blocks: ```lang ... ```
+  // 2. Markdown tables (with optional preceding caption like **Raider:**)
+  // 3. LaTeX tabular tables
+  const blockRegex =
+    /(```([a-zA-Z0-9_-]*)\n?([\s\S]*?)```|(?:^|\n)(?:(?:\*\*([^*]+)\*\*|([A-Za-z0-9_-]+):)\s*\n)?((?:[ \t]*\|[^\n]+\|[ \t]*(?:\n|$))+)|(?:^|\n)(\\begin\{tabular\}[\s\S]*?\\end\{tabular\}))/g;
+
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
-  while ((match = codeBlockRegex.exec(processedText)) !== null) {
+  while ((match = blockRegex.exec(processedText)) !== null) {
     if (match.index > lastIndex) {
       parseTextAndMath(processedText.slice(lastIndex, match.index), segments);
     }
-    segments.push({
-      type: 'code-block',
-      language: (match[1] || 'c').toLowerCase().trim(),
-      content: match[2].replace(/\n$/, ''),
-    });
+
+    const fullMatch = match[0];
+    if (match[1] && match[1].startsWith('```')) {
+      // Code block
+      segments.push({
+        type: 'code-block',
+        language: (match[2] || 'c').toLowerCase().trim(),
+        content: match[3].replace(/\n$/, ''),
+      });
+    } else if (match[6] && match[6].includes('|') && match[6].includes('-')) {
+      // Markdown table
+      const rawTable = match[6];
+      const parsedTable = parseMarkdownTable(rawTable);
+      if (parsedTable) {
+        const rawCaption = (match[4] || match[5] || '').trim();
+        const cleanCaption = rawCaption ? rawCaption.replace(/:$/, '').trim() : undefined;
+        if (cleanCaption) {
+          parsedTable.caption = cleanCaption;
+        }
+        segments.push({
+          type: 'table',
+          content: rawTable,
+          tableData: parsedTable,
+        });
+      } else {
+        parseTextAndMath(fullMatch, segments);
+      }
+    } else if (match[7]) {
+      // LaTeX tabular table
+      const rawTabular = match[7];
+      const parsedTable = parseLatexTable(rawTabular);
+      if (parsedTable) {
+        segments.push({
+          type: 'table',
+          content: rawTabular,
+          tableData: parsedTable,
+        });
+      } else {
+        parseTextAndMath(fullMatch, segments);
+      }
+    } else {
+      parseTextAndMath(fullMatch, segments);
+    }
+
     lastIndex = match.index + match[0].length;
   }
 
@@ -340,6 +450,89 @@ function BlankField() {
   );
 }
 
+function TableView({ tableData }: { tableData: TableData }) {
+  const { caption, headers, alignments = [], rows } = tableData;
+
+  return (
+    <div className="my-3 overflow-x-auto flex flex-col items-start sm:items-center">
+      <table className="border-collapse border-2 border-slate-700 bg-white text-xs sm:text-sm shadow-xs rounded-sm overflow-hidden min-w-[240px]">
+        {caption && (
+          <thead>
+            <tr>
+              <th
+                colSpan={headers.length || 1}
+                className="py-2 px-3 text-center font-bold text-xs sm:text-sm bg-slate-100 border border-slate-700 text-slate-900 tracking-wide"
+              >
+                <RichContent content={caption} inline />
+              </th>
+            </tr>
+          </thead>
+        )}
+        <thead>
+          <tr className="bg-slate-50">
+            {headers.map((h, i) => {
+              const align = alignments[i] || 'center';
+              return (
+                <th
+                  key={i}
+                  className={`py-2 px-3.5 font-bold text-xs sm:text-sm border border-slate-700 text-slate-900 ${
+                    align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center'
+                  }`}
+                >
+                  <RichContent content={h} inline />
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rIdx) => (
+            <tr key={rIdx} className="hover:bg-slate-50/80 transition-colors">
+              {row.map((cell, cIdx) => {
+                const align =
+                  alignments[cIdx] ||
+                  (cell.trim().length <= 4 || /^\d+$/.test(cell.trim()) ? 'center' : 'left');
+                return (
+                  <td
+                    key={cIdx}
+                    className={`py-1.5 px-3.5 border border-slate-700 text-slate-800 text-xs sm:text-sm font-medium ${
+                      align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center'
+                    }`}
+                  >
+                    <RichContent content={cell} inline />
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function renderFormattedInlineText(text: string) {
+  if (!text) return null;
+  const parts = text.split(/(\*\*[^*]+?\*\*|\*[^*]+?\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return (
+        <strong key={idx} className="font-bold text-slate-900">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+      return (
+        <em key={idx} className="italic text-slate-800">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    return part;
+  });
+}
+
 export default function RichContent({ content, className = '', inline = false }: RichContentProps) {
   if (!content) return null;
 
@@ -349,6 +542,9 @@ export default function RichContent({ content, className = '', inline = false }:
     return (
       <span className={className}>
         {segments.map((seg, i) => {
+          if (seg.type === 'table' && seg.tableData) {
+            return <TableView key={i} tableData={seg.tableData} />;
+          }
           if (seg.type === 'blank') {
             return <BlankField key={i} />;
           }
@@ -365,7 +561,7 @@ export default function RichContent({ content, className = '', inline = false }:
               </code>
             );
           }
-          return <span key={i}>{seg.content}</span>;
+          return <span key={i}>{renderFormattedInlineText(seg.content)}</span>;
         })}
       </span>
     );
@@ -374,6 +570,9 @@ export default function RichContent({ content, className = '', inline = false }:
   return (
     <div className={`space-y-2 ${className}`}>
       {segments.map((seg, i) => {
+        if (seg.type === 'table' && seg.tableData) {
+          return <TableView key={i} tableData={seg.tableData} />;
+        }
         if (seg.type === 'blank') {
           return <BlankField key={i} />;
         }
@@ -395,7 +594,7 @@ export default function RichContent({ content, className = '', inline = false }:
         }
         return (
           <span key={i} className="whitespace-pre-wrap leading-relaxed">
-            {seg.content}
+            {renderFormattedInlineText(seg.content)}
           </span>
         );
       })}
