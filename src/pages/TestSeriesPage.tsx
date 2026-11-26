@@ -1001,8 +1001,8 @@ export const TestSeriesPage: React.FC = () => {
                     </div>
                     <input
                       type="number"
-                      step="0.1"
-                      min="0.1"
+                      step="any"
+                      min="0.01"
                       value={perQuestionMinutes}
                       onChange={(e) => handlePerQuestionMinutesChange(Number(e.target.value))}
                       className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
