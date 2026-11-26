@@ -59,18 +59,15 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
           {/* Logo & Brand */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <Link to="/" className="flex items-center gap-2 sm:gap-2.5 text-indigo-700 hover:text-indigo-800 transition-colors group shrink-0">
+            <Link to="/" className="flex items-center gap-2 sm:gap-2.5 text-slate-900 hover:text-teal-700 transition-colors group shrink-0">
               <img
-                src="/logo.avif"
+                src="/abhiyantra-logo.png"
                 alt="Abhiyantra Logo"
-                className="w-9 h-9 sm:w-10 sm:h-10 object-contain rounded-xl bg-slate-50 border border-slate-200 p-1 shadow-xs group-hover:scale-105 transition-transform"
+                className="h-9 sm:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
               />
-              <div>
-                <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 group-hover:text-indigo-700 transition-colors">
-                  abhiyantra
-                </span>
-                <span className="hidden sm:block text-[10px] uppercase font-bold tracking-wider text-indigo-600">
-                  {targetExam === 'JEE_MAINS' ? 'JEE Mains Portal' : 'GATE Exam Portal'}
+              <div className="hidden sm:block border-l border-slate-200 pl-2.5">
+                <span className="block text-[10px] uppercase font-bold tracking-wider text-teal-700">
+                  {targetExam === 'JEE_MAINS' ? 'JEE Mains Portal' : 'GATE CBT Portal'}
                 </span>
               </div>
             </Link>
