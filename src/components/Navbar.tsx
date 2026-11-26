@@ -142,27 +142,6 @@ export default function Navbar() {
                     <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
                   </div>
 
-                  {/* Target Examination Switcher Pill inside Login User Drop Button */}
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-bold ${
-                      targetExam === 'JEE_MAINS'
-                        ? 'bg-cyan-50 border-cyan-200 text-cyan-800'
-                        : 'bg-indigo-50 border-indigo-200 text-indigo-800'
-                    }`}
-                  >
-                    {targetExam === 'JEE_MAINS' ? (
-                      <>
-                        <Atom className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
-                        <span>JEE</span>
-                      </>
-                    ) : (
-                      <>
-                        <GraduationCap className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                        <span>GATE</span>
-                      </>
-                    )}
-                  </span>
-
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
 
