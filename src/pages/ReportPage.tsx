@@ -192,7 +192,7 @@ export default function ReportPage() {
                 abhiyantra educational institute
               </span>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-white print:text-slate-900 truncate">
-                GATE Examination Report Card
+                {results.examCategory === 'JEE_MAINS' ? 'JEE Mains Examination Report Card' : 'GATE Examination Report Card'}
               </h1>
             </div>
           </div>
@@ -366,7 +366,7 @@ export default function ReportPage() {
               Per-Question Time Insights
             </h2>
             <span className="text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full font-medium">
-              GATE Benchmark: ~2.7 min / question
+              {results.examCategory === 'JEE_MAINS' ? 'JEE Benchmark: ~2.4 min / question' : 'GATE Benchmark: ~2.7 min / question'}
             </span>
           </div>
 
@@ -404,7 +404,7 @@ export default function ReportPage() {
                 <span>Time-Sink Alert: High-Time Questions Without Marks</span>
               </div>
               <p className="text-xs text-amber-800 mb-3 leading-relaxed">
-                You spent 1.5+ minutes on these questions but missed positive marks. In actual GATE exams, recognizing stuck questions early and skipping them frees up crucial minutes for easy scoring opportunities.
+                You spent 1.5+ minutes on these questions but missed positive marks. In actual {results.examCategory === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} exams, recognizing stuck questions early and skipping them frees up crucial minutes for easy scoring opportunities.
               </p>
               <div className="flex flex-wrap gap-2">
                 {timeSinkQuestions.map((ts) => (

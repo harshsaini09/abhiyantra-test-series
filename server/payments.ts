@@ -23,7 +23,7 @@ export interface PlanDefinition {
   features: string[];
 }
 
-export const PLANS: PlanDefinition[] = [
+export const GATE_PLANS: PlanDefinition[] = [
   {
     id: 'gate-complete-pass',
     name: 'GATE Complete Mock Test Series (2026/2027)',
@@ -60,6 +60,82 @@ export const PLANS: PlanDefinition[] = [
   },
 ];
 
+export const JEE_PLANS: PlanDefinition[] = [
+  {
+    id: 'jee-complete-pass',
+    name: 'JEE Mains Complete Mock Test Series (2026/2027)',
+    price: 59,
+    originalPrice: 499,
+    discountBadge: '88% OFF - Limited Special',
+    durationDays: 365,
+    popular: true,
+    features: [
+      'Full 75-Question Authentic JEE Mains NTA CBT Mock Tests',
+      'JEE Mains Authentic Marking Scheme (+4, -1)',
+      'Step-by-Step Solutions with Mathematical Formulations',
+      'Mistake Notebook & 1-Click Retest on Missed Questions',
+      'AI-Powered Weak Topic Diagnosis & Ranking Insights',
+      'Unlimited Retakes on all Mock & Subject Papers',
+      'Valid for 1 Full Year (Through JEE 2027)',
+    ],
+  },
+  {
+    id: 'jee-booster-pass',
+    name: 'Physics, Chemistry & Math Booster Pass',
+    price: 29,
+    originalPrice: 199,
+    discountBadge: 'Special Offer',
+    durationDays: 180,
+    popular: false,
+    features: [
+      'All Chapter-Wise & Subject-Wise Practice Papers',
+      'Custom Test Builder with 100+ Question Pool',
+      'Detailed Explanations & Error Notes',
+      'Personal Question Bookmarks & Mistake Notebook',
+      'Valid for 6 Months',
+    ],
+  },
+];
+
+export const COMPREHENSIVE_PLANS: PlanDefinition[] = [
+  {
+    id: 'complete-pro-pass',
+    name: 'GATE & JEE Mains Complete Mock Series Pass (2026/2027)',
+    price: 59,
+    originalPrice: 499,
+    discountBadge: '88% OFF - Limited Special',
+    durationDays: 365,
+    popular: true,
+    features: [
+      'Full Authentic CBT Mock Tests (GATE 65 Qs / JEE Mains 75 Qs)',
+      'Official Marking Schemes (GATE IIT & JEE Mains NTA Pattern)',
+      'Step-by-Step Solutions with Mathematical Formulations',
+      'Mistake Notebook & 1-Click Retest on Missed Questions',
+      'AI-Powered Weak Topic Diagnosis & Percentile Ranking',
+      'Unlimited Retakes on all Mock & Sectional Papers',
+      'Valid for 1 Full Year (Through 2027 Examinations)',
+    ],
+  },
+  {
+    id: 'subject-booster-pass',
+    name: 'Subject & Topic-Wise Booster Pass',
+    price: 29,
+    originalPrice: 199,
+    discountBadge: 'Special Offer',
+    durationDays: 180,
+    popular: false,
+    features: [
+      'All Chapter-Wise & Sectional Practice Papers',
+      'Custom Test Builder with Full Question Pool',
+      'Detailed Explanations & Topic-by-Topic Drill',
+      'Personal Question Bookmarks & Error Notes',
+      'Valid for 6 Months',
+    ],
+  },
+];
+
+export const PLANS: PlanDefinition[] = COMPREHENSIVE_PLANS;
+
 // Helper: generate unique Order ID
 function generateOrderId(planId: string): string {
   const shortPlan = planId.includes('complete') ? 'CMP' : 'BST';
@@ -82,10 +158,18 @@ export function buildUpiUri(upiId: string, payeeName: string, amount: number, or
 }
 
 // ─── 1. Get Available Plans & UPI Config (Public) ───
-router.get('/plans', (_req, res: Response) => {
+router.get('/plans', (req, res: Response) => {
+  const exam = (req.query.exam as string) || (req.headers['x-target-exam'] as string);
+  let resolvedPlans = COMPREHENSIVE_PLANS;
+  if (exam === 'JEE_MAINS') {
+    resolvedPlans = JEE_PLANS;
+  } else if (exam === 'GATE') {
+    resolvedPlans = GATE_PLANS;
+  }
+
   res.json({
     success: true,
-    plans: PLANS,
+    plans: resolvedPlans,
     upi: {
       payeeId: UPI_PAYEE_ID,
       payeeName: UPI_PAYEE_NAME,
@@ -98,10 +182,11 @@ router.get('/plans', (_req, res: Response) => {
 router.post('/create-intent', (req: AuthenticatedRequest, res: Response): void => {
   try {
     const { planId, userEmail, userName } = req.body;
-    const plan = PLANS.find((p) => p.id === planId) || PLANS[0];
+    const allKnownPlans = [...GATE_PLANS, ...JEE_PLANS, ...COMPREHENSIVE_PLANS];
+    const plan = allKnownPlans.find((p) => p.id === planId) || PLANS[0];
 
     const orderId = generateOrderId(plan.id);
-    const studentName = req.user?.name || userName || 'GATE Student';
+    const studentName = req.user?.name || userName || 'Aspirant';
     const note = `Abhiyantra ${plan.name.slice(0, 18)} - ${orderId}`;
 
     const upiUri = buildUpiUri(UPI_PAYEE_ID, UPI_PAYEE_NAME, plan.price, orderId, note);

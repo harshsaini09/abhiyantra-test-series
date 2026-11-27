@@ -339,7 +339,7 @@ export default function ReportCardsPage() {
 
     const testData: TestData = {
       title: rc.testTitle,
-      subject: questions[0]?.subject || 'GATE Test',
+      subject: questions[0]?.subject || (targetExam === 'JEE_MAINS' ? 'JEE Mains Test' : 'GATE Test'),
       topic: questions[0]?.topic || 'Retest',
       duration: rc.allocatedSeconds || Math.max(600, questions.length * 162),
       questions,
@@ -554,7 +554,7 @@ export default function ReportCardsPage() {
             </h1>
 
             <p className="text-slate-600 text-sm leading-relaxed mb-8 max-w-lg mx-auto">
-              Save your completed GATE mock tests permanently, track your score progression over time, review in-depth
+              Save your completed {targetExam === 'JEE_MAINS' ? 'JEE Mains' : targetExam === 'GATE' ? 'GATE' : 'GATE & JEE Mains'} mock tests permanently, track your score progression over time, review in-depth
               solutions, and sync your results securely across all your devices.
             </p>
 
@@ -642,7 +642,7 @@ export default function ReportCardsPage() {
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black transition-all shadow-xs"
                   >
                     <Sparkles className="w-3.5 h-3.5 fill-current text-slate-950" />
-                    <span>Get GATE Pass</span>
+                    <span>Get {targetExam === 'JEE_MAINS' ? 'JEE Pass' : targetExam === 'GATE' ? 'GATE Pass' : 'Exam Pass'}</span>
                   </Link>
                 )}
                 {isMasterAdmin && (
@@ -842,7 +842,7 @@ export default function ReportCardsPage() {
                     <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">
                       {searchQuery || selectedMode !== 'ALL'
                         ? 'No past test attempts match the selected filters.'
-                        : 'You haven’t completed any GATE tests yet. Take a sample or custom test to see your report cards here!'}
+                        : `You haven’t completed any ${targetExam === 'JEE_MAINS' ? 'JEE Mains' : targetExam === 'GATE' ? 'GATE' : 'mock'} tests yet. Take a sample or custom test to see your report cards here!`}
                     </p>
                     <Link
                       to="/"
@@ -1531,7 +1531,7 @@ export default function ReportCardsPage() {
                     My Personal Test Series
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                    Custom tests crafted by you using the AI Question Bank and Custom Test Builder. Retake them anytime in full authentic GATE CBT exam or practice mode.
+                    Custom tests crafted by you using the Question Bank and Custom Test Builder. Retake them anytime in authentic CBT exam or practice mode.
                   </p>
                 </div>
                 <button

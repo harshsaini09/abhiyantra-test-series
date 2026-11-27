@@ -108,8 +108,8 @@ export async function handleVerifyPayment(req: AuthenticatedRequest, res: Respon
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      planId = 'gate-complete-pass',
-      planName = 'GATE Complete Mock Test Series (2026/2027)',
+      planId = 'complete-pro-pass',
+      planName = 'GATE & JEE Mains Complete Mock Series Pass (2026/2027)',
       amount = 59,
       userEmail,
       userName,
@@ -271,8 +271,8 @@ export async function handleSyncRazorpay(req: AuthenticatedRequest, res: Respons
       const email = (p.email || p.notes?.userEmail || '').toLowerCase().trim();
       const name = p.notes?.userName || (email ? email.split('@')[0] : 'Student');
       const amount = (p.amount || 5900) / 100;
-      const planId = p.notes?.planId || 'gate-complete-pass';
-      const planName = p.notes?.planName || 'GATE Complete Mock Test Series (2026/2027)';
+      const planId = p.notes?.planId || 'complete-pro-pass';
+      const planName = p.notes?.planName || 'GATE & JEE Mains Complete Mock Series Pass (2026/2027)';
 
       // Check if already in PaymentRecord
       const existing = await prisma.paymentRecord.findUnique({
@@ -340,8 +340,8 @@ export async function handleRazorpayWebhook(req: Request, res: Response): Promis
       const email = (payment.email || payment.notes?.userEmail || '').toLowerCase().trim();
       const name = payment.notes?.userName || (email ? email.split('@')[0] : 'Student');
       const amount = (payment.amount || 5900) / 100;
-      const planId = payment.notes?.planId || 'gate-complete-pass';
-      const planName = payment.notes?.planName || 'GATE Complete Mock Test Series (2026/2027)';
+      const planId = payment.notes?.planId || 'complete-pro-pass';
+      const planName = payment.notes?.planName || 'GATE & JEE Mains Complete Mock Series Pass (2026/2027)';
 
       if (email && isDbConfigured && prisma) {
         const userId = await ensureUserAndActivateSub(email, name, planId);

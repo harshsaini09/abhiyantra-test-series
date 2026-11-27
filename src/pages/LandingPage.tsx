@@ -460,7 +460,7 @@ export default function LandingPage() {
                 <tr>
                   <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">title</td>
                   <td className="px-3.5 py-2.5">string</td>
-                  <td className="px-3.5 py-2.5">Test title (e.g. "GATE CS Practice Set 1")</td>
+                  <td className="px-3.5 py-2.5">Test title (e.g. "GATE CS Practice Set 1" or "JEE Mains Full Mock 1")</td>
                 </tr>
                 <tr>
                   <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">defaultSubject</td>
@@ -486,8 +486,8 @@ export default function LandingPage() {
                 </tr>
                 <tr>
                   <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">marks</td>
-                  <td className="px-3.5 py-2.5">1 | 2</td>
-                  <td className="px-3.5 py-2.5">Mark value (matches GATE pattern)</td>
+                  <td className="px-3.5 py-2.5">1 | 2 (GATE) or 4 (JEE)</td>
+                  <td className="px-3.5 py-2.5">Mark value matching GATE / JEE Mains blueprint</td>
                 </tr>
                 <tr>
                   <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">subject</td>
@@ -534,7 +534,7 @@ export default function LandingPage() {
                 <tr>
                   <td className="px-3.5 py-2.5 font-mono text-indigo-700 text-xs font-bold">section</td>
                   <td className="px-3.5 py-2.5">"GA" | "SUBJECT"</td>
-                  <td className="px-3.5 py-2.5">Optional section tag for official GATE sectional switching</td>
+                  <td className="px-3.5 py-2.5">Optional section tag for official GATE / JEE Mains sectional switching</td>
                 </tr>
               </tbody>
             </table>
@@ -871,7 +871,7 @@ export default function LandingPage() {
             onClick={() => setMode('exam')}
             icon={<GraduationCap className="w-6 h-6" />}
             title="Exam Mode"
-            description="Official GATE CBT experience with timer, navigation panel, and no peeking at answers until submission."
+            description="Official CBT exam experience with timer, navigation panel, official marking blueprints, and instant performance analysis."
             badge="Default"
           />
           <ModeCard
@@ -913,7 +913,7 @@ export default function LandingPage() {
             <img src="/logo.avif" alt="Abhiyantra Logo" className="w-8 h-8 object-contain rounded-lg" />
             <span className="font-bold text-slate-800 text-sm">abhiyantra</span>
             <span className="text-slate-400">|</span>
-            <span className="text-slate-500">Educational Institute GATE Portal</span>
+            <span className="text-slate-500">Competitive Examination Portal (GATE &amp; JEE Mains)</span>
           </div>
           <p className="text-slate-400">
             &copy; {new Date().getFullYear()} abhiyantra. All rights reserved.

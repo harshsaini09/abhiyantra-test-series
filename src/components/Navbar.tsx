@@ -36,7 +36,7 @@ export default function Navbar() {
     { to: '/', label: 'Home', shortLabel: 'Home', icon: <Home className="w-4 h-4" /> },
     { to: '/test-series', label: 'Test Series', shortLabel: 'Series', icon: <Layers className="w-4 h-4" /> },
     ...(!isPassUnlocked
-      ? [{ to: '/pricing', label: targetExam === 'JEE_MAINS' ? 'JEE Pass' : 'GATE Pass', shortLabel: 'Pass', icon: <Sparkles className="w-4 h-4 text-amber-500" /> }]
+      ? [{ to: '/pricing', label: user?.targetExam === 'JEE_MAINS' ? 'JEE Pass' : user?.targetExam === 'GATE' ? 'GATE Pass' : 'Exam Pass', shortLabel: 'Pass', icon: <Sparkles className="w-4 h-4 text-amber-500" /> }]
       : []),
     { to: '/report-cards', label: 'Report Cards', shortLabel: 'Reports', icon: <Award className="w-4 h-4" /> },
   ];
@@ -70,7 +70,7 @@ export default function Navbar() {
               />
               <div className="hidden sm:block border-l border-slate-200 pl-2.5">
                 <span className="block text-[10px] uppercase font-bold tracking-wider text-teal-700">
-                  {targetExam === 'JEE_MAINS' ? 'JEE Mains Portal' : 'GATE CBT Portal'}
+                  {user?.targetExam === 'JEE_MAINS' ? 'JEE Mains Portal' : user?.targetExam === 'GATE' ? 'GATE CBT Portal' : 'GATE & JEE Examination Portal'}
                 </span>
               </div>
             </Link>
@@ -275,7 +275,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                       >
                         <Layers className="w-4 h-4 text-indigo-600" />
-                        GATE Test Series
+                        {user?.targetExam === 'JEE_MAINS' ? 'JEE Mains Test Series' : user?.targetExam === 'GATE' ? 'GATE Test Series' : 'Official Test Series'}
                       </Link>
                       {!isPassUnlocked && (
                         <Link
@@ -284,7 +284,7 @@ export default function Navbar() {
                           className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                         >
                           <Sparkles className="w-4 h-4 text-amber-500" />
-                          GATE Test Series Passes
+                          {user?.targetExam === 'JEE_MAINS' ? 'JEE Mains Passes' : user?.targetExam === 'GATE' ? 'GATE Test Series Passes' : 'Complete Exam Passes'}
                         </Link>
                       )}
                       <Link

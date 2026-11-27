@@ -832,7 +832,7 @@ export const TestSeriesPage: React.FC = () => {
                       {test.title}
                     </h3>
                     <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
-                      {test.description || 'Teacher-prepared official mock paper for All-India GATE preparation.'}
+                      {test.description || `Teacher-prepared official mock paper for All-India ${test.examCategory === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} preparation.`}
                     </p>
                   </div>
 

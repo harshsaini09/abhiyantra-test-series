@@ -19,7 +19,9 @@ import type { PricingPlan } from '../types';
 export const PricingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, targetExam } = useAuth();
-  const isJee = targetExam === 'JEE_MAINS';
+  const isEnrolledJee = user?.targetExam === 'JEE_MAINS' || (!user?.targetExam && targetExam === 'JEE_MAINS');
+  const isEnrolledGate = user?.targetExam === 'GATE' || (!user?.targetExam && targetExam === 'GATE');
+  const hasSpecificLockedTrack = !!user?.targetExam;
 
   const [plans, setPlans] = useState<PricingPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,22 +30,40 @@ export const PricingPage: React.FC = () => {
 
   useEffect(() => {
     let mounted = true;
-    fetchPricingPlansApi()
+    fetchPricingPlansApi(user?.targetExam || targetExam)
       .then((data) => {
         if (mounted) {
           const rawPlans: PricingPlan[] = data.plans || [];
-          const customized = rawPlans.map((p) => ({
-            ...p,
-            name: isJee ? p.name.replace(/GATE/g, 'JEE Mains') : p.name,
-            features: isJee
-              ? p.features.map((f) =>
+          const customized = rawPlans.map((p) => {
+            if (isEnrolledJee && hasSpecificLockedTrack) {
+              return {
+                ...p,
+                name: p.name.replace(/GATE/g, 'JEE Mains'),
+                features: p.features.map((f) =>
                   f
                     .replace(/GATE/g, 'JEE Mains')
                     .replace(/65-Question/g, '75-Question')
                     .replace(/\(\+1, -1\/3 & \+2, -2\/3\)/g, '(+4, -1)')
-                )
-              : p.features,
-          }));
+                ),
+              };
+            } else if (isEnrolledGate && hasSpecificLockedTrack) {
+              return p;
+            } else {
+              // Unenrolled student, guest, or platform explorer: inclusive competitive exams presentation
+              return {
+                ...p,
+                name: p.name.includes('Complete')
+                  ? 'GATE & JEE Mains Complete Mock Series Pass'
+                  : 'Competitive Exam Booster Pass (GATE / JEE Mains)',
+                features: p.features.map((f) =>
+                  f
+                    .replace(/Full 65-Question Authentic GATE CBT Mock Tests/g, 'Full Authentic GATE (65 Qs) & JEE Mains (75 Qs) Mock Tests')
+                    .replace(/GATE Authentic Marking Scheme \(\+1, -1\/3 & \+2, -2\/3\)/g, 'Official Marking Schemes (GATE IIT & JEE Mains NTA Pattern)')
+                    .replace(/Through GATE 2027/g, 'Through 2027 Examinations')
+                ),
+              };
+            }
+          });
           setPlans(customized);
           setLoading(false);
         }
@@ -55,7 +75,7 @@ export const PricingPage: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [isJee]);
+  }, [user?.targetExam, targetExam, isEnrolledJee, isEnrolledGate, hasSpecificLockedTrack]);
 
   const handleSelectPlan = (plan: PricingPlan) => {
     if (user?.isSubscribed) return;
@@ -73,13 +93,19 @@ export const PricingPage: React.FC = () => {
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
-          {isJee ? 'Supercharge Your JEE Mains Preparation' : 'Supercharge Your GATE Preparation'}
+          {hasSpecificLockedTrack
+            ? isEnrolledJee
+              ? 'Supercharge Your JEE Mains Preparation'
+              : 'Supercharge Your GATE Preparation'
+            : 'Supercharge Your GATE & JEE Mains Preparation'}
         </h1>
 
         <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto">
-          {isJee
-            ? 'Practice authentic 75-question JEE Mains NTA CBT mock papers (+4 / -1 marking), master weak concepts with the Mistake Notebook, and track your all-India percentile.'
-            : 'Practice authentic 65-question GATE CBT mock papers, master weak concepts with the Mistake Notebook, and track your all-India percentile.'}
+          {hasSpecificLockedTrack
+            ? isEnrolledJee
+              ? 'Practice authentic 75-question JEE Mains NTA CBT mock papers (+4 / -1 marking), master weak concepts with the Mistake Notebook, and track your all-India percentile.'
+              : 'Practice authentic 65-question GATE CBT mock papers, master weak concepts with the Mistake Notebook, and track your all-India percentile.'
+            : 'Practice authentic full-length CBT mock papers for GATE (65 Qs) & JEE Mains (75 Qs) with official marking blueprints (+4 / -1 and GATE IIT rules), master weak concepts with the Mistake Notebook, and track your all-India percentile.'}
         </p>
 
         {/* User Active Subscription Banner */}
@@ -91,7 +117,7 @@ export const PricingPage: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm font-bold text-emerald-950">
-                  Your {isJee ? 'JEE Mains' : 'GATE'} Pass is Currently Active!
+                  Your {isEnrolledJee ? 'JEE Mains' : isEnrolledGate ? 'GATE' : 'Competitive Exam'} Pass is Currently Active!
                 </p>
                 <p className="text-xs text-emerald-800">
                   {user.subscriptionUntil ? (

@@ -1241,9 +1241,10 @@ export async function clearPlatformDataApi(target: 'all' | 'questions' | 'report
 
 // ─── Payment & Subscription APIs ───
 
-export async function fetchPricingPlansApi(): Promise<{ plans: any[]; upi: { payeeId: string; payeeName: string; qrImageUrl?: string } }> {
+export async function fetchPricingPlansApi(examCategory?: 'GATE' | 'JEE_MAINS' | string): Promise<{ plans: any[]; upi: { payeeId: string; payeeName: string; qrImageUrl?: string } }> {
   try {
-    const res = await fetch(`${API_BASE}/payment/plans`, {
+    const query = examCategory ? `?exam=${encodeURIComponent(examCategory)}` : '';
+    const res = await fetch(`${API_BASE}/payment/plans${query}`, {
       headers: getAuthHeaders(),
       credentials: 'include',
     });
@@ -1254,43 +1255,123 @@ export async function fetchPricingPlansApi(): Promise<{ plans: any[]; upi: { pay
   } catch {
     // fallback
   }
+
+  const isJee = examCategory === 'JEE_MAINS';
+  const isGate = examCategory === 'GATE';
+
+  const defaultPlans = isJee
+    ? [
+        {
+          id: 'jee-complete-pass',
+          name: 'JEE Mains Complete Mock Test Series (2026/2027)',
+          price: 59,
+          originalPrice: 499,
+          discountBadge: '88% OFF - Limited Special',
+          durationDays: 365,
+          popular: true,
+          features: [
+            'Full 75-Question Authentic JEE Mains NTA CBT Mock Tests',
+            'JEE Mains Authentic Marking Scheme (+4, -1)',
+            'Step-by-Step Solutions with Mathematical Formulations',
+            'Mistake Notebook & 1-Click Retest on Missed Questions',
+            'AI-Powered Weak Topic Diagnosis & Ranking Insights',
+            'Unlimited Retakes on all Mock & Subject Papers',
+            'Valid for 1 Full Year (Through JEE 2027)',
+          ],
+        },
+        {
+          id: 'jee-booster-pass',
+          name: 'Physics, Chemistry & Math Booster Pass',
+          price: 29,
+          originalPrice: 199,
+          discountBadge: 'Special Offer',
+          durationDays: 180,
+          popular: false,
+          features: [
+            'All Chapter-Wise & Subject-Wise Practice Papers',
+            'Custom Test Builder with 100+ Question Pool',
+            'Detailed Explanations & Error Notes',
+            'Personal Question Bookmarks & Mistake Notebook',
+            'Valid for 6 Months',
+          ],
+        },
+      ]
+    : isGate
+      ? [
+          {
+            id: 'gate-complete-pass',
+            name: 'GATE Complete Mock Test Series (2026/2027)',
+            price: 59,
+            originalPrice: 499,
+            discountBadge: '88% OFF - Limited Special',
+            durationDays: 365,
+            popular: true,
+            features: [
+              'Full 65-Question Authentic GATE CBT Mock Tests',
+              'GATE Authentic Marking Scheme (+1, -1/3 & +2, -2/3)',
+              'Step-by-Step Solutions with Mathematical Formulations',
+              'Mistake Notebook & 1-Click Retest on Missed Questions',
+              'AI-Powered Weak Topic Diagnosis & Ranking Insights',
+              'Unlimited Retakes on all Mock & Subject Papers',
+              'Valid for 1 Full Year (Through GATE 2027)',
+            ],
+          },
+          {
+            id: 'gate-booster-pass',
+            name: 'Subject & Topic-Wise Booster Pass',
+            price: 29,
+            originalPrice: 199,
+            discountBadge: 'Special Offer',
+            durationDays: 180,
+            popular: false,
+            features: [
+              'All Chapter-Wise & Subject-Wise Practice Papers',
+              'Custom Test Builder with 100+ Question Pool',
+              'Detailed Explanations & Virtual Calculator Practice',
+              'Personal Question Bookmarks & Error Notes',
+              'Valid for 6 Months',
+            ],
+          },
+        ]
+      : [
+          {
+            id: 'complete-pro-pass',
+            name: 'GATE & JEE Mains Complete Mock Series Pass (2026/2027)',
+            price: 59,
+            originalPrice: 499,
+            discountBadge: '88% OFF - Limited Special',
+            durationDays: 365,
+            popular: true,
+            features: [
+              'Full Authentic CBT Mock Tests (GATE 65 Qs / JEE Mains 75 Qs)',
+              'Official Marking Schemes (GATE IIT & JEE Mains NTA Pattern)',
+              'Step-by-Step Solutions with Mathematical Formulations',
+              'Mistake Notebook & 1-Click Retest on Missed Questions',
+              'AI-Powered Weak Topic Diagnosis & Percentile Ranking',
+              'Unlimited Retakes on all Mock & Sectional Papers',
+              'Valid for 1 Full Year (Through 2027 Examinations)',
+            ],
+          },
+          {
+            id: 'subject-booster-pass',
+            name: 'Subject & Topic-Wise Booster Pass',
+            price: 29,
+            originalPrice: 199,
+            discountBadge: 'Special Offer',
+            durationDays: 180,
+            popular: false,
+            features: [
+              'All Chapter-Wise & Sectional Practice Papers',
+              'Custom Test Builder with Full Question Pool',
+              'Detailed Explanations & Topic-by-Topic Drill',
+              'Personal Question Bookmarks & Error Notes',
+              'Valid for 6 Months',
+            ],
+          },
+        ];
+
   return {
-    plans: [
-      {
-        id: 'gate-complete-pass',
-        name: 'GATE Complete Mock Test Series (2026/2027)',
-        price: 59,
-        originalPrice: 499,
-        discountBadge: '88% OFF - Limited Special',
-        durationDays: 365,
-        popular: true,
-        features: [
-          'Full 65-Question Authentic GATE CBT Mock Tests',
-          'GATE Authentic Marking Scheme (+1, -1/3 & +2, -2/3)',
-          'Step-by-Step Solutions with Mathematical Formulations',
-          'Mistake Notebook & 1-Click Retest on Missed Questions',
-          'AI-Powered Weak Topic Diagnosis & Ranking Insights',
-          'Unlimited Retakes on all Mock & Subject Papers',
-          'Valid for 1 Full Year (Through GATE 2027)',
-        ],
-      },
-      {
-        id: 'gate-booster-pass',
-        name: 'Subject & Topic-Wise Booster Pass',
-        price: 29,
-        originalPrice: 199,
-        discountBadge: 'Special Offer',
-        durationDays: 180,
-        popular: false,
-        features: [
-          'All Chapter-Wise & Subject-Wise Practice Papers',
-          'Custom Test Builder with 100+ Question Pool',
-          'Detailed Explanations & Virtual Calculator Practice',
-          'Personal Question Bookmarks & Error Notes',
-          'Valid for 6 Months',
-        ],
-      },
-    ],
+    plans: defaultPlans,
     upi: {
       payeeId: 'harshsaini0912@okhdfcbank',
       payeeName: 'Abhiyantra Test Series',

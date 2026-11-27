@@ -34,36 +34,53 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user, refreshUser, targetExam } = useAuth();
-  const isJee = targetExam === 'JEE_MAINS';
+  const isEnrolledJee = user?.targetExam === 'JEE_MAINS' || (!user?.targetExam && targetExam === 'JEE_MAINS');
+  const hasSpecificExam = !!user?.targetExam;
 
-  const defaultPlan: PricingPlan = isJee
-    ? {
-        id: 'jee-complete-pass',
-        name: 'JEE Mains Complete Mock Test Series (2026/2027)',
-        price: 59,
-        originalPrice: 499,
-        discountBadge: '88% OFF - Limited Special',
-        durationDays: 365,
-        popular: true,
-        features: [
-          'Full 75-Question Authentic JEE Mains NTA CBT Mock Tests',
-          'JEE Mains Authentic Marking Scheme (+4, -1)',
-          'Mistake Revision Notebook & 1-Click Retest',
-          'AI Weak Topic Diagnosis & Ranking Insights',
-        ],
-      }
+  const defaultPlan: PricingPlan = hasSpecificExam
+    ? isEnrolledJee
+      ? {
+          id: 'jee-complete-pass',
+          name: 'JEE Mains Complete Mock Test Series (2026/2027)',
+          price: 59,
+          originalPrice: 499,
+          discountBadge: '88% OFF - Limited Special',
+          durationDays: 365,
+          popular: true,
+          features: [
+            'Full 75-Question Authentic JEE Mains NTA CBT Mock Tests',
+            'JEE Mains Authentic Marking Scheme (+4, -1)',
+            'Mistake Revision Notebook & 1-Click Retest',
+            'AI Weak Topic Diagnosis & Ranking Insights',
+          ],
+        }
+      : {
+          id: 'gate-complete-pass',
+          name: 'GATE Complete Mock Test Series (2026/2027)',
+          price: 59,
+          originalPrice: 499,
+          discountBadge: '88% OFF - Limited Special',
+          durationDays: 365,
+          popular: true,
+          features: [
+            'Full 65-Question Authentic GATE CBT Mock Tests',
+            'GATE Authentic Marking Scheme (+1, -1/3 & +2, -2/3)',
+            'Mistake Revision Notebook & 1-Click Retest',
+            'AI Weak Topic Diagnosis & Ranking Insights',
+          ],
+        }
     : {
-        id: 'gate-complete-pass',
-        name: 'GATE Complete Mock Test Series (2026/2027)',
+        id: 'complete-pro-pass',
+        name: 'GATE & JEE Mains Complete Mock Test Series (2026/2027)',
         price: 59,
         originalPrice: 499,
         discountBadge: '88% OFF - Limited Special',
         durationDays: 365,
         popular: true,
         features: [
-          'Full 65-Question Authentic GATE CBT Mock Tests',
-          'GATE Authentic Marking Scheme (+1, -1/3 & +2, -2/3)',
-          'Mistake Revision Notebook & 1-Click Retest',
+          'Full Authentic CBT Mock Tests (GATE 65 Qs / JEE Mains 75 Qs)',
+          'Official Marking Schemes (GATE IIT & JEE Mains NTA Pattern)',
+          'Mistake Revision Notebook & 1-Click Retest Engine',
           'AI Weak Topic Diagnosis & Ranking Insights',
         ],
       };
@@ -212,10 +229,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-            Unlock Abhiyantra {isJee ? 'JEE Mains Pass' : 'GATE Pass'}
+            Unlock Abhiyantra {hasSpecificExam ? (isEnrolledJee ? 'JEE Mains Pass' : 'GATE Pass') : 'GATE & JEE Mains Pass'}
           </h2>
           <p className="text-xs sm:text-sm text-indigo-100 mt-1">
-            Instant, automated access to all authentic {isJee ? 'JEE Mains' : 'GATE'} CBT mock tests and mistake revision.
+            Instant, automated access to all authentic {hasSpecificExam ? (isEnrolledJee ? 'JEE Mains' : 'GATE') : 'GATE & JEE Mains'} CBT mock tests and mistake revision.
           </p>
         </div>
 
@@ -306,11 +323,23 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <div className="grid grid-cols-1 gap-1.5 text-xs text-slate-700">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>65-Question Authentic GATE CBT Mock Tests</span>
+                    <span>
+                      {hasSpecificExam
+                        ? isEnrolledJee
+                          ? '75-Question Authentic JEE Mains NTA CBT Mock Tests'
+                          : '65-Question Authentic GATE CBT Mock Tests'
+                        : 'Authentic CBT Mock Tests (GATE 65 Qs & JEE Mains 75 Qs)'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Official Marking Scheme (+1, -1/3 & +2, -2/3) + Virtual Calculator</span>
+                    <span>
+                      {hasSpecificExam
+                        ? isEnrolledJee
+                          ? 'Official NTA Marking Scheme (+4, -1) & Detailed Solutions'
+                          : 'Official Marking Scheme (+1, -1/3 & +2, -2/3) + Virtual Calculator'
+                        : 'Official Marking Schemes (GATE IIT & JEE Mains NTA Pattern)'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
