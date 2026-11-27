@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
@@ -48,6 +48,8 @@ import {
   Trash2,
   Lock,
   Image as ImageIcon,
+  GraduationCap,
+  Atom,
 } from 'lucide-react';
 import RichContent from '../components/RichContent';
 import { QuestionImage } from '../components/ImageLightbox';
@@ -70,12 +72,21 @@ export default function QuestionBankPage() {
   const [loading, setLoading] = useState<boolean>(() => getLocalQuestions().length === 0);
 
   // Filters
+  const [selectedExamTab, setSelectedExamTab] = useState<'ALL' | 'GATE' | 'JEE_MAINS'>(
+    targetExam === 'JEE_MAINS' ? 'JEE_MAINS' : targetExam === 'GATE' ? 'GATE' : 'ALL'
+  );
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | undefined>(undefined);
   const [selectedTopicId, setSelectedTopicId] = useState<number | undefined>(undefined);
   const [selectedType, setSelectedType] = useState<QuestionType | ''>('');
   const [selectedMarks, setSelectedMarks] = useState<MarkValue | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
+
+  const handleExamTabChange = (tab: 'ALL' | 'GATE' | 'JEE_MAINS') => {
+    setSelectedExamTab(tab);
+    setSelectedSubjectId(undefined);
+    setSelectedTopicId(undefined);
+  };
 
   // Hierarchy tree accordion state
   const [expandedSubjects, setExpandedSubjects] = useState<Set<number>>(new Set());
@@ -196,6 +207,7 @@ export default function QuestionBankPage() {
           marks: selectedMarks ? (Number(selectedMarks) as MarkValue) : undefined,
           search: searchQuery,
           includeArchived,
+          examCategory: selectedExamTab === 'ALL' ? undefined : selectedExamTab,
         }),
       ]);
       setStats(statsData);
@@ -208,7 +220,7 @@ export default function QuestionBankPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedSubjectId, selectedTopicId, selectedType, selectedMarks, searchQuery, includeArchived, questions.length]);
+  }, [selectedSubjectId, selectedTopicId, selectedType, selectedMarks, searchQuery, includeArchived, selectedExamTab, questions.length]);
 
   useEffect(() => {
     loadData();
@@ -333,6 +345,22 @@ export default function QuestionBankPage() {
       setSubmitting(false);
     }
   };
+
+  // Filter hierarchy by active exam tab
+  const visibleHierarchy = useMemo(() => {
+    if (selectedExamTab === 'ALL') return hierarchy;
+    return hierarchy.filter((s) => {
+      const cat = s.examCategory || (
+        s.name.toLowerCase().includes('physic') ||
+        s.name.toLowerCase().includes('chemist') ||
+        s.name.toLowerCase().includes('isc') ||
+        (s.name.toLowerCase().includes('math') && !s.name.toLowerCase().includes('engineering'))
+          ? 'JEE_MAINS'
+          : 'GATE'
+      );
+      return cat === selectedExamTab;
+    });
+  }, [hierarchy, selectedExamTab]);
 
   // Find active subject and topic names
   const activeSubjectName = hierarchy.find((s) => s.id === selectedSubjectId)?.name;
@@ -506,10 +534,12 @@ export default function QuestionBankPage() {
             </div>
 
             <div className="mt-3 space-y-1.5 max-h-[600px] overflow-y-auto pr-1">
-              {hierarchy.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center">No subjects found.</p>
+              {visibleHierarchy.length === 0 ? (
+                <p className="text-xs text-slate-400 py-4 text-center">
+                  No {selectedExamTab === 'ALL' ? '' : selectedExamTab === 'JEE_MAINS' ? 'JEE Mains ' : 'GATE '}subjects found.
+                </p>
               ) : (
-                hierarchy.map((subj) => {
+                visibleHierarchy.map((subj) => {
                   const isExpanded = expandedSubjects.has(subj.id);
                   const isSubjectSelected = selectedSubjectId === subj.id && selectedTopicId === undefined;
 
@@ -596,6 +626,51 @@ export default function QuestionBankPage() {
         <main className="flex-1 min-w-0 space-y-4">
           {/* Filter Bar */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
+            {/* Exam Track Switcher Toggle */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => handleExamTabChange('ALL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    selectedExamTab === 'ALL'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Questions
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExamTabChange('GATE')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    selectedExamTab === 'GATE'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-indigo-600'
+                  }`}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>GATE Exam</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExamTabChange('JEE_MAINS')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    selectedExamTab === 'JEE_MAINS'
+                      ? 'bg-cyan-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-cyan-700'
+                  }`}
+                >
+                  <Atom className="w-3.5 h-3.5" />
+                  <span>JEE Mains</span>
+                </button>
+              </div>
+
+              <div className="text-xs text-slate-500 font-medium">
+                Showing <strong>{questions.length}</strong> {selectedExamTab === 'ALL' ? 'total questions' : `${selectedExamTab === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} questions`}
+              </div>
+            </div>
+
             <div className="flex flex-wrap items-center gap-3">
               {/* Search */}
               <div className="relative flex-1 min-w-[240px]">
@@ -703,6 +778,30 @@ export default function QuestionBankPage() {
                     <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-bold text-slate-800">Q#{idx + 1}</span>
+
+                        {/* Exam Track Badge */}
+                        {(() => {
+                          const isJee =
+                            q.subject?.examCategory === 'JEE_MAINS' ||
+                            q.section === 'PHYSICS' ||
+                            q.section === 'CHEMISTRY' ||
+                            q.subject?.name?.toLowerCase().includes('isc') ||
+                            (q.subject?.name?.toLowerCase().includes('math') &&
+                              !q.subject?.name?.toLowerCase().includes('gate') &&
+                              !q.subject?.name?.toLowerCase().includes('engineering'));
+                          return isJee ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-50 text-cyan-800 border border-cyan-200 flex items-center gap-1 shadow-2xs">
+                              <Atom className="w-3.5 h-3.5 text-cyan-600" />
+                              JEE Mains
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 shadow-2xs">
+                              <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                              GATE
+                            </span>
+                          );
+                        })()}
+
                         {/* Type badge */}
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${

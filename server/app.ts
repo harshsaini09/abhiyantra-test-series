@@ -222,42 +222,53 @@ app.get('/api/stats', handleStats);
 app.get('/stats', handleStats);
 
 // ─── 4. Two-Level Hierarchy (Subject -> Topic with counts) ───
-const handleHierarchy = async (_req: Request, res: Response) => {
+const handleHierarchy = async (req: Request, res: Response) => {
   if (!isDbConfigured || !prisma) {
     res.status(200).json([]);
     return;
   }
 
-  // Instant In-Memory Cache Hit (< 2ms response time)
-  if (cachedHierarchy && Date.now() - cachedHierarchy.timestamp < CACHE_TTL_MS) {
-    res.json(cachedHierarchy.data);
+  const { examCategory } = req.query;
+
+  let allSubjects = cachedHierarchy && Date.now() - cachedHierarchy.timestamp < CACHE_TTL_MS
+    ? cachedHierarchy.data
+    : null;
+
+  if (!allSubjects) {
+    try {
+      allSubjects = await prisma.subject.findMany({
+        orderBy: { name: 'asc' },
+        include: {
+          topics: {
+            orderBy: { name: 'asc' },
+            include: {
+              _count: {
+                select: { questions: { where: { isArchived: false } } },
+              },
+            },
+          },
+          _count: {
+            select: { questions: { where: { isArchived: false } } },
+          },
+        },
+      });
+
+      cachedHierarchy = { data: allSubjects, timestamp: Date.now() };
+    } catch (error) {
+      console.warn('Hierarchy fallback:', error);
+      res.status(200).json([]);
+      return;
+    }
+  }
+
+  if (examCategory && typeof examCategory === 'string' && ['GATE', 'JEE_MAINS'].includes(examCategory.toUpperCase())) {
+    const target = examCategory.toUpperCase();
+    const filtered = allSubjects.filter((s: any) => s.examCategory === target);
+    res.json(filtered);
     return;
   }
 
-  try {
-    const subjects = await prisma.subject.findMany({
-      orderBy: { name: 'asc' },
-      include: {
-        topics: {
-          orderBy: { name: 'asc' },
-          include: {
-            _count: {
-              select: { questions: { where: { isArchived: false } } },
-            },
-          },
-        },
-        _count: {
-          select: { questions: { where: { isArchived: false } } },
-        },
-      },
-    });
-
-    cachedHierarchy = { data: subjects, timestamp: Date.now() };
-    res.json(subjects);
-  } catch (error) {
-    console.warn('Hierarchy fallback:', error);
-    res.status(200).json([]);
-  }
+  res.json(allSubjects);
 };
 app.get('/api/hierarchy', handleHierarchy);
 app.get('/hierarchy', handleHierarchy);
@@ -269,7 +280,7 @@ const handleQuestions = async (req: Request, res: Response) => {
     return;
   }
   try {
-    const { subjectId, topicId, type, marks, search, includeArchived } = req.query;
+    const { subjectId, topicId, type, marks, search, includeArchived, examCategory } = req.query;
 
     const where: Record<string, unknown> = {};
 
@@ -293,6 +304,10 @@ const handleQuestions = async (req: Request, res: Response) => {
       where.marks = Number(marks);
     }
 
+    if (examCategory && typeof examCategory === 'string' && ['GATE', 'JEE_MAINS'].includes(examCategory.toUpperCase())) {
+      where.subject = { examCategory: examCategory.toUpperCase() };
+    }
+
     if (search && typeof search === 'string' && search.trim()) {
       where.OR = [
         { questionText: { contains: search.trim() } },
@@ -304,7 +319,7 @@ const handleQuestions = async (req: Request, res: Response) => {
       where,
       orderBy: [{ subject: { name: 'asc' } }, { topic: { name: 'asc' } }, { id: 'asc' }],
       include: {
-        subject: { select: { id: true, name: true } },
+        subject: { select: { id: true, name: true, examCategory: true } },
         topic: { select: { id: true, name: true } },
       },
     });
@@ -499,7 +514,7 @@ app.get('/export', handleExport);
 // ─── 10. Custom Test Paper Generation ───
 const handleCustomTest = async (req: Request, res: Response) => {
   try {
-    const { title, description, questionIds, rules } = req.body;
+    const { title, description, questionIds, rules, examCategory } = req.body;
 
     let selectedQuestions: unknown[] = [];
 
@@ -507,7 +522,7 @@ const handleCustomTest = async (req: Request, res: Response) => {
       const questions = await prisma.question.findMany({
         where: { id: { in: questionIds.map(Number) }, isArchived: false },
         include: {
-          subject: { select: { name: true } },
+          subject: { select: { name: true, examCategory: true } },
           topic: { select: { name: true } },
         },
       });
@@ -519,7 +534,11 @@ const handleCustomTest = async (req: Request, res: Response) => {
     } else if (Array.isArray(rules) && rules.length > 0) {
       for (const rule of rules) {
         const where: Record<string, unknown> = { isArchived: false };
-        if (rule.subjectId) where.subjectId = Number(rule.subjectId);
+        if (rule.subjectId) {
+          where.subjectId = Number(rule.subjectId);
+        } else if (examCategory && typeof examCategory === 'string' && ['GATE', 'JEE_MAINS'].includes(examCategory.toUpperCase())) {
+          where.subject = { examCategory: examCategory.toUpperCase() };
+        }
         if (rule.topicId) where.topicId = Number(rule.topicId);
         if (rule.type) where.type = rule.type;
         if (rule.marks) where.marks = Number(rule.marks);
@@ -527,7 +546,7 @@ const handleCustomTest = async (req: Request, res: Response) => {
         const pool = await prisma.question.findMany({
           where,
           include: {
-            subject: { select: { name: true } },
+            subject: { select: { name: true, examCategory: true } },
             topic: { select: { name: true } },
           },
         });
@@ -543,12 +562,14 @@ const handleCustomTest = async (req: Request, res: Response) => {
       return;
     }
 
+    const testCategory = examCategory || (title?.toLowerCase().includes('jee') ? 'JEE_MAINS' : 'GATE');
     const testData = {
-      title: title?.trim() || 'Custom Built GATE Mock Test',
+      title: title?.trim() || (testCategory === 'JEE_MAINS' ? 'Custom Built JEE Mains Mock Test' : 'Custom Built GATE Mock Test'),
       description: description?.trim() || `Custom paper with ${selectedQuestions.length} questions selected from Question Bank.`,
+      examCategory: testCategory,
       questions: (selectedQuestions as Array<{
         id: number;
-        subject: { name: string };
+        subject: { name: string; examCategory?: string };
         topic: { name: string };
         type: string;
         marks: number;

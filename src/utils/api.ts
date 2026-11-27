@@ -161,15 +161,18 @@ export async function fetchStats(): Promise<QuestionBankStats> {
   };
 }
 
-export async function fetchHierarchy(): Promise<SubjectWithTopics[]> {
+export async function fetchHierarchy(examCategory?: string): Promise<SubjectWithTopics[]> {
   try {
-    const res = await fetch(`${API_BASE}/hierarchy`);
+    const url = examCategory ? `${API_BASE}/hierarchy?examCategory=${encodeURIComponent(examCategory)}` : `${API_BASE}/hierarchy`;
+    const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        try {
-          localStorage.setItem(HIERARCHY_CACHE_KEY, JSON.stringify(data));
-        } catch {}
+        if (!examCategory) {
+          try {
+            localStorage.setItem(HIERARCHY_CACHE_KEY, JSON.stringify(data));
+          } catch {}
+        }
         return data;
       }
     }
@@ -178,7 +181,12 @@ export async function fetchHierarchy(): Promise<SubjectWithTopics[]> {
   }
 
   const cached = getLocalHierarchy();
-  if (cached && cached.length > 0) return cached;
+  if (cached && cached.length > 0) {
+    if (examCategory) {
+      return cached.filter((s) => s.examCategory === examCategory);
+    }
+    return cached;
+  }
 
   const qs = getLocalQuestions().filter((q) => !q.isArchived);
   const subjectMap = new Map<string, { id: number; topics: Map<string, { id: number; count: number }> }>();
@@ -232,6 +240,7 @@ export interface QuestionFilters {
   marks?: MarkValue;
   search?: string;
   includeArchived?: boolean;
+  examCategory?: 'GATE' | 'JEE_MAINS' | string;
 }
 
 export async function fetchQuestions(filters: QuestionFilters = {}): Promise<QuestionBankItem[]> {
@@ -243,12 +252,13 @@ export async function fetchQuestions(filters: QuestionFilters = {}): Promise<Que
     if (filters.marks) params.append('marks', String(filters.marks));
     if (filters.search) params.append('search', filters.search);
     if (filters.includeArchived) params.append('includeArchived', 'true');
+    if (filters.examCategory) params.append('examCategory', filters.examCategory);
 
     const res = await fetch(`${API_BASE}/questions?${params.toString()}`);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        if (!filters.subjectId && !filters.topicId && !filters.type && !filters.marks && !filters.search) {
+        if (!filters.subjectId && !filters.topicId && !filters.type && !filters.marks && !filters.search && !filters.examCategory) {
           saveLocalQuestions(data);
         }
         return data;
@@ -420,6 +430,7 @@ export interface CustomTestPayload {
     marks?: MarkValue;
     count: number;
   }>;
+  examCategory?: 'GATE' | 'JEE_MAINS' | string;
 }
 
 export async function generateCustomTest(payload: CustomTestPayload): Promise<TestData> {

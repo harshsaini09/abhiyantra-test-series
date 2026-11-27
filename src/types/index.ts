@@ -69,6 +69,7 @@ export interface TopicItem {
 export interface SubjectWithTopics {
   id: number;
   name: string;
+  examCategory?: 'GATE' | 'JEE_MAINS' | string;
   topics: TopicItem[];
   _count?: {
     questions: number;
@@ -83,6 +84,7 @@ export interface QuestionBankItem {
   subject: {
     id: number;
     name: string;
+    examCategory?: 'GATE' | 'JEE_MAINS' | string;
   };
   topicId: number;
   topic: {
