@@ -19,14 +19,15 @@ import {
 } from 'lucide-react';
 
 function resolveSubject(testData: TestData, qSubject?: string): string {
-  if (qSubject && qSubject.trim() && qSubject.trim() !== 'General PCM' && qSubject.trim() !== 'Core Engineering') {
+  const genericSubjects = ['general pcm', 'general topic', 'core engineering', 'general', 'unassigned', 'pcm', 'all'];
+  if (qSubject && qSubject.trim() && !genericSubjects.includes(qSubject.trim().toLowerCase())) {
     return qSubject.trim();
   }
-  if (testData.subject && testData.subject.trim() && testData.subject.trim() !== 'General PCM') {
+  if (testData.subject && testData.subject.trim() && !genericSubjects.includes(testData.subject.trim().toLowerCase())) {
     return testData.subject.trim();
   }
   const title = (testData.title || '').toLowerCase();
-  if (title.includes('mathematics') || title.includes('maths') || title.includes('math')) return 'Mathematics';
+  if (title.includes('mathematics') || title.includes('maths') || title.includes('math') || title.includes('isc class xii') || title.includes('class 12 math') || title.includes('class xii math')) return 'Mathematics';
   if (title.includes('physics')) return 'Physics';
   if (title.includes('chemistry')) return 'Chemistry';
   if (title.includes('artificial intelligence') || title.includes('ai mock') || title.includes('search —') || title.includes('da:')) return 'Artificial Intelligence (AI)';
@@ -39,14 +40,15 @@ function resolveSubject(testData: TestData, qSubject?: string): string {
   if (title.includes('digital logic')) return 'Digital Logic';
   if (title.includes('general aptitude') || title.includes('aptitude')) return 'General Aptitude';
   if (title.includes('machine learning') || title.includes('ml ')) return 'Machine Learning';
-  return testData.examCategory === 'JEE_MAINS' ? 'Mathematics, Physics & Chemistry' : 'Core Technical Subject';
+  return testData.examCategory === 'JEE_MAINS' ? 'Mathematics' : 'Core Technical Subject';
 }
 
 function resolveTopic(qText?: string, qTopic?: string, testTopic?: string, subject?: string): string {
-  if (qTopic && qTopic.trim() && qTopic.trim() !== 'General Topic') {
+  const genericTopics = ['general topic', 'general', 'unassigned', 'general pcm', 'topic'];
+  if (qTopic && qTopic.trim() && !genericTopics.includes(qTopic.trim().toLowerCase())) {
     return qTopic.trim();
   }
-  if (testTopic && testTopic.trim() && testTopic.trim() !== 'General Topic') {
+  if (testTopic && testTopic.trim() && !genericTopics.includes(testTopic.trim().toLowerCase())) {
     return testTopic.trim();
   }
   const text = (qText || '').toLowerCase();

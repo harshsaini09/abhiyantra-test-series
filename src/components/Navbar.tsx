@@ -15,8 +15,8 @@ export default function Navbar() {
   const isMasterAdmin = user?.role === 'ADMIN' || ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user?.email?.toLowerCase() || '');
   const isTeacher = user?.role === 'TEACHER';
   const isTeacherOrAdmin = isMasterAdmin || isTeacher;
-  const isProPassHolder = Boolean(user?.isSubscribed && user?.subscriptionTier !== 'gate-booster-pass');
-  const isPassUnlocked = isTeacherOrAdmin || Boolean(user?.isSubscribed);
+  const isProPassHolder = Boolean(user?.isSubscribed);
+  const isPassUnlocked = isTeacherOrAdmin || isProPassHolder;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -46,8 +46,17 @@ export default function Navbar() {
     { to: '/custom-builder', label: 'Custom Builder', shortLabel: 'Builder', icon: <Wrench className="w-4 h-4" /> },
   ];
 
+  const customBuilderLink = {
+    to: '/custom-builder',
+    label: 'Custom Builder',
+    shortLabel: 'Builder',
+    icon: <Wrench className="w-4 h-4" />,
+  };
+
   const links = isTeacherOrAdmin
     ? [baseLinks[0], baseLinks[1], ...facultyLinks, ...baseLinks.slice(2)]
+    : isProPassHolder
+    ? [baseLinks[0], baseLinks[1], customBuilderLink, ...baseLinks.slice(2)]
     : baseLinks;
 
   const isLinkActive = (to: string) => {
