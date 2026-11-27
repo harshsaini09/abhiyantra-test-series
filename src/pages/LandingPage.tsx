@@ -851,7 +851,9 @@ export default function LandingPage() {
                     icon={<Clock className="w-4 h-4" />}
                     label="Duration"
                     value={formatDurationHuman(
-                      calculateDuration(validatedData.questions.length)
+                      Number(validatedData.duration || (validatedData as any).durationMinutes) > 0
+                        ? Math.round(Number(validatedData.duration || (validatedData as any).durationMinutes) * 60)
+                        : calculateDuration(validatedData.questions.length)
                     )}
                   />
                 </div>

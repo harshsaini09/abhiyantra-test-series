@@ -674,7 +674,11 @@ export async function saveReportCardApi(results: TestResults): Promise<SavedRepo
     positiveMarks: results.positiveMarks,
     negativeMarks: results.negativeMarks,
     timeTakenSeconds: results.timeTaken,
-    allocatedSeconds: (results.testData.questions.length <= 15 ? 1800 : results.testData.questions.length <= 35 ? 5400 : 10800),
+    allocatedSeconds: (results as any).allocatedSeconds || (
+      Number(results.testData.duration || (results.testData as any).durationMinutes) > 0
+        ? Math.round(Number(results.testData.duration || (results.testData as any).durationMinutes) * 60)
+        : (results.testData.questions.length <= 15 ? 1800 : results.testData.questions.length <= 35 ? 5400 : 10800)
+    ),
     breakdownJson: {
       byType: results.byType,
       byMarks: results.byMarks,

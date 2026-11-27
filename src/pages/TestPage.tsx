@@ -131,7 +131,10 @@ export default function TestPage() {
   }
 
   // ─── state initialisation ───
-  const totalDuration = calculateDuration(testData.questions.length);
+  const configuredDurationMinutes = Number(testData.duration || (testData as any).durationMinutes);
+  const totalDuration = configuredDurationMinutes > 0
+    ? Math.round(configuredDurationMinutes * 60)
+    : calculateDuration(testData.questions.length);
 
   const [responses, setResponses] = useState<UserResponse[]>(() => {
     if (
@@ -270,6 +273,7 @@ export default function TestPage() {
     }
 
     const results = gradeTest(testData, responsesRef.current, mode, timeTaken, finalMap);
+    (results as any).allocatedSeconds = totalDuration;
     // Guarantee instant background save so the report card exists immediately
     saveReportCardApi(results).catch(() => {});
     navigate('/report', { state: { results } });
