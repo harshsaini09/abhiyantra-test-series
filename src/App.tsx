@@ -8,6 +8,7 @@ import ReportCardsPage from './pages/ReportCardsPage';
 import PricingPage from './pages/PricingPage';
 import AdminPaymentsPage from './pages/AdminPaymentsPage';
 import TestSeriesPage from './pages/TestSeriesPage';
+import TestInstructionsPage from './pages/TestInstructionsPage';
 import ExamOnboardingModal from './components/ExamOnboardingModal';
 
 export default function App() {
@@ -18,6 +19,8 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/test-series" element={<TestSeriesPage />} />
         <Route path="/series" element={<TestSeriesPage />} />
+        <Route path="/test-instructions" element={<TestInstructionsPage />} />
+        <Route path="/instructions" element={<TestInstructionsPage />} />
         <Route path="/test" element={<TestPage />} />
         <Route path="/report" element={<ReportPage />} />
         <Route path="/report-cards" element={<ReportCardsPage />} />

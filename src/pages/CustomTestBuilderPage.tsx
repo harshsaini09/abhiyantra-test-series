@@ -391,7 +391,7 @@ export default function CustomTestBuilderPage() {
         return;
       }
 
-      navigate('/test', { state: { testData, mode: testMode } });
+      navigate('/test-instructions', { state: { testData, mode: testMode } });
     } catch (err: unknown) {
       setErrorMsg((err as Error).message || 'Failed to generate test.');
     } finally {

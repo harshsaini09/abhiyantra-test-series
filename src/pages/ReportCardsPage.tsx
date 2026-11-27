@@ -102,7 +102,7 @@ export default function ReportCardsPage() {
       setLaunchingTestId(testId);
       const res = await fetchPersonalTestByIdApi(testId);
       if (res && res.test) {
-        navigate('/test', { state: { testData: res.test, mode } });
+        navigate('/test-instructions', { state: { testData: res.test, mode } });
       }
     } catch (err: any) {
       alert(err.message || 'Failed to launch personal test.');

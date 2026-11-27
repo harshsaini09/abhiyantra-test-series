@@ -539,7 +539,7 @@ export const TestSeriesPage: React.FC = () => {
       setLaunchingId(testId);
       const res = await fetchOfficialTestByIdApi(testId);
       if (res && res.test) {
-        navigate('/test', { state: { testData: res.test, mode } });
+        navigate('/test-instructions', { state: { testData: res.test, mode } });
       } else {
         alert('Could not load test paper details.');
       }

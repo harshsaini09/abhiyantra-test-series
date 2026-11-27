@@ -159,7 +159,7 @@ export default function LandingPage() {
   // Try sample test
   const handleTrySample = () => {
     ingestTestData(sampleTestData).catch(() => {});
-    navigate('/test', { state: { testData: sampleTestData, mode } });
+    navigate('/test-instructions', { state: { testData: sampleTestData, mode } });
   };
 
   // Start test
@@ -173,7 +173,7 @@ export default function LandingPage() {
     }
 
     ingestTestData(validatedData).catch(() => {});
-    navigate('/test', { state: { testData: validatedData, mode } });
+    navigate('/test-instructions', { state: { testData: validatedData, mode } });
   };
 
   // Preview summary helpers
