@@ -828,15 +828,10 @@ export const TestSeriesPage: React.FC = () => {
                           ? 'Subject Pack'
                           : 'Topic Test'}
                       </span>
-                      {test.isFree ? (
+                      {test.isFree && (
                         <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                           <Unlock className="w-3 h-3 text-emerald-600" />
                           Free
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200/80 flex items-center gap-1">
-                          <Lock className="w-3 h-3 text-amber-600" />
-                          Pro Pass
                         </span>
                       )}
                       {test.subject && (
