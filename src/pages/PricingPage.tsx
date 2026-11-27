@@ -254,7 +254,7 @@ export const PricingPage: React.FC = () => {
             </div>
             <h4 className="font-bold text-base">All-India Authentic Tests</h4>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Built strictly to the official GATE pattern with Section wise General Aptitude + Technical marks distribution.
+              Built strictly to the official examination patterns (GATE IIT & JEE Mains NTA) with authentic section-wise question & marks distribution.
             </p>
           </div>
         </div>

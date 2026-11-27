@@ -150,6 +150,7 @@ model Question {
   solution        String
   imageUrl        String?
   solutionImageUrl String?
+  tikzCode        String?
   sourceTestTitle String?
   isArchived      Boolean  @default(false)
   createdAt       DateTime @default(now())
@@ -176,6 +177,7 @@ model PublishedTest {
   creator         User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   creatorRole     String   @default("STUDENT") // "STUDENT" | "TEACHER" | "ADMIN"
   isOfficial      Boolean  @default(false)     // true = Teacher/Admin Test Series; false = Student Personal Test
+  isFree          Boolean  @default(false)     // true = Free for all students; false = Pro Pass / Paid locked
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -183,5 +185,6 @@ model PublishedTest {
   @@index([isOfficial])
   @@index([category])
   @@index([examCategory])
+  @@index([isFree])
 }
 

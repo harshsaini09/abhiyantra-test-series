@@ -95,6 +95,7 @@ router.get('/official', async (req: Request, res: Response): Promise<void> => {
         durationMinutes: true,
         creatorRole: true,
         isOfficial: true,
+        isFree: true,
         createdAt: true,
         creator: {
           select: {
@@ -148,6 +149,16 @@ router.get('/official/:id', async (req: Request, res: Response): Promise<void> =
       }
     }
 
+    // Access check: Free for all if test.isFree, otherwise requires subscribed student or teacher/admin
+    const isTeacherOrAdmin = user && (user.role === 'ADMIN' || user.role === 'TEACHER' || ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase()));
+    if (!test.isFree && !isTeacherOrAdmin && (!user || !user.isSubscribed)) {
+      res.status(403).json({
+        error: 'This test series paper is locked for Pro / Test Series Pass subscribers. Please unlock with a pass to start.',
+        requiresSubscription: true,
+      });
+      return;
+    }
+
     const rawQuestions = JSON.parse(test.questionsJson);
     const parsedQuestions = Array.isArray(rawQuestions)
       ? rawQuestions.map((q: any, idx: number) => {
@@ -172,6 +183,7 @@ router.get('/official/:id', async (req: Request, res: Response): Promise<void> =
         totalMarks: test.totalMarks,
         category: test.category,
         examCategory: test.examCategory,
+        isFree: test.isFree,
         questions: parsedQuestions,
         creator: test.creator,
       },
@@ -191,7 +203,7 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
       return;
     }
 
-    const { title, description, category = 'FULL_MOCK', examCategory = 'GATE', subject, testData } = req.body;
+    const { title, description, category = 'FULL_MOCK', examCategory = 'GATE', subject, isFree, testData } = req.body;
     const rawData = testData || req.body;
     const sanitized = sanitizeTestData(rawData, title || 'Official GATE Test Series');
 
@@ -219,6 +231,7 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
         creatorId: user.id,
         creatorRole: user.role || 'TEACHER',
         isOfficial: true,
+        isFree: Boolean(isFree),
       },
     });
 
@@ -525,6 +538,51 @@ router.put('/:id', requireTeacherOrAdmin, async (req: AuthenticatedRequest, res:
   } catch (err: any) {
     console.error('Error updating test:', err);
     res.status(500).json({ error: err.message || 'Failed to update test.' });
+  }
+});
+
+// ─── 9. Toggle Free / Pro Pass Access for a Test Series (Admin & Teachers) ───
+router.patch('/:id/access', requireTeacherOrAdmin, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const { isFree } = req.body;
+
+    if (!user || !user.id) {
+      res.status(401).json({ error: 'Unauthorized.' });
+      return;
+    }
+
+    if (!isDbConfigured || !prisma) {
+      res.status(500).json({ error: 'Database not connected.' });
+      return;
+    }
+
+    const test = await prisma.publishedTest.findUnique({ where: { id } });
+    if (!test) {
+      res.status(404).json({ error: 'Test not found.' });
+      return;
+    }
+
+    const updated = await prisma.publishedTest.update({
+      where: { id },
+      data: { isFree: Boolean(isFree) },
+    });
+
+    res.json({
+      success: true,
+      message: updated.isFree
+        ? 'Test series is now FREE for all students.'
+        : 'Test series is now LOCKED for Pro / Paid subscribers.',
+      test: {
+        id: updated.id,
+        title: updated.title,
+        isFree: updated.isFree,
+      },
+    });
+  } catch (err: any) {
+    console.error('Error updating test access level:', err);
+    res.status(500).json({ error: err.message || 'Failed to update test access level.' });
   }
 });
 

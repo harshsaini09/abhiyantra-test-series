@@ -8,6 +8,7 @@ import {
   fetchOfficialTestByIdApi,
   uploadOfficialTestSeriesApi,
   deleteTestSeriesApi,
+  toggleOfficialTestAccessApi,
   fetchPricingPlansApi,
 } from '../utils/api';
 import type { PricingPlan } from '../types';
@@ -21,6 +22,7 @@ import {
   Play,
   Trash2,
   Lock,
+  Unlock,
   FileJson,
   AlertCircle,
   Loader2,
@@ -49,6 +51,7 @@ interface OfficialTestItem {
   durationMinutes: number;
   creatorRole: string;
   isOfficial?: boolean;
+  isFree?: boolean;
   createdAt: string;
   creator?: {
     name: string;
@@ -98,12 +101,36 @@ export const TestSeriesPage: React.FC = () => {
   const [uploadExamCategory, setUploadExamCategory] = useState<'GATE' | 'JEE_MAINS'>(targetExam);
   const [uploadCategory, setUploadCategory] = useState<'FULL_MOCK' | 'SUBJECT_PACK' | 'TOPIC_TEST'>('FULL_MOCK');
   const [uploadSubject, setUploadSubject] = useState('');
+  const [uploadIsFree, setUploadIsFree] = useState<boolean>(false);
   const [uploadDuration, setUploadDuration] = useState<number>(180);
   const [perQuestionMinutes, setPerQuestionMinutes] = useState<number>(2.77);
   const [totalMarks, setTotalMarks] = useState<number>(0);
   const [parsedQuestions, setParsedQuestions] = useState<any[] | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+
+  // Admin access toggling state
+  const [togglingAccessId, setTogglingAccessId] = useState<string | null>(null);
+
+  const handleToggleAccess = async (testId: string, currentIsFree: boolean) => {
+    try {
+      setTogglingAccessId(testId);
+      const newStatus = !currentIsFree;
+      // Optimistic update
+      setTests((prev) =>
+        prev.map((t) => (t.id === testId ? { ...t, isFree: newStatus } : t))
+      );
+      await toggleOfficialTestAccessApi(testId, newStatus);
+    } catch (err: any) {
+      // Revert on error
+      setTests((prev) =>
+        prev.map((t) => (t.id === testId ? { ...t, isFree: currentIsFree } : t))
+      );
+      alert(`Failed to update test access level: ${err?.message || 'Error'}`);
+    } finally {
+      setTogglingAccessId(null);
+    }
+  };
 
   // Diagram Manager Modal state
   const [diagramModalOpen, setDiagramModalOpen] = useState(false);
@@ -160,6 +187,7 @@ export const TestSeriesPage: React.FC = () => {
     setUploadTitle('');
     setUploadDescription('');
     setUploadSubject('');
+    setUploadIsFree(false);
     setUploadDuration(180);
     setPerQuestionMinutes(2.77);
     setTotalMarks(0);
@@ -475,6 +503,7 @@ export const TestSeriesPage: React.FC = () => {
         category: uploadCategory,
         examCategory: uploadExamCategory,
         subject: uploadSubject.trim() || undefined,
+        isFree: uploadIsFree,
         testData: {
           title: uploadTitle.trim(),
           description: uploadDescription.trim(),
@@ -641,7 +670,7 @@ export const TestSeriesPage: React.FC = () => {
                   Unlock Full Access to All Teacher-Made Test Series
                 </h3>
                 <p className="text-xs text-slate-600">
-                  Get instant unlimited access for just <strong className="text-indigo-700">₹29</strong> (Subject & Topic Booster) or <strong className="text-indigo-700">₹59</strong> (Complete Pro Pass with Personal Test Builder).
+                  Get instant unlimited access to all locked papers for just <strong className="text-indigo-700">₹29</strong> (Subject & Topic Booster) or <strong className="text-indigo-700">₹59</strong> (Complete Pro Pass with Personal Test Builder). Free sample mocks can be taken anytime without a pass.
                 </p>
               </div>
             </div>
@@ -770,11 +799,13 @@ export const TestSeriesPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTests.map((test) => (
+            {filteredTests.map((test) => {
+              const canTakeThisTest = isTeacherOrAdmin || Boolean(test.isFree) || Boolean(user?.isSubscribed);
+              return (
               <div
                 key={test.id}
                 className={`bg-white rounded-3xl border p-6 shadow-xs hover:shadow-lg transition-all flex flex-col justify-between space-y-5 relative overflow-hidden ${
-                  hasAccess
+                  canTakeThisTest
                     ? 'border-slate-200/80 hover:border-indigo-400'
                     : 'border-slate-200 bg-slate-50/50'
                 }`}
@@ -797,6 +828,17 @@ export const TestSeriesPage: React.FC = () => {
                           ? 'Subject Pack'
                           : 'Topic Test'}
                       </span>
+                      {test.isFree ? (
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                          <Unlock className="w-3 h-3 text-emerald-600" />
+                          Free
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200/80 flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-amber-600" />
+                          Pro Pass
+                        </span>
+                      )}
                       {test.subject && (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 text-slate-700">
                           {test.subject}
@@ -806,6 +848,34 @@ export const TestSeriesPage: React.FC = () => {
 
                     {isTeacherOrAdmin && (
                       <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleToggleAccess(test.id, Boolean(test.isFree))}
+                          disabled={togglingAccessId === test.id}
+                          className={`px-2 py-1 rounded-lg transition cursor-pointer flex items-center gap-1 text-[11px] font-bold border shadow-2xs ${
+                            test.isFree
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                          }`}
+                          title={
+                            test.isFree
+                              ? 'Currently Free for all students. Click to LOCK for Paid/Pro students.'
+                              : 'Currently Locked for Paid/Pro students. Click to make FREE for all students.'
+                          }
+                        >
+                          {togglingAccessId === test.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : test.isFree ? (
+                            <>
+                              <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Free</span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Pro Pass</span>
+                            </>
+                          )}
+                        </button>
                         <button
                           onClick={() => handleOpenDiagramManagerForTest(test.id, test.title)}
                           disabled={loadingDiagramQuestions}
@@ -864,33 +934,41 @@ export const TestSeriesPage: React.FC = () => {
 
                 {/* Card Action Buttons */}
                 <div className="pt-2">
-                  {hasAccess ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        disabled={launchingId === test.id}
-                        onClick={() => handleLaunchOfficialTest(test.id, 'exam')}
-                        className="flex-1 py-3 px-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition cursor-pointer disabled:opacity-50"
-                      >
-                        {launchingId === test.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Play className="w-3.5 h-3.5" />
-                        )}
-                        <span>Start CBT Exam</span>
-                      </button>
-                      <button
-                        disabled={launchingId === test.id}
-                        onClick={() => handleLaunchOfficialTest(test.id, 'practice')}
-                        className="py-3 px-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer disabled:opacity-50"
-                      >
-                        Practice
-                      </button>
+                  {canTakeThisTest ? (
+                    <div className="space-y-1.5">
+                      {test.isFree && !user?.isSubscribed && !isTeacherOrAdmin && (
+                        <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 py-1 rounded-lg border border-emerald-200">
+                          <Unlock className="w-3 h-3 text-emerald-600" />
+                          <span>Free Sample Mock · No Pass Needed</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={launchingId === test.id}
+                          onClick={() => handleLaunchOfficialTest(test.id, 'exam')}
+                          className="flex-1 py-3 px-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition cursor-pointer disabled:opacity-50"
+                        >
+                          {launchingId === test.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Play className="w-3.5 h-3.5" />
+                          )}
+                          <span>Start CBT Exam</span>
+                        </button>
+                        <button
+                          disabled={launchingId === test.id}
+                          onClick={() => handleLaunchOfficialTest(test.id, 'practice')}
+                          className="py-3 px-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer disabled:opacity-50"
+                        >
+                          Practice
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 py-1.5 rounded-xl border border-amber-200/60">
                         <Lock className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Included in ₹29 Booster Pass</span>
+                        <span>Included in Pro / Booster Pass</span>
                       </div>
                       <button
                         onClick={() => setIsPaymentModalOpen(true)}
@@ -903,7 +981,8 @@ export const TestSeriesPage: React.FC = () => {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
@@ -1206,6 +1285,54 @@ export const TestSeriesPage: React.FC = () => {
                     3.0 min/Q
                   </button>
                 </div>
+              </div>
+
+              {/* Access Control & Subscription Lock Selection */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                    Student Access & Subscription Lock
+                  </span>
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${
+                    uploadIsFree
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                      : 'bg-amber-100 text-amber-800 border-amber-200'
+                  }`}>
+                    {uploadIsFree ? 'Free for All' : 'Pro Pass Required'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUploadIsFree(false)}
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      !uploadIsFree
+                        ? 'bg-white text-indigo-900 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
+                        : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                    }`}
+                  >
+                    <Lock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>🔒 Pro Pass / Paid Only</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadIsFree(true)}
+                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      uploadIsFree
+                        ? 'bg-white text-emerald-900 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
+                        : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                    }`}
+                  >
+                    <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>🔓 Free for All Students</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  {uploadIsFree
+                    ? 'Every student (including free accounts) can take this paper at zero cost.'
+                    : 'Locked for students with an active Pro Pass or Test Series Subscription.'}
+                </p>
               </div>
 
               {/* Errors & Success Alerts */}

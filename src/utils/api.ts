@@ -1621,6 +1621,8 @@ export async function fetchOfficialTestSeriesApi(examCategory?: string): Promise
     totalMarks: number;
     durationMinutes: number;
     creatorRole: string;
+    isOfficial?: boolean;
+    isFree?: boolean;
     createdAt: string;
     creator?: { name: string; email: string };
   }>;
@@ -1657,6 +1659,7 @@ export async function uploadOfficialTestSeriesApi(payload: {
   category?: string;
   examCategory?: 'GATE' | 'JEE_MAINS';
   subject?: string;
+  isFree?: boolean;
   testData: any;
 }): Promise<{ success: boolean; message: string; test: any; qbResult?: any }> {
   const res = await fetch(`${API_BASE}/test-series/upload`, {
@@ -1671,6 +1674,26 @@ export async function uploadOfficialTestSeriesApi(payload: {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(data.error || 'Failed to upload official test series.');
+  }
+  return data;
+}
+
+export async function toggleOfficialTestAccessApi(
+  testId: string,
+  isFree: boolean
+): Promise<{ success: boolean; message: string; test: { id: string; title: string; isFree: boolean } }> {
+  const res = await fetch(`${API_BASE}/test-series/${testId}/access`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    credentials: 'include',
+    body: JSON.stringify({ isFree }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update test access level.');
   }
   return data;
 }
