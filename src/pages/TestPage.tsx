@@ -11,6 +11,9 @@ import {
   RotateCcw,
   Calculator,
   Ban,
+  ShieldAlert,
+  ShieldCheck,
+  Maximize2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -185,6 +188,54 @@ export default function TestPage() {
   const [showPalette, setShowPalette] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
 
+  // ─── proctoring & full-screen security state ───
+  const [isFullscreen, setIsFullscreen] = useState(() => {
+    const doc = typeof document !== 'undefined' ? (document as any) : null;
+    return !!(doc?.fullscreenElement || doc?.webkitFullscreenElement || doc?.mozFullScreenElement || doc?.msFullscreenElement);
+  });
+  const [showFullscreenModal, setShowFullscreenModal] = useState(mode === 'exam');
+  const [strikeCount, setStrikeCount] = useState(0);
+  const strikeCountRef = useRef(0);
+  strikeCountRef.current = strikeCount;
+  const [showStrike1Modal, setShowStrike1Modal] = useState(false);
+
+  // Fullscreen helper
+  const requestFullscreen = useCallback(() => {
+    try {
+      const elem = document.documentElement as any;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    } catch {
+      // Ignore fullscreen request rejection
+    }
+  }, []);
+
+  // Monitor fullscreen changes
+  useEffect(() => {
+    const checkFs = () => {
+      const doc = document as any;
+      const isFs = !!(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement);
+      setIsFullscreen(isFs);
+      if (mode === 'exam' && !isSubmittedRef.current && !isFs) {
+        setShowFullscreenModal(true);
+      } else if (isFs) {
+        setShowFullscreenModal(false);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', checkFs);
+    document.addEventListener('webkitfullscreenchange', checkFs);
+    return () => {
+      document.removeEventListener('fullscreenchange', checkFs);
+      document.removeEventListener('webkitfullscreenchange', checkFs);
+    };
+  }, [mode]);
+
   // Section groups (General Aptitude vs Core Subject)
   const sections = useMemo(() => {
     const hasExplicitSections = testData.questions.some(
@@ -256,7 +307,7 @@ export default function TestPage() {
   isSubmittedRef.current = isSubmitted;
 
   // ─── submit function ───
-  const submitTest = useCallback(() => {
+  const submitTest = useCallback((autoReason?: string) => {
     if (isSubmittedRef.current) return;
     flushCurrentQuestionTime();
     setIsSubmitted(true);
@@ -274,6 +325,10 @@ export default function TestPage() {
 
     const results = gradeTest(testData, responsesRef.current, mode, timeTaken, finalMap);
     (results as any).allocatedSeconds = totalDuration;
+    if (autoReason) {
+      (results as any).autoSubmittedReason = autoReason;
+      (results as any).strikes = autoReason === 'SECURITY_STRIKE_LIMIT_EXCEEDED' ? 2 : 0;
+    }
     // Guarantee instant background save so the report card exists immediately
     saveReportCardApi(results).catch(() => {});
     navigate('/report', { state: { results } });
@@ -281,8 +336,66 @@ export default function TestPage() {
 
   // ─── timer ───
   const handleExpire = useCallback(() => {
-    submitTest();
+    submitTest('TIME_EXPIRED');
   }, [submitTest]);
+
+  // ─── back button navigation trap (prevent leaving exam) ───
+  useEffect(() => {
+    if (mode !== 'exam' || isSubmitted) return;
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, '', window.location.href);
+      alert("Browser navigation is locked during the CBT exam. Please use the 'Submit Test' button when finished.");
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [mode, isSubmitted]);
+
+  // ─── accidental tab close / reload protection ───
+  useEffect(() => {
+    if (isSubmitted) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isSubmitted]);
+
+  // ─── strict app-switch / tab-switch strike engine ───
+  useEffect(() => {
+    if (mode !== 'exam' || isSubmitted) return;
+    let lastViolationTime = 0;
+
+    const handleViolation = () => {
+      if (isSubmittedRef.current) return;
+      const now = Date.now();
+      // Debounce rapid duplicate events (within 1.5s)
+      if (now - lastViolationTime < 1500) return;
+      lastViolationTime = now;
+
+      const currentStrikes = strikeCountRef.current;
+      if (currentStrikes === 0) {
+        strikeCountRef.current = 1;
+        setStrikeCount(1);
+        setShowStrike1Modal(true);
+      } else if (currentStrikes >= 1) {
+        // Strike 2: Auto-submit immediately
+        submitTest('SECURITY_STRIKE_LIMIT_EXCEEDED');
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleViolation();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [mode, isSubmitted, submitTest]);
 
   const { remainingSeconds, isWarning } = useTimer(
     initialRemaining,
@@ -458,7 +571,12 @@ export default function TestPage() {
   // ────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen max-h-screen w-full max-w-full flex-col bg-slate-50 overflow-hidden select-none">
+    <div
+      className="flex h-screen max-h-screen w-full max-w-full flex-col bg-slate-50 overflow-hidden select-none"
+      onContextMenu={(e) => {
+        if (mode === 'exam') e.preventDefault();
+      }}
+    >
       {/* ═══ TOP BAR ═══ */}
       <header className="w-full max-w-full overflow-hidden border-b border-slate-200 bg-white px-2 sm:px-4 py-2 sm:py-2.5 shadow-sm shrink-0">
         <div className="flex items-center justify-between gap-1.5 sm:gap-4 w-full max-w-full">
@@ -487,8 +605,46 @@ export default function TestPage() {
             </div>
           </div>
 
-          {/* Right: Controls (Calculator, Palette, Timer, Submit) */}
-          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+          {/* Right: Controls (Proctoring status, Fullscreen, Calculator, Palette, Timer, Submit) */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Live Proctoring Strike Badge (Exam mode only) */}
+            {mode === 'exam' && (
+              <div
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 py-1 rounded-lg text-[10px] sm:text-xs font-bold border transition ${
+                  strikeCount === 0
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-red-50 text-red-700 border-red-300 animate-pulse'
+                }`}
+                title={
+                  strikeCount === 0
+                    ? 'Security Proctor Active: No violations detected'
+                    : 'Strike 1 of 2 logged! Next app switch will terminate the test.'
+                }
+              >
+                {strikeCount === 0 ? (
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                ) : (
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                )}
+                <span className="hidden md:inline">Strikes:</span>
+                <span>{strikeCount}/2</span>
+              </div>
+            )}
+
+            {/* Full Screen Toggle Button */}
+            <button
+              onClick={requestFullscreen}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition ${
+                isFullscreen
+                  ? 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  : 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 animate-pulse'
+              }`}
+              title={isFullscreen ? 'Full Screen Active' : 'Enter Full Screen'}
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">{isFullscreen ? 'Full Screen' : 'Full Screen'}</span>
+            </button>
+
             {testData.examCategory !== 'JEE_MAINS' && (
               <button
                 onClick={() => setShowCalculator((prev) => !prev)}
@@ -891,7 +1047,7 @@ export default function TestPage() {
                 Go Back
               </button>
               <button
-                onClick={submitTest}
+                onClick={() => submitTest()}
                 className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
               >
                 Confirm Submit
@@ -900,6 +1056,78 @@ export default function TestPage() {
           </div>
         </div>
       )}
+
+      {/* ═══ Strike 1 Warning Modal ═══ */}
+      {showStrike1Modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border-2 border-red-500 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-7 h-7 text-red-600 animate-bounce" />
+              </div>
+              <div>
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-red-100 text-red-700 border border-red-200 mb-1">
+                  Security Violation: Strike 1 of 2
+                </span>
+                <h3 className="text-lg font-bold text-slate-900 leading-tight">
+                  App Switch / Tab Change Detected
+                </h3>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs text-slate-600 leading-relaxed bg-red-50/60 border border-red-100 p-4 rounded-xl">
+              <p className="font-semibold text-red-900">
+                You navigated away from the exam window or minimized the browser.
+              </p>
+              <p>
+                Abhiyantra CBT exams operate under strict anti-cheating regulations. You are not allowed to switch tabs, open other applications, or access notifications.
+              </p>
+              <div className="p-2.5 bg-red-100 rounded-lg border border-red-200 text-red-950 font-bold">
+                ⚠️ FINAL WARNING: If you leave or switch apps once more (Strike 2), your exam will be IMMEDIATELY AUTO-SUBMITTED.
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowStrike1Modal(false);
+                requestFullscreen();
+              }}
+              className="mt-5 w-full py-3 bg-red-600 hover:bg-red-700 active:scale-98 text-white rounded-xl text-xs font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              I Understand &amp; Resume Exam
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Full Screen Required Modal ═══ */}
+      {showFullscreenModal && !showStrike1Modal && mode === 'exam' && !isSubmitted && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-indigo-200 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 mx-auto flex items-center justify-center">
+              <Maximize2 className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Full Screen Mode Required</h3>
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                To prevent distractions and maintain exam integrity, this CBT exam must be completed in Full Screen mode.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                requestFullscreen();
+                setShowFullscreenModal(false);
+              }}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white rounded-xl text-xs font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Maximize2 className="w-4 h-4" />
+              Enter Full Screen Exam Mode
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* GATE On-Screen Scientific Calculator Modal */}
       <GateCalculator isOpen={showCalculator} onClose={() => setShowCalculator(false)} />
     </div>

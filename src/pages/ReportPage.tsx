@@ -21,6 +21,7 @@ import {
   Award,
   Bookmark,
   AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatDurationHuman } from '../utils/scoring';
@@ -206,6 +207,28 @@ export default function ReportPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6 sm:space-y-10 w-full max-w-full overflow-hidden min-w-0">
+        {/* ================================================================
+            Security Strike Auto-Submit Termination Banner
+            ================================================================ */}
+        {(results as any)?.autoSubmittedReason === 'SECURITY_STRIKE_LIMIT_EXCEEDED' && (
+          <div className="bg-red-50 border-l-4 border-red-500 rounded-r-2xl p-4 sm:p-5 shadow-xs flex items-start gap-3.5 print:border-red-600">
+            <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-6 h-6 text-red-600 animate-pulse" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm sm:text-base font-bold text-red-900 flex items-center gap-2">
+                <span>Exam Terminated Early &amp; Auto-Submitted</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-red-200 text-red-800">
+                  2 Strikes Exceeded
+                </span>
+              </h3>
+              <p className="text-xs text-red-700 leading-relaxed">
+                This examination was automatically submitted by the proctoring engine because repeated application switching or minimizing the exam window was detected (Strike 2/2). Questions answered up to the moment of termination have been evaluated above.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ================================================================
             0. Cloud Sync & Google Auth Callout Banner
             ================================================================ */}
