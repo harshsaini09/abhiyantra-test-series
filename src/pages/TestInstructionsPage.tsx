@@ -18,6 +18,116 @@ import {
   Square,
 } from 'lucide-react';
 
+function resolveSubject(testData: TestData, qSubject?: string): string {
+  if (qSubject && qSubject.trim() && qSubject.trim() !== 'General PCM' && qSubject.trim() !== 'Core Engineering') {
+    return qSubject.trim();
+  }
+  if (testData.subject && testData.subject.trim() && testData.subject.trim() !== 'General PCM') {
+    return testData.subject.trim();
+  }
+  const title = (testData.title || '').toLowerCase();
+  if (title.includes('mathematics') || title.includes('maths') || title.includes('math')) return 'Mathematics';
+  if (title.includes('physics')) return 'Physics';
+  if (title.includes('chemistry')) return 'Chemistry';
+  if (title.includes('artificial intelligence') || title.includes('ai mock') || title.includes('search —') || title.includes('da:')) return 'Artificial Intelligence (AI)';
+  if (title.includes('data structures') || title.includes('algorithms')) return 'Data Structures & Algorithms';
+  if (title.includes('database') || title.includes('dbms')) return 'Database Management Systems (DBMS)';
+  if (title.includes('operating system') || title.includes('os ')) return 'Operating Systems';
+  if (title.includes('computer network') || title.includes('cn ')) return 'Computer Networks';
+  if (title.includes('theory of computation') || title.includes('toc')) return 'Theory of Computation';
+  if (title.includes('compiler')) return 'Compiler Design';
+  if (title.includes('digital logic')) return 'Digital Logic';
+  if (title.includes('general aptitude') || title.includes('aptitude')) return 'General Aptitude';
+  if (title.includes('machine learning') || title.includes('ml ')) return 'Machine Learning';
+  return testData.examCategory === 'JEE_MAINS' ? 'Mathematics, Physics & Chemistry' : 'Core Technical Subject';
+}
+
+function resolveTopic(qText?: string, qTopic?: string, testTopic?: string, subject?: string): string {
+  if (qTopic && qTopic.trim() && qTopic.trim() !== 'General Topic') {
+    return qTopic.trim();
+  }
+  if (testTopic && testTopic.trim() && testTopic.trim() !== 'General Topic') {
+    return testTopic.trim();
+  }
+  const text = (qText || '').toLowerCase();
+  if (
+    text.includes('equivalence relation') ||
+    text.includes('bijective') ||
+    text.includes('onto') ||
+    text.includes('injective') ||
+    text.includes('domain of the function') ||
+    text.includes('invertible function') ||
+    text.includes('relation r')
+  ) {
+    return 'Relations & Functions';
+  }
+  if (
+    text.includes('sin^{-1}') ||
+    text.includes('cos^{-1}') ||
+    text.includes('tan^{-1}') ||
+    text.includes('cot^{-1}') ||
+    text.includes('sec^{-1}') ||
+    text.includes('csc^{-1}')
+  ) {
+    return 'Inverse Trigonometric Functions';
+  }
+  if (
+    text.includes('matrix') ||
+    text.includes('matrices') ||
+    text.includes('determinant') ||
+    text.includes('adjoint') ||
+    text.includes('linear equations') ||
+    text.includes('symmetric')
+  ) {
+    return 'Matrices & Determinants';
+  }
+  if (
+    text.includes('derivative') ||
+    text.includes('integral') ||
+    text.includes('limit') ||
+    text.includes('continuity') ||
+    text.includes('differentiab')
+  ) {
+    return 'Calculus';
+  }
+  if (
+    text.includes('vector') ||
+    text.includes('plane') ||
+    text.includes('line in space') ||
+    text.includes('direction cosine')
+  ) {
+    return 'Vectors & 3D Geometry';
+  }
+  if (
+    text.includes('probability') ||
+    text.includes('bayes') ||
+    text.includes('random variable') ||
+    text.includes('distribution')
+  ) {
+    return 'Probability';
+  }
+  if (
+    text.includes('search') ||
+    text.includes('bfs') ||
+    text.includes('dfs') ||
+    text.includes('heuristic') ||
+    text.includes('a*') ||
+    text.includes('uninformed') ||
+    text.includes('informed')
+  ) {
+    return 'Search Algorithms (Informed & Uninformed)';
+  }
+  if (
+    text.includes('propositional') ||
+    text.includes('first-order') ||
+    text.includes('predicate') ||
+    text.includes('logic')
+  ) {
+    return 'Logic & Reasoning';
+  }
+  return subject ? `${subject} Core Concepts` : 'Core Curriculum Topics';
+}
+
 export const TestInstructionsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -77,8 +187,8 @@ export const TestInstructionsPage: React.FC = () => {
       else if (q.type === 'NAT') natCount++;
       else mcqCount++;
 
-      const subj = (q.subject || testData.subject || (isJEE ? 'General PCM' : 'Core Engineering')).trim();
-      const topic = (q.topic || testData.topic || 'General Topic').trim();
+      const subj = resolveSubject(testData, q.subject);
+      const topic = resolveTopic(q.question || q.questionText, q.topic, testData.topic, subj);
 
       if (!subjectsMap.has(subj)) {
         subjectsMap.set(subj, { count: 0, marks: 0, topics: new Set() });

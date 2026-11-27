@@ -5,6 +5,26 @@ import { ingestQuestions } from './ingest.js';
 
 const router = Router();
 
+// Helper to auto-infer subject from title if missing
+function inferSubjectFromTitle(title?: string, examCategory?: string): string {
+  if (!title) return examCategory === 'JEE_MAINS' ? 'Mathematics' : 'Core Engineering';
+  const lower = title.toLowerCase();
+  if (lower.includes('mathematics') || lower.includes('maths') || lower.includes('math')) return 'Mathematics';
+  if (lower.includes('physics')) return 'Physics';
+  if (lower.includes('chemistry')) return 'Chemistry';
+  if (lower.includes('artificial intelligence') || lower.includes('ai mock') || lower.includes('search —') || lower.includes('da:')) return 'Artificial Intelligence (AI)';
+  if (lower.includes('data structures') || lower.includes('algorithms')) return 'Data Structures & Algorithms';
+  if (lower.includes('database') || lower.includes('dbms')) return 'Database Management Systems (DBMS)';
+  if (lower.includes('operating system') || lower.includes('os ')) return 'Operating Systems';
+  if (lower.includes('computer network') || lower.includes('cn ')) return 'Computer Networks';
+  if (lower.includes('theory of computation') || lower.includes('toc')) return 'Theory of Computation';
+  if (lower.includes('compiler')) return 'Compiler Design';
+  if (lower.includes('digital logic')) return 'Digital Logic';
+  if (lower.includes('general aptitude') || lower.includes('aptitude')) return 'General Aptitude';
+  if (lower.includes('machine learning') || lower.includes('ml ')) return 'Machine Learning';
+  return examCategory === 'JEE_MAINS' ? 'Mathematics' : 'Technical Subject';
+}
+
 // Helper to sanitize test data payload
 function sanitizeTestData(input: any, defaultTitle = 'GATE Test Paper') {
   let questions: any[] = [];
@@ -107,7 +127,12 @@ router.get('/official', async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.json({ tests });
+    const sanitizedTests = tests.map((t) => ({
+      ...t,
+      subject: t.subject || inferSubjectFromTitle(t.title, t.examCategory),
+    }));
+
+    res.json({ tests: sanitizedTests });
   } catch (err: any) {
     console.error('Error fetching official test series:', err);
     res.status(500).json({ error: 'Failed to fetch official test series.' });
@@ -183,6 +208,7 @@ router.get('/official/:id', async (req: Request, res: Response): Promise<void> =
         totalMarks: test.totalMarks,
         category: test.category,
         examCategory: test.examCategory,
+        subject: test.subject || inferSubjectFromTitle(test.title, test.examCategory),
         isFree: test.isFree,
         questions: parsedQuestions,
         creator: test.creator,
@@ -223,7 +249,7 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
         description: description || sanitized.description,
         category: category || (sanitized.totalQuestions >= 50 ? 'FULL_MOCK' : 'SUBJECT_PACK'),
         examCategory: examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE',
-        subject: subject || (sanitized.questions[0]?.subject || null),
+        subject: subject || sanitized.questions[0]?.subject || inferSubjectFromTitle(title || sanitized.title, examCategory),
         totalQuestions: sanitized.totalQuestions,
         totalMarks: sanitized.totalMarks,
         durationMinutes: sanitized.duration || (sanitized.totalQuestions >= 50 ? 180 : Math.ceil(sanitized.totalQuestions * 2.5)),
@@ -311,7 +337,12 @@ router.get('/my-personal', requireAuth, async (req: AuthenticatedRequest, res: R
       },
     });
 
-    res.json({ tests });
+    const sanitizedTests = tests.map((t) => ({
+      ...t,
+      subject: t.subject || inferSubjectFromTitle(t.title, t.examCategory),
+    }));
+
+    res.json({ tests: sanitizedTests });
   } catch (err: any) {
     console.error('Error fetching personal test series:', err);
     res.status(500).json({ error: 'Failed to fetch personal test series.' });
@@ -370,6 +401,7 @@ router.get('/my-personal/:id', requireAuth, async (req: AuthenticatedRequest, re
         totalMarks: test.totalMarks,
         category: test.category,
         examCategory: test.examCategory,
+        subject: test.subject || inferSubjectFromTitle(test.title, test.examCategory),
         questions: parsedQuestions,
       },
     });

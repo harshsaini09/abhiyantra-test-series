@@ -60,6 +60,25 @@ interface OfficialTestItem {
   };
 }
 
+function inferSubjectFromTitle(title?: string, examCategory?: string): string {
+  if (!title) return examCategory === 'JEE_MAINS' ? 'Mathematics' : 'Core Engineering';
+  const lower = title.toLowerCase();
+  if (lower.includes('mathematics') || lower.includes('maths') || lower.includes('math')) return 'Mathematics';
+  if (lower.includes('physics')) return 'Physics';
+  if (lower.includes('chemistry')) return 'Chemistry';
+  if (lower.includes('artificial intelligence') || lower.includes('ai mock') || lower.includes('search —') || lower.includes('da:')) return 'Artificial Intelligence (AI)';
+  if (lower.includes('data structures') || lower.includes('algorithms')) return 'Data Structures & Algorithms';
+  if (lower.includes('database') || lower.includes('dbms')) return 'Database Management Systems (DBMS)';
+  if (lower.includes('operating system') || lower.includes('os ')) return 'Operating Systems';
+  if (lower.includes('computer network') || lower.includes('cn ')) return 'Computer Networks';
+  if (lower.includes('theory of computation') || lower.includes('toc')) return 'Theory of Computation';
+  if (lower.includes('compiler')) return 'Compiler Design';
+  if (lower.includes('digital logic')) return 'Digital Logic';
+  if (lower.includes('general aptitude') || lower.includes('aptitude')) return 'General Aptitude';
+  if (lower.includes('machine learning') || lower.includes('ml ')) return 'Machine Learning';
+  return examCategory === 'JEE_MAINS' ? 'Mathematics' : 'Technical Subject';
+}
+
 export const TestSeriesPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, targetExam } = useAuth();
@@ -828,9 +847,9 @@ export const TestSeriesPage: React.FC = () => {
                           ? 'Subject Pack'
                           : 'Topic Test'}
                       </span>
-                      {test.subject && (
+                      {(test.subject || inferSubjectFromTitle(test.title, test.examCategory)) && (
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 text-slate-700">
-                          {test.subject}
+                          {test.subject || inferSubjectFromTitle(test.title, test.examCategory)}
                         </span>
                       )}
                     </div>
