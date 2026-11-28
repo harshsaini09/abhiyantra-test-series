@@ -179,9 +179,10 @@ router.get('/official/:id', async (req: Request, res: Response): Promise<void> =
       }
     }
 
-    // Access check: Free for all if test.isFree, otherwise requires subscribed student or teacher/admin
+    // Access check: Free for all if test.isFree OR test.examCategory === 'OTHER', otherwise requires subscribed student or teacher/admin
+    const isOtherExam = test.examCategory === 'OTHER';
     const isTeacherOrAdmin = user && (user.role === 'ADMIN' || user.role === 'TEACHER' || ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase()));
-    if (!test.isFree && !isTeacherOrAdmin && (!user || !user.isSubscribed)) {
+    if (!test.isFree && !isOtherExam && !isTeacherOrAdmin && (!user || !user.isSubscribed)) {
       res.status(403).json({
         error: 'This test series paper is locked for Pro / Test Series Pass subscribers. Please unlock with a pass to start.',
         requiresSubscription: true,
@@ -262,7 +263,7 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
         creatorId: user.id,
         creatorRole: user.role || 'TEACHER',
         isOfficial: true,
-        isFree: Boolean(isFree),
+        isFree: examCategory === 'OTHER' ? true : Boolean(isFree),
       },
     });
 
@@ -585,7 +586,9 @@ router.put('/:id', requireTeacherOrAdmin, async (req: AuthenticatedRequest, res:
       updateData.totalMarks = Number(totalMarks);
     }
 
-    if (isFree !== undefined) {
+    if (updateData.examCategory === 'OTHER' || test.examCategory === 'OTHER') {
+      updateData.isFree = true;
+    } else if (isFree !== undefined) {
       updateData.isFree = Boolean(isFree);
     }
 
@@ -632,9 +635,10 @@ router.patch('/:id/access', requireTeacherOrAdmin, async (req: AuthenticatedRequ
       return;
     }
 
+    const newIsFree = test.examCategory === 'OTHER' ? true : Boolean(isFree);
     const updated = await prisma.publishedTest.update({
       where: { id },
-      data: { isFree: Boolean(isFree) },
+      data: { isFree: newIsFree },
     });
 
     res.json({

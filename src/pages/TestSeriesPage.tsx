@@ -296,6 +296,9 @@ export const TestSeriesPage: React.FC = () => {
 
   const handleEditExamCategoryChange = (newExam: 'GATE' | 'JEE_MAINS' | 'OTHER') => {
     setEditExamCategory(newExam);
+    if (newExam === 'OTHER') {
+      setEditIsFree(true);
+    }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -388,6 +391,9 @@ export const TestSeriesPage: React.FC = () => {
 
   const handleExamCategoryChange = (newExam: 'GATE' | 'JEE_MAINS' | 'OTHER') => {
     setUploadExamCategory(newExam);
+    if (newExam === 'OTHER') {
+      setUploadIsFree(true);
+    }
     if (parsedQuestions && parsedQuestions.length > 0) {
       // Recalculate marks and standard pacing if appropriate
       const newMarks = parsedQuestions.reduce((sum, q) => {
@@ -617,6 +623,9 @@ export const TestSeriesPage: React.FC = () => {
 
         setParsedQuestions(normalizedQuestions);
         setUploadExamCategory(detectedExam);
+        if (detectedExam === 'OTHER') {
+          setUploadIsFree(true);
+        }
         setTotalMarks(computedMarks);
         setUploadTitle(cleanTitle);
         setUploadDescription(cleanDesc);
@@ -974,7 +983,8 @@ export const TestSeriesPage: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTests.map((test) => {
-              const canTakeThisTest = isTeacherOrAdmin || Boolean(test.isFree) || Boolean(user?.isSubscribed);
+              const isOtherTest = test.examCategory === 'OTHER';
+              const canTakeThisTest = isTeacherOrAdmin || isOtherTest || Boolean(test.isFree) || Boolean(user?.isSubscribed);
               return (
               <div
                 key={test.id}
@@ -1109,10 +1119,10 @@ export const TestSeriesPage: React.FC = () => {
                 <div className="pt-2">
                   {canTakeThisTest ? (
                     <div className="space-y-1.5">
-                      {test.isFree && !user?.isSubscribed && !isTeacherOrAdmin && (
+                      {(test.isFree || isOtherTest) && !user?.isSubscribed && !isTeacherOrAdmin && (
                         <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 py-1 rounded-lg border border-emerald-200">
                           <Unlock className="w-3 h-3 text-emerald-600" />
-                          <span>Free Sample Mock · No Pass Needed</span>
+                          <span>{isOtherTest ? 'Free Test Paper · No Pass Needed' : 'Free Sample Mock · No Pass Needed'}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
@@ -1162,9 +1172,9 @@ export const TestSeriesPage: React.FC = () => {
 
       {/* Upload JSON Modal for Teachers & Admins */}
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <form onSubmit={handleUploadSubmit} className="flex flex-col h-full max-h-[92vh] sm:max-h-[88vh] min-h-0">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[90vh] sm:max-h-[85vh] my-auto shrink-0 flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <form onSubmit={handleUploadSubmit} className="flex flex-col h-full max-h-[90vh] sm:max-h-[85vh] min-h-0">
               {/* Fixed Header */}
               <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-white shrink-0 z-10">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -1382,13 +1392,13 @@ export const TestSeriesPage: React.FC = () => {
 
                 {/* Auto-Calculated Timing & Pacing Controls */}
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                      Pacing &amp; Duration Calculator
+                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span>Pacing &amp; Duration Calculator</span>
                     </span>
-                    <span className="text-[10px] text-slate-500 font-medium">
-                      Auto-syncs per question time &amp; total duration
+                    <span className="text-[10px] text-slate-500 font-medium sm:text-right">
+                      Auto-syncs pacing &amp; total duration
                     </span>
                   </div>
 
@@ -1466,52 +1476,69 @@ export const TestSeriesPage: React.FC = () => {
                 </div>
 
                 {/* Access Control & Subscription Lock Selection */}
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                      Student Access &amp; Subscription Lock
-                    </span>
-                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${
-                      uploadIsFree
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                        : 'bg-amber-100 text-amber-800 border-amber-200'
-                    }`}>
-                      {uploadIsFree ? 'Free for All' : 'Pro Pass Required'}
-                    </span>
+                {uploadExamCategory === 'OTHER' ? (
+                  <div className="bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                        <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                        Free for All Students
+                      </span>
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        100% Free
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-700">
+                      All test papers in the 'Other' category are automatically available to all students at zero cost without any pass requirement.
+                    </p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setUploadIsFree(false)}
-                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                        !uploadIsFree
-                          ? 'bg-white text-indigo-900 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
-                          : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
-                      }`}
-                    >
-                      <Lock className="w-3.5 h-3.5 text-amber-600" />
-                      <span>🔒 Pro Pass / Paid Only</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setUploadIsFree(true)}
-                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                ) : (
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                        Student Access &amp; Subscription Lock
+                      </span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${
                         uploadIsFree
-                          ? 'bg-white text-emerald-900 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
-                          : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
-                      }`}
-                    >
-                      <Unlock className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>🔓 Free for All Students</span>
-                    </button>
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : 'bg-amber-100 text-amber-800 border-amber-200'
+                      }`}>
+                        {uploadIsFree ? 'Free for All' : 'Pro Pass Required'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setUploadIsFree(false)}
+                        className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                          !uploadIsFree
+                            ? 'bg-white text-indigo-900 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
+                            : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <Lock className="w-3.5 h-3.5 text-amber-600" />
+                        <span>🔒 Pro Pass / Paid Only</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUploadIsFree(true)}
+                        className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                          uploadIsFree
+                            ? 'bg-white text-emerald-900 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
+                            : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>🔓 Free for All Students</span>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      {uploadIsFree
+                        ? 'Every student (including free accounts) can take this paper at zero cost.'
+                        : 'Locked for students with an active Pro Pass or Test Series Subscription.'}
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    {uploadIsFree
-                      ? 'Every student (including free accounts) can take this paper at zero cost.'
-                      : 'Locked for students with an active Pro Pass or Test Series Subscription.'}
-                  </p>
-                </div>
+                )}
 
                 {/* Errors & Success Alerts */}
                 {uploadError && (
@@ -1562,9 +1589,9 @@ export const TestSeriesPage: React.FC = () => {
 
       {/* ═══ EDIT TEST SERIES MODAL (Teachers & Admins) ═══ */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <form onSubmit={handleEditSubmit} className="flex flex-col h-full max-h-[92vh] sm:max-h-[88vh] min-h-0">
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[90vh] sm:max-h-[85vh] my-auto shrink-0 flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <form onSubmit={handleEditSubmit} className="flex flex-col h-full max-h-[90vh] sm:max-h-[85vh] min-h-0">
               {/* Fixed Header */}
               <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-white shrink-0 z-10">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -1736,13 +1763,13 @@ export const TestSeriesPage: React.FC = () => {
 
                 {/* Timing & Pacing Controls */}
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                      Pacing &amp; Duration Calculator
+                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span>Pacing &amp; Duration Calculator</span>
                     </span>
-                    <span className="text-[10px] text-slate-500 font-medium">
-                      Auto-syncs per question time &amp; total duration
+                    <span className="text-[10px] text-slate-500 font-medium sm:text-right">
+                      Auto-syncs pacing &amp; total duration
                     </span>
                   </div>
 
@@ -1820,52 +1847,69 @@ export const TestSeriesPage: React.FC = () => {
                 </div>
 
                 {/* Access Control & Subscription Lock Selection */}
-                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                      Student Access &amp; Subscription Lock
-                    </span>
-                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${
-                      editIsFree
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                        : 'bg-amber-100 text-amber-800 border-amber-200'
-                    }`}>
-                      {editIsFree ? 'Free for All' : 'Pro Pass Required'}
-                    </span>
+                {editExamCategory === 'OTHER' ? (
+                  <div className="bg-emerald-50 p-3.5 rounded-2xl border border-emerald-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                        <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                        Free for All Students
+                      </span>
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        100% Free
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-700">
+                      All test papers in the 'Other' category are automatically available to all students at zero cost without any pass requirement.
+                    </p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditIsFree(false)}
-                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                        !editIsFree
-                          ? 'bg-white text-indigo-900 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
-                          : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
-                      }`}
-                    >
-                      <Lock className="w-3.5 h-3.5 text-amber-600" />
-                      <span>🔒 Pro Pass / Paid Only</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditIsFree(true)}
-                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                ) : (
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                        Student Access &amp; Subscription Lock
+                      </span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${
                         editIsFree
-                          ? 'bg-white text-emerald-900 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
-                          : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
-                      }`}
-                    >
-                      <Unlock className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>🔓 Free for All Students</span>
-                    </button>
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : 'bg-amber-100 text-amber-800 border-amber-200'
+                      }`}>
+                        {editIsFree ? 'Free for All' : 'Pro Pass Required'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditIsFree(false)}
+                        className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                          !editIsFree
+                            ? 'bg-white text-indigo-900 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
+                            : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <Lock className="w-3.5 h-3.5 text-amber-600" />
+                        <span>🔒 Pro Pass / Paid Only</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditIsFree(true)}
+                        className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                          editIsFree
+                            ? 'bg-white text-emerald-900 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
+                            : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>🔓 Free for All Students</span>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      {editIsFree
+                        ? 'Every student (including free accounts) can take this paper at zero cost.'
+                        : 'Locked for students with an active Pro Pass or Test Series Subscription.'}
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    {editIsFree
-                      ? 'Every student (including free accounts) can take this paper at zero cost.'
-                      : 'Locked for students with an active Pro Pass or Test Series Subscription.'}
-                  </p>
-                </div>
+                )}
 
                 {/* Errors & Success Alerts */}
                 {editError && (
