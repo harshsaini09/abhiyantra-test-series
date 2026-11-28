@@ -88,6 +88,16 @@ export default function QuestionBankPage() {
     setSelectedTopicId(undefined);
   };
 
+  // Guard: strictly lock student accounts to their enrolled competitive exam track
+  useEffect(() => {
+    if (!isTeacherOrAdmin && user?.targetExam) {
+      const allowed = user.targetExam === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE';
+      if (selectedExamTab !== allowed) {
+        setSelectedExamTab(allowed);
+      }
+    }
+  }, [user, isTeacherOrAdmin, selectedExamTab]);
+
   // Hierarchy tree accordion state
   const [expandedSubjects, setExpandedSubjects] = useState<Set<number>>(new Set());
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
@@ -629,41 +639,47 @@ export default function QuestionBankPage() {
             {/* Exam Track Switcher Toggle */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => handleExamTabChange('ALL')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedExamTab === 'ALL'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  All Questions
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExamTabChange('GATE')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    selectedExamTab === 'GATE'
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-indigo-600'
-                  }`}
-                >
-                  <GraduationCap className="w-3.5 h-3.5" />
-                  <span>GATE Exam</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExamTabChange('JEE_MAINS')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    selectedExamTab === 'JEE_MAINS'
-                      ? 'bg-cyan-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-cyan-700'
-                  }`}
-                >
-                  <Atom className="w-3.5 h-3.5" />
-                  <span>JEE Mains</span>
-                </button>
+                {isTeacherOrAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => handleExamTabChange('ALL')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      selectedExamTab === 'ALL'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    All Questions
+                  </button>
+                )}
+                {(isTeacherOrAdmin || (!user ? targetExam !== 'JEE_MAINS' : user.targetExam === 'GATE')) && (
+                  <button
+                    type="button"
+                    onClick={() => handleExamTabChange('GATE')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      selectedExamTab === 'GATE'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-indigo-600'
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>GATE Exam</span>
+                  </button>
+                )}
+                {(isTeacherOrAdmin || (!user ? targetExam === 'JEE_MAINS' : user.targetExam === 'JEE_MAINS')) && (
+                  <button
+                    type="button"
+                    onClick={() => handleExamTabChange('JEE_MAINS')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      selectedExamTab === 'JEE_MAINS'
+                        ? 'bg-cyan-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-cyan-700'
+                    }`}
+                  >
+                    <Atom className="w-3.5 h-3.5" />
+                    <span>JEE Mains</span>
+                  </button>
+                )}
               </div>
 
               <div className="text-xs text-slate-500 font-medium">

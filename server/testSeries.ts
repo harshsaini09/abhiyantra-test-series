@@ -97,11 +97,27 @@ router.get('/official', async (req: Request, res: Response): Promise<void> => {
     const { examCategory } = req.query;
     const whereClause: any = { isOfficial: true };
 
-    // Honor explicit filter query or enrolled exam track for student accounts
-    if (examCategory && examCategory !== 'ALL') {
-      whereClause.examCategory = examCategory;
-    } else if (user && user.role === 'STUDENT' && user.targetExam && !examCategory) {
-      whereClause.examCategory = user.targetExam;
+    const isTeacherOrAdmin = user && (user.role === 'ADMIN' || user.role === 'TEACHER' || ['harshsaini0912@gmail.com', 'harshsaini0912@gmail'].includes(user.email.toLowerCase()));
+
+    // Strict Track Isolation for Student Accounts:
+    // Enrolled students can ONLY view their enrolled track (GATE or JEE_MAINS) and the open OTHER category.
+    if (user && user.role === 'STUDENT' && user.targetExam && !isTeacherOrAdmin) {
+      if (examCategory === 'OTHER') {
+        whereClause.examCategory = 'OTHER';
+      } else if (examCategory === user.targetExam) {
+        whereClause.examCategory = user.targetExam;
+      } else if (examCategory && examCategory !== 'ALL' && examCategory !== user.targetExam) {
+        // Prevent cross-track access: lock strictly to student's enrolled track
+        whereClause.examCategory = user.targetExam;
+      } else {
+        // If ALL or unspecified, limit to enrolled track + OTHER
+        whereClause.examCategory = { in: [user.targetExam, 'OTHER'] };
+      }
+    } else {
+      // Faculty, Admin, or Guest view
+      if (examCategory && examCategory !== 'ALL') {
+        whereClause.examCategory = examCategory;
+      }
     }
 
     const tests = await prisma.publishedTest.findMany({

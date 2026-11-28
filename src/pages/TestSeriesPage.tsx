@@ -100,6 +100,15 @@ export const TestSeriesPage: React.FC = () => {
     setExamFilter(targetExam === 'JEE_MAINS' ? 'JEE_MAINS' : targetExam === 'OTHER' ? 'OTHER' : 'GATE');
   }, [targetExam]);
 
+  // Guard: If logged-in student attempts to view an unauthorized exam track, lock strictly to enrolled track or OTHER
+  useEffect(() => {
+    if (!isTeacherOrAdmin && user?.targetExam) {
+      if (examFilter !== 'OTHER' && examFilter !== user.targetExam) {
+        setExamFilter(user.targetExam);
+      }
+    }
+  }, [examFilter, user, isTeacherOrAdmin]);
+
   // Tests & loading states
   const [tests, setTests] = useState<OfficialTestItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -724,13 +733,20 @@ export const TestSeriesPage: React.FC = () => {
 
   // Filtered test items
   const filteredTests = tests.filter((t) => {
+    // Strictly isolate competitive exam tracks for students; OTHER is accessible to everyone
+    const isAllowedExam =
+      isTeacherOrAdmin ||
+      !user?.targetExam ||
+      t.examCategory === 'OTHER' ||
+      t.examCategory === user.targetExam;
+
     const matchesCat = selectedCategory === 'ALL' || t.category === selectedCategory;
     const matchesQuery =
       searchQuery.trim() === '' ||
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (t.subject && t.subject.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCat && matchesQuery;
+    return isAllowedExam && matchesCat && matchesQuery;
   });
 
   return (
@@ -866,26 +882,35 @@ export const TestSeriesPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             {/* Exam Badge / Toggle */}
             <div className="flex flex-wrap items-center bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
-              <button
-                type="button"
-                onClick={() => setExamFilter('GATE')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  examFilter === 'GATE' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <GraduationCap className="w-3.5 h-3.5" />
-                <span>GATE</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setExamFilter('JEE_MAINS')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  examFilter === 'JEE_MAINS' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Atom className="w-3.5 h-3.5" />
-                <span>JEE Mains</span>
-              </button>
+              {/* GATE Toggle: only shown if faculty/admin, OR student enrolled in GATE, OR guest on GATE track */}
+              {(isTeacherOrAdmin || (!user ? targetExam !== 'JEE_MAINS' : user.targetExam === 'GATE')) && (
+                <button
+                  type="button"
+                  onClick={() => setExamFilter('GATE')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    examFilter === 'GATE' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>GATE</span>
+                </button>
+              )}
+
+              {/* JEE Mains Toggle: only shown if faculty/admin, OR student enrolled in JEE Mains, OR guest on JEE track */}
+              {(isTeacherOrAdmin || (!user ? targetExam === 'JEE_MAINS' : user.targetExam === 'JEE_MAINS')) && (
+                <button
+                  type="button"
+                  onClick={() => setExamFilter('JEE_MAINS')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    examFilter === 'JEE_MAINS' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Atom className="w-3.5 h-3.5" />
+                  <span>JEE Mains</span>
+                </button>
+              )}
+
+              {/* OTHER Toggle: ALWAYS accessible to ALL students, faculty, and guests */}
               <button
                 type="button"
                 onClick={() => setExamFilter('OTHER')}
@@ -896,6 +921,8 @@ export const TestSeriesPage: React.FC = () => {
                 <BookOpen className="w-3.5 h-3.5" />
                 <span>Other</span>
               </button>
+
+              {/* All Series option: faculty and admin only */}
               {isTeacherOrAdmin && (
                 <button
                   type="button"
