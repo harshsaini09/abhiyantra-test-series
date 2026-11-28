@@ -522,12 +522,23 @@ router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res: Respon
   }
 });
 
-// ─── 8. Update Test Details and Questions (Teachers & Admins) ───
+// ─── 8. Update Test Details and Specifications (Teachers & Admins) ───
 router.put('/:id', requireTeacherOrAdmin, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const user = req.user;
     const { id } = req.params;
-    const { title, description, questions, duration } = req.body;
+    const {
+      title,
+      description,
+      category,
+      examCategory,
+      subject,
+      duration,
+      durationMinutes,
+      totalMarks,
+      isFree,
+      questions,
+    } = req.body;
 
     if (!user || !user.id) {
       res.status(401).json({ error: 'Unauthorized.' });
@@ -552,13 +563,33 @@ router.put('/:id', requireTeacherOrAdmin, async (req: AuthenticatedRequest, res:
     }
 
     const updateData: any = {};
-    if (title) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (duration && Number(duration) > 0) updateData.durationMinutes = Number(duration);
+    if (title !== undefined) updateData.title = String(title).trim();
+    if (description !== undefined) updateData.description = String(description).trim();
+    if (category !== undefined) updateData.category = category;
+    if (examCategory !== undefined) {
+      updateData.examCategory = examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE';
+    }
+    if (subject !== undefined) updateData.subject = String(subject).trim() || null;
+
+    const targetDuration = Number(duration ?? durationMinutes);
+    if (!isNaN(targetDuration) && targetDuration > 0) {
+      updateData.durationMinutes = Math.round(targetDuration);
+    }
+
+    if (totalMarks !== undefined && !isNaN(Number(totalMarks)) && Number(totalMarks) > 0) {
+      updateData.totalMarks = Number(totalMarks);
+    }
+
+    if (isFree !== undefined) {
+      updateData.isFree = Boolean(isFree);
+    }
+
     if (Array.isArray(questions)) {
       updateData.questionsJson = JSON.stringify(questions);
       updateData.totalQuestions = questions.length;
-      updateData.totalMarks = questions.reduce((sum: number, q: any) => sum + (Number(q.marks) || 1), 0);
+      if (totalMarks === undefined) {
+        updateData.totalMarks = questions.reduce((sum: number, q: any) => sum + (Number(q.marks) || 1), 0);
+      }
     }
 
     const updated = await prisma.publishedTest.update({
@@ -566,10 +597,10 @@ router.put('/:id', requireTeacherOrAdmin, async (req: AuthenticatedRequest, res:
       data: updateData,
     });
 
-    res.json({ success: true, message: 'Test updated successfully.', test: updated });
+    res.json({ success: true, message: 'Test series updated successfully.', test: updated });
   } catch (err: any) {
     console.error('Error updating test:', err);
-    res.status(500).json({ error: err.message || 'Failed to update test.' });
+    res.status(500).json({ error: err.message || 'Failed to update test series.' });
   }
 });
 

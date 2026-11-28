@@ -1844,7 +1844,18 @@ export async function removeDiagramApi(payload: { questionId?: number | string; 
 
 export async function updateTestSeriesApi(
   id: string,
-  payload: { title?: string; description?: string; duration?: number; questions?: any[] }
+  payload: {
+    title?: string;
+    description?: string;
+    category?: string;
+    examCategory?: 'GATE' | 'JEE_MAINS';
+    subject?: string;
+    duration?: number;
+    durationMinutes?: number;
+    totalMarks?: number;
+    isFree?: boolean;
+    questions?: any[];
+  }
 ): Promise<{ success: boolean; message: string; test?: any }> {
   const res = await fetch(`${API_BASE}/test-series/${id}`, {
     method: 'PUT',
