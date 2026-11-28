@@ -248,9 +248,6 @@ export default function ReportPage() {
                 <p className="text-xs sm:text-sm font-bold text-emerald-950 truncate">
                   {saveStatus === 'saving' ? 'Saving report card to your account...' : '✓ Saved to your Report Cards'}
                 </p>
-                <p className="text-[10px] sm:text-xs text-emerald-700 break-words line-clamp-1 sm:line-clamp-none">
-                  Permanently stored in PostgreSQL and linked to {user.email}.
-                </p>
               </div>
             </div>
             <Link
