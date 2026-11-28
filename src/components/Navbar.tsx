@@ -66,7 +66,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs w-full max-w-full overflow-hidden min-w-0">
+    <nav className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs w-full max-w-full overflow-visible min-w-0">
       <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 w-full max-w-full min-w-0">
         <div className="flex items-center justify-between h-14 sm:h-16 gap-1.5 sm:gap-4 w-full max-w-full min-w-0">
           {/* Logo & Brand */}
@@ -158,7 +158,7 @@ export default function Navbar() {
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-4 py-2 border-b border-slate-100">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-slate-900">{user.name}</p>
