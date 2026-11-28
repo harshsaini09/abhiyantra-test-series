@@ -6,8 +6,8 @@ import { fetchCurrentUser, loginWithGoogleApi, logoutUserApi, saveReportCardApi,
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
-  targetExam: 'GATE' | 'JEE_MAINS';
-  setTargetExam: (exam: 'GATE' | 'JEE_MAINS') => Promise<void>;
+  targetExam: 'GATE' | 'JEE_MAINS' | 'OTHER';
+  setTargetExam: (exam: 'GATE' | 'JEE_MAINS' | 'OTHER') => Promise<void>;
   login: (credential: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<UserProfile | null>;
@@ -39,10 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  const [targetExam, setTargetExamState] = useState<'GATE' | 'JEE_MAINS'>(() => {
+  const [targetExam, setTargetExamState] = useState<'GATE' | 'JEE_MAINS' | 'OTHER'>(() => {
     try {
       const saved = localStorage.getItem('abhiyantra_active_exam');
-      if (saved === 'JEE_MAINS' || saved === 'GATE') return saved;
+      if (saved === 'JEE_MAINS' || saved === 'GATE' || saved === 'OTHER') return saved;
     } catch {}
     return 'GATE';
   });
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.targetExam]);
 
-  const setTargetExam = async (exam: 'GATE' | 'JEE_MAINS') => {
+  const setTargetExam = async (exam: 'GATE' | 'JEE_MAINS' | 'OTHER') => {
     // Prevent switching once a student has already selected an exam track
     if (user && user.role === 'STUDENT' && user.targetExam && user.targetExam !== exam) {
       console.warn(`Target exam is locked to ${user.targetExam} for student accounts.`);

@@ -9,18 +9,19 @@ import {
   Calculator,
   Ban,
   Loader2,
+  BookOpen,
 } from 'lucide-react';
 
 export const ExamOnboardingModal: React.FC = () => {
   const { user, setTargetExam } = useAuth();
-  const [savingExam, setSavingExam] = useState<'GATE' | 'JEE_MAINS' | null>(null);
+  const [savingExam, setSavingExam] = useState<'GATE' | 'JEE_MAINS' | 'OTHER' | null>(null);
 
   // Show modal ONLY if user is logged in and has not set their target exam yet
   const shouldShow = Boolean(user && (user.targetExam === null || user.targetExam === undefined));
 
   if (!shouldShow) return null;
 
-  const handleSelect = async (exam: 'GATE' | 'JEE_MAINS') => {
+  const handleSelect = async (exam: 'GATE' | 'JEE_MAINS' | 'OTHER') => {
     try {
       setSavingExam(exam);
       await setTargetExam(exam);
@@ -55,7 +56,7 @@ export const ExamOnboardingModal: React.FC = () => {
         </div>
 
         {/* Exam Cards Selection Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-2 text-left relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 pt-2 text-left relative z-10">
           {/* Card 1: GATE Examination */}
           <div
             onClick={() => !savingExam && handleSelect('GATE')}
@@ -166,6 +167,64 @@ export const ExamOnboardingModal: React.FC = () => {
               ) : (
                 <>
                   <span>Select JEE Mains Exam</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Card 3: Other / School & College Exams */}
+          <div
+            onClick={() => !savingExam && handleSelect('OTHER')}
+            className="group rounded-3xl p-6 border-2 border-slate-200 hover:border-amber-600 bg-slate-50/50 hover:bg-amber-50/20 shadow-xs hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between space-y-4 relative"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800">
+                  Dynamic
+                </span>
+              </div>
+
+              <div>
+                <h3 className="font-black text-lg text-slate-900 group-hover:text-amber-700 transition-colors">
+                  Other Examinations
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Class 8th to 12th Board mock tests, B.Tech semester papers, and custom mock exams.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-200/60 text-[11px] text-slate-600">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Class 8–12 & University Subjects</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Flexible Marks (1m, 2m, 3m, 5m, 10m)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Multiple Sections & Zero Negatives</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              disabled={savingExam !== null}
+              className="w-full py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-amber-600/20 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {savingExam === 'OTHER' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Setting Up Other Track...</span>
+                </>
+              ) : (
+                <>
+                  <span>Select Other Exams</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}

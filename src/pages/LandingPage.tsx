@@ -178,9 +178,9 @@ export default function LandingPage() {
 
   // Preview summary helpers
   const getQuestionTypeCounts = (data: TestData) => {
-    const counts = { MCQ: 0, MSQ: 0, NAT: 0 };
+    const counts: Record<string, number> = { MCQ: 0, MSQ: 0, NAT: 0, DESCRIPTIVE: 0 };
     data.questions.forEach((q) => {
-      counts[q.type]++;
+      counts[q.type] = (counts[q.type] || 0) + 1;
     });
     return counts;
   };

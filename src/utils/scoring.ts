@@ -57,6 +57,13 @@ function checkNAT(question: Question, response: UserResponse): { isCorrect: bool
   }
 }
 
+/** Check if a descriptive / long answer response is attempted */
+function checkDescriptive(response: UserResponse): { isCorrect: boolean; isAttempted: boolean } {
+  const isAttempted = !!(response.textResponse && response.textResponse.trim().length > 0);
+  // In CBT practice/mock mode, an attempted descriptive answer is counted towards score for self-evaluation against model solution
+  return { isCorrect: isAttempted, isAttempted };
+}
+
 /** Grade a single question */
 export function gradeQuestion(
   question: Question,
@@ -76,6 +83,9 @@ export function gradeQuestion(
     case 'NAT':
       checkResult = checkNAT(question, response);
       break;
+    case 'DESCRIPTIVE':
+      checkResult = checkDescriptive(response);
+      break;
     default:
       checkResult = { isCorrect: false, isAttempted: false };
   }
@@ -83,10 +93,14 @@ export function gradeQuestion(
   let marksAwarded = 0;
   if (checkResult.isAttempted) {
     if (checkResult.isCorrect) {
-      marksAwarded = examCategory === 'JEE_MAINS' ? 4 : question.marks;
+      marksAwarded = examCategory === 'JEE_MAINS' ? 4 : (question.marks || 1);
     } else {
       if (examCategory === 'JEE_MAINS') {
         marksAwarded = -1; // -1 for both MCQ and Numerical in JEE Mains
+      } else if (examCategory === 'OTHER') {
+        // Dynamic negative marking: uses question.negativeMarks if specified (>0), else 0
+        const neg = question.negativeMarks !== undefined ? -Math.abs(question.negativeMarks) : 0;
+        marksAwarded = neg;
       } else if (question.type === 'MCQ') {
         marksAwarded = getNegativeMarks(question.marks);
       }
@@ -99,15 +113,20 @@ export function gradeQuestion(
     const idx = question.answer as number;
     correctAnswer = question.options ? `${String.fromCharCode(65 + idx)}) ${question.options[idx]}` : String(idx);
   } else if (question.type === 'MSQ') {
-    const indices = question.answer as number[];
+    const indices = (question.answer as number[]) || [];
     correctAnswer = indices.map(i => question.options ? `${String.fromCharCode(65 + i)}) ${question.options[i]}` : String(i)).join(', ');
-  } else {
+  } else if (question.type === 'NAT') {
     const ans = question.answer as NATAnswer | number;
     if (typeof ans === 'number') {
       correctAnswer = String(ans);
-    } else {
+    } else if (ans && typeof ans === 'object') {
       correctAnswer = `${ans.min} to ${ans.max}`;
+    } else {
+      correctAnswer = String(ans || '');
     }
+  } else {
+    // DESCRIPTIVE
+    correctAnswer = typeof question.answer === 'string' ? question.answer : 'See detailed solution & marking scheme below';
   }
 
   // Format user answer string
@@ -116,6 +135,8 @@ export function gradeQuestion(
     userAnswer = 'Not Attempted';
   } else if (question.type === 'NAT') {
     userAnswer = response.natInput || '';
+  } else if (question.type === 'DESCRIPTIVE') {
+    userAnswer = response.textResponse || 'Attempted';
   } else {
     const indices = response.selectedOptions || [];
     userAnswer = indices.map(i => question.options ? `${String.fromCharCode(65 + i)}) ${question.options[i]}` : String(i)).join(', ');
@@ -169,13 +190,15 @@ export function gradeTest(
     MCQ: createBreakdown(questionResults.filter(r => r.question.type === 'MCQ')),
     MSQ: createBreakdown(questionResults.filter(r => r.question.type === 'MSQ')),
     NAT: createBreakdown(questionResults.filter(r => r.question.type === 'NAT')),
+    DESCRIPTIVE: createBreakdown(questionResults.filter(r => r.question.type === 'DESCRIPTIVE')),
   };
 
-  // Breakdown by marks
-  const byMarks: Record<string, TypeBreakdown> = {
-    '1-Mark': createBreakdown(questionResults.filter(r => r.question.marks === 1)),
-    '2-Mark': createBreakdown(questionResults.filter(r => r.question.marks === 2)),
-  };
+  // Breakdown by marks (dynamic: auto-detects 1-Mark, 2-Mark, 3-Mark, 5-Mark, etc.)
+  const byMarks: Record<string, TypeBreakdown> = {};
+  const markValues = Array.from(new Set(questionResults.map(r => r.question.marks || 1))).sort((a, b) => a - b);
+  markValues.forEach(m => {
+    byMarks[`${m}-Mark`] = createBreakdown(questionResults.filter(r => (r.question.marks || 1) === m));
+  });
 
   // Breakdown by subject (if any question has a subject specified)
   const hasSubjects = questionResults.some(r => !!r.question.subject);
@@ -220,17 +243,28 @@ function createBreakdown(results: QuestionResult[]): TypeBreakdown {
     incorrect: results.filter(r => r.isAttempted && !r.isCorrect).length,
     unattempted: results.filter(r => !r.isAttempted).length,
     marksObtained: Math.round(results.reduce((s, r) => s + r.marksAwarded, 0) * 100) / 100,
-    maxMarks: results.reduce((s, r) => s + r.question.marks, 0),
+    maxMarks: results.reduce((s, r) => s + (r.question.marks || 1), 0),
   };
 }
 
 /** Get negative marking info string for display */
-export function getNegativeMarkingDisplay(type: QuestionType, marks: number, examCategory?: string): string {
+export function getNegativeMarkingDisplay(
+  type: QuestionType,
+  marks: number,
+  examCategory?: string,
+  negativeMarks?: number
+): string {
+  if (examCategory === 'OTHER') {
+    if (negativeMarks !== undefined && negativeMarks > 0) {
+      return `−${negativeMarks.toFixed(2).replace(/\.00$/, '')}`;
+    }
+    return 'No Negative';
+  }
   if (examCategory === 'JEE_MAINS') {
     return '−1.00';
   }
   if (type === 'MCQ') {
-    const neg = marks === 1 ? '−⅓' : '−⅔';
+    const neg = marks === 1 ? '−⅓' : marks === 2 ? '−⅔' : '−⅓';
     return neg;
   }
   return 'No Negative';

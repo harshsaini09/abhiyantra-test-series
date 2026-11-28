@@ -54,6 +54,7 @@ const typeBadgeColors: Record<string, string> = {
   MCQ: 'bg-blue-100 text-blue-800',
   MSQ: 'bg-purple-100 text-purple-800',
   NAT: 'bg-green-100 text-green-800',
+  DESCRIPTIVE: 'bg-amber-100 text-amber-800',
 };
 
 // ───────────────────── Component ─────────────────────
@@ -107,7 +108,14 @@ export default function TestPage() {
   }
 
   // ─── guard: enrolled track isolation for students ───
-  if (user?.role === 'STUDENT' && testData?.examCategory && targetExam && testData.examCategory !== targetExam) {
+  if (
+    user?.role === 'STUDENT' &&
+    testData?.examCategory &&
+    testData.examCategory !== 'OTHER' &&
+    targetExam &&
+    targetExam !== 'OTHER' &&
+    testData.examCategory !== targetExam
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4 bg-slate-900 text-white text-center">
         <div className="max-w-md w-full bg-slate-800 p-8 rounded-3xl border border-slate-700 space-y-5 shadow-2xl">
@@ -236,8 +244,22 @@ export default function TestPage() {
     };
   }, [mode]);
 
-  // Section groups (General Aptitude vs Core Subject)
+  // Section groups (Dynamic: supports custom sections from JSON or GATE GA vs Core Subject)
   const sections = useMemo(() => {
+    // If explicit sections array is provided on testData
+    if (testData.sections && testData.sections.length > 0) {
+      return testData.sections.map((sec, secIdx) => {
+        const secQuestions = testData.questions.filter((q) => q.section === sec.name || q.section === sec.id);
+        const firstIdx = testData.questions.findIndex((q) => q.section === sec.name || q.section === sec.id);
+        return {
+          id: sec.id || `sec-${secIdx}`,
+          name: sec.name,
+          count: secQuestions.length || sec.questionCount || 0,
+          firstIndex: firstIdx >= 0 ? firstIdx : 0,
+        };
+      });
+    }
+
     const hasExplicitSections = testData.questions.some(
       (q) => q.section || q.subject?.toLowerCase().includes('general aptitude')
     );
@@ -245,9 +267,20 @@ export default function TestPage() {
 
     const map = new Map<string, { id: string; name: string; count: number; firstIndex: number }>();
     testData.questions.forEach((q, idx) => {
-      const isGA = q.section === 'GA' || q.subject?.toLowerCase().includes('general aptitude');
-      const secId = isGA ? 'GA' : 'SUBJECT';
-      const secName = isGA ? 'Section 1: General Aptitude' : `Section 2: ${testData.subject || 'Core Subject'}`;
+      let secId: string;
+      let secName: string;
+
+      if (testData.examCategory === 'OTHER' || (q.section && q.section !== 'GA' && q.section !== 'SUBJECT')) {
+        // Dynamic custom section
+        secId = q.section || q.subject || 'Section 1';
+        secName = q.section || q.subject || 'Section 1';
+      } else {
+        // Standard GATE pattern split
+        const isGA = q.section === 'GA' || q.subject?.toLowerCase().includes('general aptitude');
+        secId = isGA ? 'GA' : 'SUBJECT';
+        secName = isGA ? 'Section 1: General Aptitude' : `Section 2: ${testData.subject || 'Core Subject'}`;
+      }
+
       if (!map.has(secId)) {
         map.set(secId, { id: secId, name: secName, count: 0, firstIndex: idx });
       }
@@ -561,8 +594,8 @@ export default function TestPage() {
   // ─── marks display ───
   function marksLabel(q: Question) {
     const isJee = testData?.examCategory === 'JEE_MAINS';
-    const pos = isJee ? 4 : q.marks;
-    const neg = getNegativeMarkingDisplay(q.type, q.marks, testData?.examCategory);
+    const pos = isJee ? 4 : (q.marks || 1);
+    const neg = getNegativeMarkingDisplay(q.type, q.marks, testData?.examCategory, q.negativeMarks);
     return `+${pos} | ${neg}`;
   }
 
@@ -700,7 +733,10 @@ export default function TestPage() {
           {sections.map((sec) => {
             const isCurrentInSec =
               (sec.id === 'GA' && (question.section === 'GA' || question.subject?.toLowerCase().includes('general aptitude'))) ||
-              (sec.id === 'SUBJECT' && !(question.section === 'GA' || question.subject?.toLowerCase().includes('general aptitude')));
+              (sec.id === 'SUBJECT' && !(question.section === 'GA' || question.subject?.toLowerCase().includes('general aptitude'))) ||
+              question.section === sec.name ||
+              question.section === sec.id ||
+              (testData.examCategory === 'OTHER' && (question.section || question.subject || 'Section 1') === sec.name);
 
             return (
               <button
@@ -859,6 +895,31 @@ export default function TestPage() {
                   )
                 )}
               </div>
+            </div>
+          )}
+
+          {/* ─── DESCRIPTIVE / LONG ANSWER ─── */}
+          {question.type === 'DESCRIPTIVE' && (
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Type your answer / steps / solution below:
+              </label>
+              <textarea
+                rows={6}
+                value={response.textResponse ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateResponse({
+                    textResponse: val,
+                    status: val.trim() ? 'answered' : 'not-answered',
+                  });
+                }}
+                placeholder="Write your explanation, steps, or answer here..."
+                className="w-full rounded-xl border border-slate-300 p-3.5 text-sm font-sans focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 resize-y leading-relaxed"
+              />
+              <p className="text-[11px] text-slate-400">
+                Tip: Your written answer will be saved. In the post-test Report Card, you can compare your answer side-by-side with the official step-by-step model solution.
+              </p>
             </div>
           )}
 

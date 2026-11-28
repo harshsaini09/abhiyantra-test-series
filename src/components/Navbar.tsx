@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Database, Wrench, Home, Award, LogOut, ChevronDown, Sparkles, ShieldCheck, Layers, Atom, GraduationCap, Check } from 'lucide-react';
+import { Database, Wrench, Home, Award, LogOut, ChevronDown, Sparkles, ShieldCheck, Layers, Atom, GraduationCap, Check, BookOpen } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 
@@ -79,7 +79,7 @@ export default function Navbar() {
               />
               <div className="hidden sm:block border-l border-slate-200 pl-2.5">
                 <span className="block text-[10px] uppercase font-bold tracking-wider text-teal-700">
-                  {user?.targetExam === 'JEE_MAINS' ? 'JEE Mains Portal' : user?.targetExam === 'GATE' ? 'GATE CBT Portal' : 'GATE & JEE Examination Portal'}
+                  {user?.targetExam === 'JEE_MAINS' ? 'JEE Mains Portal' : user?.targetExam === 'OTHER' ? 'School & College Portal' : user?.targetExam === 'GATE' ? 'GATE CBT Portal' : 'Examination Portal'}
                 </span>
               </div>
             </Link>
@@ -209,29 +209,33 @@ export default function Navbar() {
                           className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full border ${
                             targetExam === 'JEE_MAINS'
                               ? 'bg-cyan-100/70 border-cyan-200 text-cyan-800'
+                              : targetExam === 'OTHER'
+                              ? 'bg-amber-100/70 border-amber-200 text-amber-800'
                               : 'bg-indigo-100/70 border-indigo-200 text-indigo-800'
                           }`}
                         >
                           {targetExam === 'JEE_MAINS'
                             ? isTeacherOrAdmin ? 'JEE Mains Active' : 'JEE Mains (Locked)'
+                            : targetExam === 'OTHER'
+                            ? isTeacherOrAdmin ? 'Other Exams Active' : 'Other Exams'
                             : isTeacherOrAdmin ? 'GATE Active' : 'GATE (Locked)'}
                         </span>
                       </div>
                       {isTeacherOrAdmin ? (
-                        <div className="grid grid-cols-2 gap-1.5 p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                        <div className="grid grid-cols-3 gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               setTargetExam('GATE');
                             }}
-                            className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            className={`flex items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                               targetExam === 'GATE'
                                 ? 'bg-indigo-600 text-white shadow-xs'
                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                           >
-                            <GraduationCap className="w-3.5 h-3.5" />
+                            <GraduationCap className="w-3 h-3" />
                             <span>GATE</span>
                           </button>
                           <button
@@ -240,14 +244,29 @@ export default function Navbar() {
                               e.stopPropagation();
                               setTargetExam('JEE_MAINS');
                             }}
-                            className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            className={`flex items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                               targetExam === 'JEE_MAINS'
                                 ? 'bg-cyan-600 text-white shadow-xs'
                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                           >
-                            <Atom className="w-3.5 h-3.5" />
-                            <span>JEE Mains</span>
+                            <Atom className="w-3 h-3" />
+                            <span>JEE</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTargetExam('OTHER');
+                            }}
+                            className={`flex items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                              targetExam === 'OTHER'
+                                ? 'bg-amber-600 text-white shadow-xs'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                            }`}
+                          >
+                            <BookOpen className="w-3 h-3" />
+                            <span>Other</span>
                           </button>
                         </div>
                       ) : (
@@ -255,12 +274,17 @@ export default function Navbar() {
                           {targetExam === 'JEE_MAINS' ? (
                             <>
                               <Atom className="w-4 h-4 text-cyan-600 shrink-0" />
-                              <span className="truncate">JEE Mains Enrolled Track</span>
+                              <span className="truncate">JEE Mains Track</span>
+                            </>
+                          ) : targetExam === 'OTHER' ? (
+                            <>
+                              <BookOpen className="w-4 h-4 text-amber-600 shrink-0" />
+                              <span className="truncate">Other Exams Track</span>
                             </>
                           ) : (
                             <>
                               <GraduationCap className="w-4 h-4 text-indigo-600 shrink-0" />
-                              <span className="truncate">GATE Enrolled Track</span>
+                              <span className="truncate">GATE Track</span>
                             </>
                           )}
                         </div>
@@ -350,6 +374,8 @@ export default function Navbar() {
                     className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full border text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                       targetExam === 'JEE_MAINS'
                         ? 'bg-cyan-50 border-cyan-200 text-cyan-800 hover:bg-cyan-100/80'
+                        : targetExam === 'OTHER'
+                        ? 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100/80'
                         : 'bg-indigo-50 border-indigo-200 text-indigo-800 hover:bg-indigo-100/80'
                     }`}
                     title="Switch Target Examination"
@@ -358,6 +384,11 @@ export default function Navbar() {
                       <>
                         <Atom className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
                         <span>JEE</span>
+                      </>
+                    ) : targetExam === 'OTHER' ? (
+                      <>
+                        <BookOpen className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>Other</span>
                       </>
                     ) : (
                       <>
@@ -404,6 +435,22 @@ export default function Navbar() {
                           <span>JEE Mains</span>
                         </div>
                         {targetExam === 'JEE_MAINS' && <Check className="w-3.5 h-3.5 text-cyan-600" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTargetExam('OTHER');
+                          setExamDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer ${
+                          targetExam === 'OTHER' ? 'text-amber-600 bg-amber-50/50 font-bold' : 'text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-4 h-4 text-amber-600" />
+                          <span>Other Exams</span>
+                        </div>
+                        {targetExam === 'OTHER' && <Check className="w-3.5 h-3.5 text-amber-600" />}
                       </button>
                     </div>
                   )}

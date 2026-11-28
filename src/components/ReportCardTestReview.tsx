@@ -134,6 +134,13 @@ export default function ReportCardTestReview({
 
   // Helper to format marking scheme text
   const getMarkingScheme = (q: Question) => {
+    if (reportCard.examCategory === 'OTHER') {
+      const neg = q.negativeMarks !== undefined && q.negativeMarks > 0 ? `−${q.negativeMarks}` : '0';
+      return { positive: `+${q.marks || 1}`, negative: neg };
+    }
+    if (reportCard.examCategory === 'JEE_MAINS') {
+      return { positive: '+4', negative: '−1' };
+    }
     if (q.type === 'MCQ') {
       const neg = q.marks === 1 ? '−⅓' : '−⅔';
       return { positive: `+${q.marks}`, negative: neg };
@@ -142,7 +149,7 @@ export default function ReportCardTestReview({
   };
 
   // Helper to format NAT answer
-  const formatNatCorrect = (ans: number | number[] | NATAnswer) => {
+  const formatNatCorrect = (ans: number | number[] | NATAnswer | string) => {
     if (typeof ans === 'number') return String(ans);
     if (typeof ans === 'object' && ans !== null && 'min' in ans && 'max' in ans) {
       if (ans.min === ans.max) return String(ans.min);
@@ -576,7 +583,7 @@ export default function ReportCardTestReview({
                     Detailed Solution &amp; Step-by-Step Explanation
                   </h3>
                   <span className="text-xs text-indigo-600 font-semibold">
-                    Official {reportCard.examCategory === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} Assessment Solution
+                    Official {reportCard.examCategory === 'JEE_MAINS' ? 'JEE Mains' : reportCard.examCategory === 'OTHER' ? 'Exam' : 'GATE'} Assessment Solution
                   </span>
                 </div>
               </div>

@@ -7,11 +7,15 @@ const router = Router();
 
 // Helper to auto-infer subject from title if missing
 function inferSubjectFromTitle(title?: string, examCategory?: string): string {
-  if (!title) return examCategory === 'JEE_MAINS' ? 'Mathematics' : 'Core Engineering';
+  if (!title) return examCategory === 'JEE_MAINS' ? 'Mathematics' : examCategory === 'OTHER' ? 'General Subject' : 'Core Engineering';
   const lower = title.toLowerCase();
   if (lower.includes('mathematics') || lower.includes('maths') || lower.includes('math')) return 'Mathematics';
   if (lower.includes('physics')) return 'Physics';
   if (lower.includes('chemistry')) return 'Chemistry';
+  if (lower.includes('biology')) return 'Biology';
+  if (lower.includes('science')) return 'Science';
+  if (lower.includes('social') || lower.includes('history') || lower.includes('civics') || lower.includes('geography')) return 'Social Science';
+  if (lower.includes('english')) return 'English';
   if (lower.includes('artificial intelligence') || lower.includes('ai mock') || lower.includes('search —') || lower.includes('da:')) return 'Artificial Intelligence (AI)';
   if (lower.includes('data structures') || lower.includes('algorithms')) return 'Data Structures & Algorithms';
   if (lower.includes('database') || lower.includes('dbms')) return 'Database Management Systems (DBMS)';
@@ -22,7 +26,7 @@ function inferSubjectFromTitle(title?: string, examCategory?: string): string {
   if (lower.includes('digital logic')) return 'Digital Logic';
   if (lower.includes('general aptitude') || lower.includes('aptitude')) return 'General Aptitude';
   if (lower.includes('machine learning') || lower.includes('ml ')) return 'Machine Learning';
-  return examCategory === 'JEE_MAINS' ? 'Mathematics' : 'Technical Subject';
+  return examCategory === 'JEE_MAINS' ? 'Mathematics' : examCategory === 'OTHER' ? 'General Subject' : 'Technical Subject';
 }
 
 // Helper to sanitize test data payload
@@ -93,11 +97,11 @@ router.get('/official', async (req: Request, res: Response): Promise<void> => {
     const { examCategory } = req.query;
     const whereClause: any = { isOfficial: true };
 
-    // Enforce enrolled exam track for student accounts
-    if (user && user.role === 'STUDENT' && user.targetExam) {
-      whereClause.examCategory = user.targetExam;
-    } else if (examCategory && (examCategory === 'GATE' || examCategory === 'JEE_MAINS')) {
+    // Honor explicit filter query or enrolled exam track for student accounts
+    if (examCategory && examCategory !== 'ALL') {
       whereClause.examCategory = examCategory;
+    } else if (user && user.role === 'STUDENT' && user.targetExam && !examCategory) {
+      whereClause.examCategory = user.targetExam;
     }
 
     const tests = await prisma.publishedTest.findMany({
@@ -166,7 +170,8 @@ router.get('/official/:id', async (req: Request, res: Response): Promise<void> =
     const token = req.cookies?.token || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
     const user = token ? verifyUserToken(token) : null;
     if (user && user.role === 'STUDENT' && user.targetExam && test.examCategory) {
-      if (test.examCategory !== user.targetExam) {
+      // 'OTHER' category exams can be accessed by all students, or if tracks match
+      if (test.examCategory !== 'OTHER' && user.targetExam !== 'OTHER' && test.examCategory !== user.targetExam) {
         res.status(403).json({
           error: `Access restricted. Your account is enrolled in the ${user.targetExam === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} track. You cannot access ${test.examCategory === 'JEE_MAINS' ? 'JEE Mains' : 'GATE'} test papers.`,
         });
@@ -248,7 +253,7 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
         title: title || sanitized.title,
         description: description || sanitized.description,
         category: category || (sanitized.totalQuestions >= 50 ? 'FULL_MOCK' : 'SUBJECT_PACK'),
-        examCategory: examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE',
+        examCategory: (examCategory === 'JEE_MAINS' || examCategory === 'OTHER') ? examCategory : 'GATE',
         subject: subject || sanitized.questions[0]?.subject || inferSubjectFromTitle(title || sanitized.title, examCategory),
         totalQuestions: sanitized.totalQuestions,
         totalMarks: sanitized.totalMarks,
@@ -266,7 +271,7 @@ router.post('/upload', requireTeacherOrAdmin, async (req: AuthenticatedRequest, 
     try {
       qbResult = await ingestQuestions({
         title: title || sanitized.title,
-        examCategory: examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE',
+        examCategory: (examCategory === 'JEE_MAINS' || examCategory === 'OTHER') ? examCategory : 'GATE',
         subject: subject || (sanitized.questions[0]?.subject || undefined),
         defaultSubject: subject || (sanitized.questions[0]?.subject || undefined),
         questions: sanitized.questions,
@@ -316,7 +321,7 @@ router.get('/my-personal', requireAuth, async (req: AuthenticatedRequest, res: R
       creatorId: user.id,
       isOfficial: false,
     };
-    if (examCategory && (examCategory === 'GATE' || examCategory === 'JEE_MAINS')) {
+    if (examCategory && examCategory !== 'ALL') {
       whereClause.examCategory = examCategory;
     }
 
@@ -450,7 +455,7 @@ router.post('/save-personal', requireAuth, async (req: AuthenticatedRequest, res
         title: title || sanitized.title,
         description: description || sanitized.description,
         category,
-        examCategory: examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE',
+        examCategory: (examCategory === 'JEE_MAINS' || examCategory === 'OTHER') ? examCategory : 'GATE',
         subject: subject || (sanitized.questions[0]?.subject || 'Custom Mix'),
         totalQuestions: sanitized.totalQuestions,
         totalMarks: sanitized.totalMarks,
@@ -567,7 +572,7 @@ router.put('/:id', requireTeacherOrAdmin, async (req: AuthenticatedRequest, res:
     if (description !== undefined) updateData.description = String(description).trim();
     if (category !== undefined) updateData.category = category;
     if (examCategory !== undefined) {
-      updateData.examCategory = examCategory === 'JEE_MAINS' ? 'JEE_MAINS' : 'GATE';
+      updateData.examCategory = (examCategory === 'JEE_MAINS' || examCategory === 'OTHER') ? examCategory : 'GATE';
     }
     if (subject !== undefined) updateData.subject = String(subject).trim() || null;
 

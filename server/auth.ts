@@ -18,7 +18,7 @@ export interface AuthUser {
   name: string;
   avatarUrl?: string | null;
   role?: 'STUDENT' | 'TEACHER' | 'ADMIN' | string;
-  targetExam?: 'GATE' | 'JEE_MAINS' | null;
+  targetExam?: 'GATE' | 'JEE_MAINS' | 'OTHER' | null;
   isSubscribed?: boolean;
   subscriptionTier?: string | null;
   subscriptionUntil?: string | null;
@@ -366,8 +366,8 @@ router.post('/target-exam', requireAuth, async (req: AuthenticatedRequest, res: 
     }
 
     const { targetExam } = req.body;
-    if (targetExam !== 'GATE' && targetExam !== 'JEE_MAINS') {
-      res.status(400).json({ error: 'Invalid targetExam. Must be "GATE" or "JEE_MAINS".' });
+    if (targetExam !== 'GATE' && targetExam !== 'JEE_MAINS' && targetExam !== 'OTHER') {
+      res.status(400).json({ error: 'Invalid targetExam. Must be "GATE", "JEE_MAINS", or "OTHER".' });
       return;
     }
 

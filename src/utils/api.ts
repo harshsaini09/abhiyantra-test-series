@@ -152,6 +152,7 @@ export async function fetchStats(): Promise<QuestionBankStats> {
       MCQ: qs.filter((q) => q.type === 'MCQ').length,
       MSQ: qs.filter((q) => q.type === 'MSQ').length,
       NAT: qs.filter((q) => q.type === 'NAT').length,
+      DESCRIPTIVE: qs.filter((q) => q.type === 'DESCRIPTIVE').length,
     },
     byMarks: {
       '1-Mark': qs.filter((q) => q.marks === 1).length,
@@ -1607,7 +1608,7 @@ export async function syncRazorpayPaymentsApi(): Promise<{
 
 // ─── Test Series APIs (Official Teacher Series & Personal Series) ───
 
-export async function updateTargetExamApi(targetExam: 'GATE' | 'JEE_MAINS'): Promise<{ success: boolean; targetExam: string }> {
+export async function updateTargetExamApi(targetExam: 'GATE' | 'JEE_MAINS' | 'OTHER'): Promise<{ success: boolean; targetExam: string }> {
   const res = await fetch(`${API_BASE}/auth/target-exam`, {
     method: 'POST',
     headers: {
@@ -1672,7 +1673,7 @@ export async function uploadOfficialTestSeriesApi(payload: {
   title?: string;
   description?: string;
   category?: string;
-  examCategory?: 'GATE' | 'JEE_MAINS';
+  examCategory?: 'GATE' | 'JEE_MAINS' | 'OTHER' | string;
   subject?: string;
   isFree?: boolean;
   testData: any;
@@ -1757,7 +1758,7 @@ export async function savePersonalTestSeriesApi(payload: {
   title: string;
   description?: string;
   category?: string;
-  examCategory?: 'GATE' | 'JEE_MAINS';
+  examCategory?: 'GATE' | 'JEE_MAINS' | 'OTHER' | string;
   subject?: string;
   testData: any;
 }): Promise<{ success: boolean; message: string; test: any; qbResult?: any }> {
@@ -1848,7 +1849,7 @@ export async function updateTestSeriesApi(
     title?: string;
     description?: string;
     category?: string;
-    examCategory?: 'GATE' | 'JEE_MAINS';
+    examCategory?: 'GATE' | 'JEE_MAINS' | 'OTHER' | string;
     subject?: string;
     duration?: number;
     durationMinutes?: number;

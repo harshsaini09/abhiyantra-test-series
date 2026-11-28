@@ -2,11 +2,11 @@
 // GATE Mock Test Series Platform — Type Definitions
 // ============================================================
 
-/** Supported question types in GATE pattern */
-export type QuestionType = 'MCQ' | 'MSQ' | 'NAT';
+/** Supported question types in GATE, JEE Mains, and Other exam patterns */
+export type QuestionType = 'MCQ' | 'MSQ' | 'NAT' | 'DESCRIPTIVE';
 
-/** Mark value for a question (1 | 2 for GATE, 4 for JEE Mains) */
-export type MarkValue = 1 | 2 | 4;
+/** Mark value for a question (dynamic number, e.g. 1, 2, 3, 4, 5, 10) */
+export type MarkValue = number;
 
 /** NAT answer can be an exact number or a range */
 export interface NATAnswer {
@@ -19,18 +19,19 @@ export interface Question {
   id: number;
   type: QuestionType;
   marks: MarkValue;
+  negativeMarks?: number;
   subject?: string;
   topic?: string;
   question: string;
   questionText?: string;
   options?: string[];
-  answer: number | number[] | NATAnswer;
+  answer: number | number[] | NATAnswer | string;
   solution: string;
   explanation?: string | null;
   detailedSolution?: string | null;
   imageUrl?: string | null;
   solutionImageUrl?: string | null;
-  section?: 'GA' | 'SUBJECT' | string;
+  section?: string;
   contentHash?: string;
 }
 
@@ -40,7 +41,7 @@ export interface TestData {
   description?: string;
   promptingTip?: string;
   subject?: string;
-  examCategory?: 'GATE' | 'JEE_MAINS';
+  examCategory?: 'GATE' | 'JEE_MAINS' | 'OTHER' | string;
   category?: string;
   topic?: string;
   defaultSubject?: string;
@@ -49,6 +50,8 @@ export interface TestData {
   sections?: Array<{
     id: string;
     name: string;
+    description?: string;
+    marksPerQuestion?: number;
     questionIds?: number[];
     questionCount?: number;
     marks?: number;
@@ -96,7 +99,7 @@ export interface QuestionBankItem {
   questionText: string;
   question?: string;
   options?: string[];
-  answer: number | number[] | NATAnswer;
+  answer: number | number[] | NATAnswer | string;
   solution: string;
   explanation?: string | null;
   detailedSolution?: string | null;
@@ -132,6 +135,7 @@ export interface UserResponse {
   /** For MCQ: selected option index; for MSQ: array of selected indices; for NAT: entered number string */
   selectedOptions?: number[];
   natInput?: string;
+  textResponse?: string;
   status: QuestionStatus;
   /** Practice mode: has this been checked? */
   practiceChecked?: boolean;
@@ -171,7 +175,7 @@ export interface QuestionResult {
 export interface TestResults {
   testData: TestData;
   mode: TestMode;
-  examCategory?: 'GATE' | 'JEE_MAINS';
+  examCategory?: 'GATE' | 'JEE_MAINS' | 'OTHER' | string;
   questionResults: QuestionResult[];
   totalScore: number;
   maxMarks: number;
@@ -215,7 +219,7 @@ export interface UserProfile {
   name: string;
   avatarUrl?: string | null;
   role?: 'STUDENT' | 'TEACHER' | 'ADMIN';
-  targetExam?: 'GATE' | 'JEE_MAINS' | null;
+  targetExam?: 'GATE' | 'JEE_MAINS' | 'OTHER' | null;
   isSubscribed?: boolean;
   subscriptionTier?: string | null;
   subscriptionUntil?: string | null;
@@ -227,7 +231,7 @@ export interface PlatformUser {
   name: string;
   avatarUrl?: string | null;
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
-  targetExam?: 'GATE' | 'JEE_MAINS' | null;
+  targetExam?: 'GATE' | 'JEE_MAINS' | 'OTHER' | null;
   isSubscribed?: boolean;
   subscriptionTier?: string | null;
   subscriptionUntil?: string | null;
@@ -277,7 +281,7 @@ export interface SavedReportCard {
   id: string;
   userId?: string;
   testTitle: string;
-  examCategory?: 'GATE' | 'JEE_MAINS';
+  examCategory?: 'GATE' | 'JEE_MAINS' | 'OTHER' | string;
   mode: 'EXAM' | 'PRACTICE';
   totalQuestions: number;
   maxMarks: number;
