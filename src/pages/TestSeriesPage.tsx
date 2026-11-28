@@ -1120,372 +1120,377 @@ export const TestSeriesPage: React.FC = () => {
 
       {/* Upload JSON Modal for Teachers & Admins */}
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <Upload className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-slate-900">Upload Official Test Series</h3>
-                  <p className="text-[11px] text-slate-500">Publish faculty test paper from JSON file</p>
-                </div>
-              </div>
-              <button
-                onClick={resetUploadForm}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
-              {/* File Dropzone */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Select Test JSON File
-                </label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept=".json,application/json"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/30 hover:bg-indigo-50/60 rounded-2xl p-6 text-center cursor-pointer transition space-y-2"
-                >
-                  <FileJson className="w-8 h-8 text-indigo-500 mx-auto" />
-                  <div className="text-xs font-semibold text-slate-700">
-                    {fileName ? (
-                      <span className="text-indigo-700 font-bold">{fileName}</span>
-                    ) : (
-                      <span>Click to select or drop .json file</span>
-                    )}
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <form onSubmit={handleUploadSubmit} className="flex flex-col h-full max-h-[92vh] sm:max-h-[88vh] min-h-0">
+              {/* Fixed Header */}
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-white shrink-0 z-10">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <p className="text-[10px] text-slate-400">
-                    Auto-detects questions, per-question pacing, examination type, and calculates duration.
-                  </p>
-                </div>
-
-                {/* AI Prompt Generator Banner for Faculty */}
-                <div className="mt-2.5 flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                    <span className="text-slate-600 text-[11px] font-medium">Using ChatGPT / Claude to convert paper?</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCopyPrompt}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 rounded-lg text-[11px] shadow-2xs transition cursor-pointer"
-                  >
-                    {copiedPrompt ? (
-                      <>
-                        <Check className="w-3 h-3 text-emerald-600" />
-                        <span className="text-emerald-700">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3 text-indigo-600" />
-                        <span>Copy AI Prompt</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Auto-Fetched Test Specifications & Blueprint Card */}
-              {parsedQuestions && (
-                <div className="bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/70 border border-indigo-200 rounded-2xl p-4 space-y-3 shadow-xs animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-xs">
-                        <Calculator className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900">Auto-Fetched Paper Blueprint</h4>
-                        <p className="text-[10px] text-slate-500">Auto-calculated from uploaded question paper</p>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      ✓ Auto-Calculated
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Questions</span>
-                      <span className="font-extrabold text-sm sm:text-base text-slate-900">{parsedQuestions.length} Qs</span>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Marks</span>
-                      <span className="font-extrabold text-sm sm:text-base text-indigo-700">{totalMarks} M</span>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Per-Q Time</span>
-                      <span className="font-extrabold text-sm sm:text-base text-amber-700">{perQuestionMinutes} min</span>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Duration</span>
-                      <span className="font-extrabold text-sm sm:text-base text-emerald-700">{uploadDuration} min</span>
-                    </div>
-                  </div>
-
-                  {/* Diagram Management Action Trigger */}
-                  <div className="pt-2 border-t border-indigo-100 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
-                      <ImageIcon className="w-4 h-4 text-indigo-600" />
-                      <span>
-                        Diagrams:{' '}
-                        <strong className="text-indigo-700">
-                          {parsedQuestions.filter((q) => Boolean(q.imageUrl || q.solutionImageUrl)).length}
-                        </strong>{' '}
-                        / {parsedQuestions.length} attached
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleOpenDiagramManagerForUpload}
-                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <ImageIcon className="w-3.5 h-3.5" />
-                      <span>Attach / Review Diagrams</span>
-                    </button>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-sm sm:text-base text-slate-900 truncate">Upload Official Test Series</h3>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Publish faculty test paper from JSON file</p>
                   </div>
                 </div>
-              )}
-
-              {/* Target Examination */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Target Examination *
-                </label>
-                <select
-                  value={uploadExamCategory}
-                  onChange={(e: any) => handleExamCategoryChange(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800"
-                >
-                  <option value="GATE">🎓 GATE Examination (IIT Pattern)</option>
-                  <option value="JEE_MAINS">⚛️ JEE Mains Examination (NTA Pattern)</option>
-                </select>
-              </div>
-
-              {/* Test Title */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Test Series Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder={uploadExamCategory === 'JEE_MAINS' ? 'e.g. JEE Mains 2026 All India Full Mock #1' : 'e.g. GATE CS 2026 All India Full Mock #1'}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Description / Instructions
-                </label>
-                <textarea
-                  rows={2}
-                  value={uploadDescription}
-                  onChange={(e) => setUploadDescription(e.target.value)}
-                  placeholder="Brief note or guidelines for students..."
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium text-slate-700"
-                />
-              </div>
-
-              {/* Category & Subject Row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={uploadCategory}
-                    onChange={(e: any) => setUploadCategory(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
-                  >
-                    <option value="FULL_MOCK">
-                      {uploadExamCategory === 'JEE_MAINS' ? 'Full 75-Q Mock' : 'Full 65-Q Mock'}
-                    </option>
-                    <option value="SUBJECT_PACK">Subject Pack</option>
-                    <option value="TOPIC_TEST">Topic Test</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Subject
-                  </label>
-                  <input
-                    type="text"
-                    value={uploadSubject}
-                    onChange={(e) => setUploadSubject(e.target.value)}
-                    placeholder="e.g. Algorithms"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-                  />
-                </div>
-              </div>
-
-              {/* Auto-Calculated Timing & Pacing Controls */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                    Pacing & Duration Calculator
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-medium">
-                    Auto-syncs per question time & total duration
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-bold text-slate-700">
-                        Per-Question Time (Minutes)
-                      </label>
-                      <span className="text-[10px] text-amber-700 font-bold">
-                        ~{Math.round(perQuestionMinutes * 60)}s / Q
-                      </span>
-                    </div>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0.01"
-                      value={perQuestionMinutes}
-                      onChange={(e) => handlePerQuestionMinutesChange(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-bold text-slate-700">
-                        Total Duration (Minutes)
-                      </label>
-                      <span className="text-[10px] text-emerald-700 font-bold">
-                        {Math.floor(uploadDuration / 60)}h {uploadDuration % 60}m
-                      </span>
-                    </div>
-                    <input
-                      type="number"
-                      min="1"
-                      value={uploadDuration}
-                      onChange={(e) => handleDurationChange(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Quick Presets */}
-                <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-200/70">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Presets:</span>
-                  <button
-                    type="button"
-                    onClick={() => applyPacingPreset(uploadExamCategory === 'JEE_MAINS' ? 2.4 : 2.77)}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
-                  >
-                    Exam Standard ({uploadExamCategory === 'JEE_MAINS' ? '2.4 min' : '2.77 min'})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPacingPreset(2.0)}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
-                  >
-                    2.0 min/Q
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPacingPreset(2.5)}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
-                  >
-                    2.5 min/Q
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyPacingPreset(3.0)}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
-                  >
-                    3.0 min/Q
-                  </button>
-                </div>
-              </div>
-
-              {/* Access Control & Subscription Lock Selection */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                    Student Access & Subscription Lock
-                  </span>
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${
-                    uploadIsFree
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                      : 'bg-amber-100 text-amber-800 border-amber-200'
-                  }`}>
-                    {uploadIsFree ? 'Free for All' : 'Pro Pass Required'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setUploadIsFree(false)}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                      !uploadIsFree
-                        ? 'bg-white text-indigo-900 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
-                        : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
-                    }`}
-                  >
-                    <Lock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>🔒 Pro Pass / Paid Only</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUploadIsFree(true)}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                      uploadIsFree
-                        ? 'bg-white text-emerald-900 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
-                        : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
-                    }`}
-                  >
-                    <Unlock className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>🔓 Free for All Students</span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  {uploadIsFree
-                    ? 'Every student (including free accounts) can take this paper at zero cost.'
-                    : 'Locked for students with an active Pro Pass or Test Series Subscription.'}
-                </p>
-              </div>
-
-              {/* Errors & Success Alerts */}
-              {uploadError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-              {uploadSuccess && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
-                  <span>{uploadSuccess}</span>
-                </div>
-              )}
-
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={resetUploadForm}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="overflow-y-auto px-4 sm:px-6 py-4 space-y-4 flex-1 overscroll-contain">
+                {/* File Dropzone */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Select Test JSON File
+                  </label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".json,application/json"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/30 hover:bg-indigo-50/60 rounded-2xl p-5 sm:p-6 text-center cursor-pointer transition space-y-2"
+                  >
+                    <FileJson className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-500 mx-auto" />
+                    <div className="text-xs font-semibold text-slate-700">
+                      {fileName ? (
+                        <span className="text-indigo-700 font-bold">{fileName}</span>
+                      ) : (
+                        <span>Click to select or drop .json file</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      Auto-detects questions, per-question pacing, examination type, and calculates duration.
+                    </p>
+                  </div>
+
+                  {/* AI Prompt Generator Banner for Faculty */}
+                  <div className="mt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span className="text-slate-600 text-[11px] font-medium truncate">Using ChatGPT / Claude to convert paper?</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyPrompt}
+                      className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 rounded-lg text-[11px] shadow-2xs transition cursor-pointer shrink-0"
+                    >
+                      {copiedPrompt ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span className="text-emerald-700">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3 text-indigo-600" />
+                          <span>Copy AI Prompt</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Auto-Fetched Test Specifications & Blueprint Card */}
+                {parsedQuestions && (
+                  <div className="bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/70 border border-indigo-200 rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-xs animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-xs">
+                          <Calculator className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900">Auto-Fetched Paper Blueprint</h4>
+                          <p className="text-[10px] text-slate-500">Auto-calculated from uploaded question paper</p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        ✓ Auto-Calculated
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                      <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Questions</span>
+                        <span className="font-extrabold text-sm sm:text-base text-slate-900">{parsedQuestions.length} Qs</span>
+                      </div>
+                      <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Marks</span>
+                        <span className="font-extrabold text-sm sm:text-base text-indigo-700">{totalMarks} M</span>
+                      </div>
+                      <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Per-Q Time</span>
+                        <span className="font-extrabold text-sm sm:text-base text-amber-700">{perQuestionMinutes} min</span>
+                      </div>
+                      <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Duration</span>
+                        <span className="font-extrabold text-sm sm:text-base text-emerald-700">{uploadDuration} min</span>
+                      </div>
+                    </div>
+
+                    {/* Diagram Management Action Trigger */}
+                    <div className="pt-2 border-t border-indigo-100 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                        <ImageIcon className="w-4 h-4 text-indigo-600" />
+                        <span>
+                          Diagrams:{' '}
+                          <strong className="text-indigo-700">
+                            {parsedQuestions.filter((q) => Boolean(q.imageUrl || q.solutionImageUrl)).length}
+                          </strong>{' '}
+                          / {parsedQuestions.length} attached
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleOpenDiagramManagerForUpload}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>Attach / Review Diagrams</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Target Examination */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Target Examination *
+                  </label>
+                  <select
+                    value={uploadExamCategory}
+                    onChange={(e: any) => handleExamCategoryChange(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800"
+                  >
+                    <option value="GATE">🎓 GATE Examination (IIT Pattern)</option>
+                    <option value="JEE_MAINS">⚛️ JEE Mains Examination (NTA Pattern)</option>
+                  </select>
+                </div>
+
+                {/* Test Title */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Test Series Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={uploadTitle}
+                    onChange={(e) => setUploadTitle(e.target.value)}
+                    placeholder={uploadExamCategory === 'JEE_MAINS' ? 'e.g. JEE Mains 2026 All India Full Mock #1' : 'e.g. GATE CS 2026 All India Full Mock #1'}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Description / Instructions
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={uploadDescription}
+                    onChange={(e) => setUploadDescription(e.target.value)}
+                    placeholder="Brief note or guidelines for students..."
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium text-slate-700"
+                  />
+                </div>
+
+                {/* Category & Subject Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={uploadCategory}
+                      onChange={(e: any) => setUploadCategory(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                    >
+                      <option value="FULL_MOCK">
+                        {uploadExamCategory === 'JEE_MAINS' ? 'Full 75-Q Mock' : 'Full 65-Q Mock'}
+                      </option>
+                      <option value="SUBJECT_PACK">Subject Pack</option>
+                      <option value="TOPIC_TEST">Topic Test</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Subject
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadSubject}
+                      onChange={(e) => setUploadSubject(e.target.value)}
+                      placeholder="e.g. Algorithms"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Auto-Calculated Timing & Pacing Controls */}
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                      Pacing &amp; Duration Calculator
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      Auto-syncs per question time &amp; total duration
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold text-slate-700">
+                          Per-Question Time (Minutes)
+                        </label>
+                        <span className="text-[10px] text-amber-700 font-bold">
+                          ~{Math.round(perQuestionMinutes * 60)}s / Q
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0.01"
+                        value={perQuestionMinutes}
+                        onChange={(e) => handlePerQuestionMinutesChange(Number(e.target.value))}
+                        className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold text-slate-700">
+                          Total Duration (Minutes)
+                        </label>
+                        <span className="text-[10px] text-emerald-700 font-bold">
+                          {Math.floor(uploadDuration / 60)}h {uploadDuration % 60}m
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        value={uploadDuration}
+                        onChange={(e) => handleDurationChange(Number(e.target.value))}
+                        className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-200/70">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => applyPacingPreset(uploadExamCategory === 'JEE_MAINS' ? 2.4 : 2.77)}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    >
+                      Exam Standard ({uploadExamCategory === 'JEE_MAINS' ? '2.4 min' : '2.77 min'})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPacingPreset(2.0)}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    >
+                      2.0 min/Q
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPacingPreset(2.5)}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    >
+                      2.5 min/Q
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPacingPreset(3.0)}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    >
+                      3.0 min/Q
+                    </button>
+                  </div>
+                </div>
+
+                {/* Access Control & Subscription Lock Selection */}
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                      Student Access &amp; Subscription Lock
+                    </span>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${
+                      uploadIsFree
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : 'bg-amber-100 text-amber-800 border-amber-200'
+                    }`}>
+                      {uploadIsFree ? 'Free for All' : 'Pro Pass Required'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setUploadIsFree(false)}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        !uploadIsFree
+                          ? 'bg-white text-indigo-900 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
+                          : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                      }`}
+                    >
+                      <Lock className="w-3.5 h-3.5 text-amber-600" />
+                      <span>🔒 Pro Pass / Paid Only</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUploadIsFree(true)}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        uploadIsFree
+                          ? 'bg-white text-emerald-900 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
+                          : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                      }`}
+                    >
+                      <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>🔓 Free for All Students</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {uploadIsFree
+                      ? 'Every student (including free accounts) can take this paper at zero cost.'
+                      : 'Locked for students with an active Pro Pass or Test Series Subscription.'}
+                  </p>
+                </div>
+
+                {/* Errors & Success Alerts */}
+                {uploadError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+                {uploadSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+                    <span>{uploadSuccess}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Fixed Footer */}
+              <div className="flex items-center justify-end gap-2 px-4 sm:px-6 py-3 sm:py-3.5 border-t border-slate-100 shrink-0 bg-slate-50/90 rounded-b-2xl sm:rounded-b-3xl z-10">
+                <button
+                  type="button"
+                  onClick={resetUploadForm}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/80 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1514,326 +1519,331 @@ export const TestSeriesPage: React.FC = () => {
 
       {/* ═══ EDIT TEST SERIES MODAL (Teachers & Admins) ═══ */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <Edit3 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-slate-900">Edit Test Series Details</h3>
-                  <p className="text-[11px] text-slate-500">Modify test paper specifications, marks, and duration</p>
-                </div>
-              </div>
-              <button
-                onClick={resetEditForm}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              {/* Live Test Specifications & Blueprint Card */}
-              <div className="bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/70 border border-indigo-200 rounded-2xl p-4 space-y-3 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-xs">
-                      <Calculator className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-900">Paper Blueprint &amp; Live Metrics</h4>
-                      <p className="text-[10px] text-slate-500">Specifications for active test series</p>
-                    </div>
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <form onSubmit={handleEditSubmit} className="flex flex-col h-full max-h-[92vh] sm:max-h-[88vh] min-h-0">
+              {/* Fixed Header */}
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 bg-white shrink-0 z-10">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-indigo-100 text-indigo-800 border border-indigo-200">
-                    Live Paper
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Questions</span>
-                    <span className="font-extrabold text-sm sm:text-base text-slate-900">{editTotalQuestions} Qs</span>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Marks</span>
-                    <span className="font-extrabold text-sm sm:text-base text-indigo-700">{editTotalMarks} M</span>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Per-Q Time</span>
-                    <span className="font-extrabold text-sm sm:text-base text-amber-700">{editPerQuestionMinutes} min</span>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Duration</span>
-                    <span className="font-extrabold text-sm sm:text-base text-emerald-700">{editDuration} min</span>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-sm sm:text-base text-slate-900 truncate">Edit Test Series Details</h3>
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Modify test paper specifications, marks, and duration</p>
                   </div>
                 </div>
-
-                {/* Diagram Management Action Trigger */}
-                <div className="pt-2 border-t border-indigo-100 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
-                    <ImageIcon className="w-4 h-4 text-indigo-600" />
-                    <span>
-                      Diagrams:{' '}
-                      <strong className="text-indigo-700">{editDiagramCount}</strong> attached
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (editingTestId) {
-                        handleOpenDiagramManagerForTest(editingTestId, editTitle);
-                      }
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    <span>Attach / Review Diagrams</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Target Examination */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Target Examination *
-                </label>
-                <select
-                  value={editExamCategory}
-                  onChange={(e: any) => handleEditExamCategoryChange(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800"
-                >
-                  <option value="GATE">🎓 GATE Examination (IIT Pattern)</option>
-                  <option value="JEE_MAINS">⚛️ JEE Mains Examination (NTA Pattern)</option>
-                </select>
-              </div>
-
-              {/* Test Title */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Test Series Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-900"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Description / Instructions
-                </label>
-                <textarea
-                  rows={2}
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium text-slate-700"
-                />
-              </div>
-
-              {/* Category, Subject & Total Marks Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={editCategory}
-                    onChange={(e: any) => setEditCategory(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
-                  >
-                    <option value="FULL_MOCK">
-                      {editExamCategory === 'JEE_MAINS' ? 'Full 75-Q Mock' : 'Full 65-Q Mock'}
-                    </option>
-                    <option value="SUBJECT_PACK">Subject Pack</option>
-                    <option value="TOPIC_TEST">Topic Test</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Subject
-                  </label>
-                  <input
-                    type="text"
-                    value={editSubject}
-                    onChange={(e) => setEditSubject(e.target.value)}
-                    placeholder="e.g. Mathematics"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Total Marks
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editTotalMarks}
-                    onChange={(e) => setEditTotalMarks(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs font-bold text-indigo-700 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              {/* Timing & Pacing Controls */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                    Pacing &amp; Duration Calculator
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-medium">
-                    Auto-syncs per question time &amp; total duration
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-bold text-slate-700">
-                        Per-Question Time (Minutes)
-                      </label>
-                      <span className="text-[10px] text-amber-700 font-bold">
-                        ~{Math.round(editPerQuestionMinutes * 60)}s / Q
-                      </span>
-                    </div>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0.01"
-                      value={editPerQuestionMinutes}
-                      onChange={(e) => handleEditPerQuestionMinutesChange(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-bold text-slate-700">
-                        Total Duration (Minutes)
-                      </label>
-                      <span className="text-[10px] text-emerald-700 font-bold">
-                        {Math.floor(editDuration / 60)}h {editDuration % 60}m
-                      </span>
-                    </div>
-                    <input
-                      type="number"
-                      min="1"
-                      value={editDuration}
-                      onChange={(e) => handleEditDurationChange(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Quick Presets */}
-                <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-200/70">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Presets:</span>
-                  <button
-                    type="button"
-                    onClick={() => applyEditPacingPreset(editExamCategory === 'JEE_MAINS' ? 2.4 : 2.77)}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
-                  >
-                    Exam Standard ({editExamCategory === 'JEE_MAINS' ? '2.4 min' : '2.77 min'})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyEditPacingPreset(2.0)}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
-                  >
-                    2.0 min/Q
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyEditPacingPreset(2.5)}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
-                  >
-                    2.5 min/Q
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyEditPacingPreset(3.0)}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
-                  >
-                    3.0 min/Q
-                  </button>
-                </div>
-              </div>
-
-              {/* Access Control & Subscription Lock Selection */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                    Student Access &amp; Subscription Lock
-                  </span>
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${
-                    editIsFree
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                      : 'bg-amber-100 text-amber-800 border-amber-200'
-                  }`}>
-                    {editIsFree ? 'Free for All' : 'Pro Pass Required'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditIsFree(false)}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                      !editIsFree
-                        ? 'bg-white text-indigo-900 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
-                        : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
-                    }`}
-                  >
-                    <Lock className="w-3.5 h-3.5 text-amber-600" />
-                    <span>🔒 Pro Pass / Paid Only</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditIsFree(true)}
-                    className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                      editIsFree
-                        ? 'bg-white text-emerald-900 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
-                        : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
-                    }`}
-                  >
-                    <Unlock className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>🔓 Free for All Students</span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  {editIsFree
-                    ? 'Every student (including free accounts) can take this paper at zero cost.'
-                    : 'Locked for students with an active Pro Pass or Test Series Subscription.'}
-                </p>
-              </div>
-
-              {/* Errors & Success Alerts */}
-              {editError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                  <span>{editError}</span>
-                </div>
-              )}
-              {editSuccess && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
-                  <span>{editSuccess}</span>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={resetEditForm}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="overflow-y-auto px-4 sm:px-6 py-4 space-y-4 flex-1 overscroll-contain">
+                {/* Live Test Specifications & Blueprint Card */}
+                <div className="bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/70 border border-indigo-200 rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-xs">
+                        <Calculator className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900">Paper Blueprint &amp; Live Metrics</h4>
+                        <p className="text-[10px] text-slate-500">Specifications for active test series</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-indigo-100 text-indigo-800 border border-indigo-200">
+                      Live Paper
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Questions</span>
+                      <span className="font-extrabold text-sm sm:text-base text-slate-900">{editTotalQuestions} Qs</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Marks</span>
+                      <span className="font-extrabold text-sm sm:text-base text-indigo-700">{editTotalMarks} M</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Per-Q Time</span>
+                      <span className="font-extrabold text-sm sm:text-base text-amber-700">{editPerQuestionMinutes} min</span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                      <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Duration</span>
+                      <span className="font-extrabold text-sm sm:text-base text-emerald-700">{editDuration} min</span>
+                    </div>
+                  </div>
+
+                  {/* Diagram Management Action Trigger */}
+                  <div className="pt-2 border-t border-indigo-100 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                      <ImageIcon className="w-4 h-4 text-indigo-600" />
+                      <span>
+                        Diagrams:{' '}
+                        <strong className="text-indigo-700">{editDiagramCount}</strong> attached
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editingTestId) {
+                          handleOpenDiagramManagerForTest(editingTestId, editTitle);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>Attach / Review Diagrams</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Target Examination */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Target Examination *
+                  </label>
+                  <select
+                    value={editExamCategory}
+                    onChange={(e: any) => handleEditExamCategoryChange(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-800"
+                  >
+                    <option value="GATE">🎓 GATE Examination (IIT Pattern)</option>
+                    <option value="JEE_MAINS">⚛️ JEE Mains Examination (NTA Pattern)</option>
+                  </select>
+                </div>
+
+                {/* Test Title */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Test Series Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-slate-900"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Description / Instructions
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium text-slate-700"
+                  />
+                </div>
+
+                {/* Category, Subject & Total Marks Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={editCategory}
+                      onChange={(e: any) => setEditCategory(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                    >
+                      <option value="FULL_MOCK">
+                        {editExamCategory === 'JEE_MAINS' ? 'Full 75-Q Mock' : 'Full 65-Q Mock'}
+                      </option>
+                      <option value="SUBJECT_PACK">Subject Pack</option>
+                      <option value="TOPIC_TEST">Topic Test</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Subject
+                    </label>
+                    <input
+                      type="text"
+                      value={editSubject}
+                      onChange={(e) => setEditSubject(e.target.value)}
+                      placeholder="e.g. Mathematics"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Total Marks
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editTotalMarks}
+                      onChange={(e) => setEditTotalMarks(Number(e.target.value))}
+                      className="w-full px-3 py-2 text-xs font-bold text-indigo-700 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Timing & Pacing Controls */}
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                      Pacing &amp; Duration Calculator
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      Auto-syncs per question time &amp; total duration
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold text-slate-700">
+                          Per-Question Time (Minutes)
+                        </label>
+                        <span className="text-[10px] text-amber-700 font-bold">
+                          ~{Math.round(editPerQuestionMinutes * 60)}s / Q
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0.01"
+                        value={editPerQuestionMinutes}
+                        onChange={(e) => handleEditPerQuestionMinutesChange(Number(e.target.value))}
+                        className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold text-slate-700">
+                          Total Duration (Minutes)
+                        </label>
+                        <span className="text-[10px] text-emerald-700 font-bold">
+                          {Math.floor(editDuration / 60)}h {editDuration % 60}m
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editDuration}
+                        onChange={(e) => handleEditDurationChange(Number(e.target.value))}
+                        className="w-full px-3 py-2 text-xs font-bold text-slate-800 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-slate-200/70">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => applyEditPacingPreset(editExamCategory === 'JEE_MAINS' ? 2.4 : 2.77)}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    >
+                      Exam Standard ({editExamCategory === 'JEE_MAINS' ? '2.4 min' : '2.77 min'})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyEditPacingPreset(2.0)}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    >
+                      2.0 min/Q
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyEditPacingPreset(2.5)}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    >
+                      2.5 min/Q
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyEditPacingPreset(3.0)}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 border border-slate-200 transition cursor-pointer"
+                    >
+                      3.0 min/Q
+                    </button>
+                  </div>
+                </div>
+
+                {/* Access Control & Subscription Lock Selection */}
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/90 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                      Student Access &amp; Subscription Lock
+                    </span>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${
+                      editIsFree
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : 'bg-amber-100 text-amber-800 border-amber-200'
+                    }`}>
+                      {editIsFree ? 'Free for All' : 'Pro Pass Required'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditIsFree(false)}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        !editIsFree
+                          ? 'bg-white text-indigo-900 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
+                          : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                      }`}
+                    >
+                      <Lock className="w-3.5 h-3.5 text-amber-600" />
+                      <span>🔒 Pro Pass / Paid Only</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditIsFree(true)}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        editIsFree
+                          ? 'bg-white text-emerald-900 border-emerald-500 shadow-xs ring-1 ring-emerald-500'
+                          : 'bg-white/60 text-slate-600 border-slate-200 hover:bg-white'
+                      }`}
+                    >
+                      <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>🔓 Free for All Students</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {editIsFree
+                      ? 'Every student (including free accounts) can take this paper at zero cost.'
+                      : 'Locked for students with an active Pro Pass or Test Series Subscription.'}
+                  </p>
+                </div>
+
+                {/* Errors & Success Alerts */}
+                {editError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{editError}</span>
+                  </div>
+                )}
+                {editSuccess && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+                    <span>{editSuccess}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Fixed Footer */}
+              <div className="flex items-center justify-end gap-2 px-4 sm:px-6 py-3 sm:py-3.5 border-t border-slate-100 shrink-0 bg-slate-50/90 rounded-b-2xl sm:rounded-b-3xl z-10">
+                <button
+                  type="button"
+                  onClick={resetEditForm}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/80 transition cursor-pointer"
                 >
                   Cancel
                 </button>

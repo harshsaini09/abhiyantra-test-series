@@ -179,27 +179,33 @@ export default function ReportPage() {
         <Navbar />
       </div>
       {/* ---- Header ---- */}
-      <header className="bg-gradient-to-r from-indigo-800 via-indigo-700 to-blue-700 text-white py-6 sm:py-8 px-3 sm:px-4 print:py-4 print:bg-white print:text-slate-900 border-b print:border-slate-300 w-full max-w-full overflow-hidden">
-        <div className="max-w-6xl mx-auto text-center space-y-2 sm:space-y-3">
+      <header className="bg-gradient-to-r from-indigo-800 via-indigo-700 to-blue-700 text-white py-6 sm:py-8 px-3 sm:px-4 print:py-4 print:bg-white print:text-slate-900 border-b print:border-slate-300 w-full max-w-full overflow-hidden min-w-0">
+        <div className="max-w-6xl mx-auto text-center space-y-2 sm:space-y-3 w-full min-w-0">
           {/* Official Abhiyantra Brand Logo */}
-          <div className="flex items-center justify-center gap-2.5 sm:gap-3">
+          <div className="flex items-center justify-center gap-2.5 sm:gap-3 min-w-0">
             <img
-              src="/logo.avif"
+              src="/logo.png"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith('/logo.avif')) {
+                  target.src = '/logo.avif';
+                }
+              }}
               alt="Abhiyantra Logo"
               className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-xl bg-white/10 print:bg-slate-100 p-1.5 shadow-md border border-white/20 print:border-slate-300 shrink-0"
             />
-            <div className="text-left min-w-0">
-              <span className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-indigo-200 print:text-indigo-700 block">
+            <div className="text-left min-w-0 flex-1 sm:flex-initial">
+              <span className="text-[10px] sm:text-xs uppercase font-extrabold tracking-wider text-indigo-200 print:text-indigo-700 block truncate">
                 abhiyantra educational institute
               </span>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-white print:text-slate-900 truncate">
+              <h1 className="text-base sm:text-2xl md:text-3xl font-bold tracking-tight text-white print:text-slate-900 break-words line-clamp-2 sm:line-clamp-none">
                 {results.examCategory === 'JEE_MAINS' ? 'JEE Mains Examination Report Card' : 'GATE Examination Report Card'}
               </h1>
             </div>
           </div>
-          <p className="text-indigo-100 print:text-slate-600 text-sm sm:text-base font-medium truncate">{results.testData.title}</p>
+          <p className="text-indigo-100 print:text-slate-600 text-xs sm:text-base font-medium break-words px-2">{results.testData.title}</p>
           {(results.testData.subject || results.testData.topic) && (
-            <p className="text-indigo-200 print:text-slate-500 text-xs font-semibold truncate">
+            <p className="text-indigo-200 print:text-slate-500 text-[11px] sm:text-xs font-semibold truncate px-2">
               {[results.testData.subject, results.testData.topic].filter(Boolean).join(' • ')}
             </p>
           )}
@@ -233,16 +239,16 @@ export default function ReportPage() {
             0. Cloud Sync & Google Auth Callout Banner
             ================================================================ */}
         {user ? (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shadow-xs print:hidden w-full max-w-full">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-5 h-5" />
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 shadow-xs print:hidden w-full max-w-full min-w-0 overflow-hidden">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm font-bold text-emerald-950 truncate">
                   {saveStatus === 'saving' ? 'Saving report card to your account...' : '✓ Saved to your Report Cards'}
                 </p>
-                <p className="text-[11px] sm:text-xs text-emerald-700 truncate">
+                <p className="text-[10px] sm:text-xs text-emerald-700 break-words line-clamp-1 sm:line-clamp-none">
                   Permanently stored in PostgreSQL and linked to {user.email}.
                 </p>
               </div>
@@ -255,16 +261,16 @@ export default function ReportPage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-3.5 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shadow-xs print:hidden w-full max-w-full">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                <Award className="w-5 h-5" />
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-3 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 shadow-xs print:hidden w-full max-w-full min-w-0 overflow-hidden">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <Award className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-bold text-amber-950">
+                <p className="text-xs sm:text-sm font-bold text-amber-950 truncate">
                   Sign in with Google to save this report card
                 </p>
-                <p className="text-[11px] sm:text-xs text-amber-800">
+                <p className="text-[10px] sm:text-xs text-amber-800 break-words line-clamp-1 sm:line-clamp-none">
                   Signing in automatically preserves this attempt and unlocks your permanent history.
                 </p>
               </div>
@@ -452,23 +458,23 @@ export default function ReportPage() {
         {/* ================================================================
             2. Performance Breakdown Table
             ================================================================ */}
-        <section>
-          <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <section className="w-full max-w-full min-w-0 overflow-hidden">
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4 flex items-center gap-2">
             <Target className="w-5 h-5 text-indigo-600" />
             Performance Breakdown
           </h2>
 
           <div className="overflow-x-auto w-full max-w-full bg-white rounded-xl shadow-sm border border-slate-200">
-            <table className="w-full min-w-[540px] text-sm text-left">
+            <table className="w-full min-w-[440px] sm:min-w-[540px] text-xs sm:text-sm text-left">
               <thead>
-                <tr className="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3 text-center">Total</th>
-                  <th className="px-4 py-3 text-center">Correct</th>
-                  <th className="px-4 py-3 text-center">Incorrect</th>
-                  <th className="px-4 py-3 text-center">Unattempted</th>
-                  <th className="px-4 py-3 text-center">Marks Obtained</th>
-                  <th className="px-4 py-3 text-center">Max Marks</th>
+                <tr className="bg-slate-100 text-slate-600 uppercase text-[10px] sm:text-xs tracking-wider">
+                  <th className="px-2.5 sm:px-4 py-2.5 sm:py-3">Category</th>
+                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-center">Total</th>
+                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-center">Correct</th>
+                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-center">Incorrect</th>
+                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-center">Unattempted</th>
+                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-center">Marks Obtained</th>
+                  <th className="px-2 sm:px-4 py-2.5 sm:py-3 text-center">Max Marks</th>
                 </tr>
               </thead>
               <tbody>
@@ -477,16 +483,16 @@ export default function ReportPage() {
                     key={row.label}
                     className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}
                   >
-                    <td className="px-4 py-3 font-medium text-slate-700">
+                    <td className="px-2.5 sm:px-4 py-2 sm:py-3 font-medium text-slate-700">
                       <span>{row.label}</span>
-                      <span className="ml-2 text-xs text-slate-400 font-normal">({row.category})</span>
+                      <span className="ml-1 sm:ml-2 text-[10px] sm:text-xs text-slate-400 font-normal">({row.category})</span>
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-600">{row.total}</td>
-                    <td className="px-4 py-3 text-center text-green-600 font-medium">{row.correct}</td>
-                    <td className="px-4 py-3 text-center text-red-600 font-medium">{row.incorrect}</td>
-                    <td className="px-4 py-3 text-center text-slate-400">{row.unattempted}</td>
-                    <td className="px-4 py-3 text-center font-semibold text-slate-700">{row.marksObtained}</td>
-                    <td className="px-4 py-3 text-center text-slate-500">{row.maxMarks}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-slate-600">{row.total}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-green-600 font-medium">{row.correct}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-red-600 font-medium">{row.incorrect}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-slate-400">{row.unattempted}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-semibold text-slate-700">{row.marksObtained}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-slate-500">{row.maxMarks}</td>
                   </tr>
                 ))}
               </tbody>

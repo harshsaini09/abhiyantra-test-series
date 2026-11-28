@@ -66,16 +66,16 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
+    <nav className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs w-full max-w-full overflow-hidden min-w-0">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 w-full max-w-full min-w-0">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-1.5 sm:gap-4 w-full max-w-full min-w-0">
           {/* Logo & Brand */}
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink">
             <Link to="/" className="flex items-center gap-1.5 sm:gap-2 text-slate-900 hover:text-teal-700 transition-colors group shrink-0">
               <img
                 src="/abhiyantra-logo.png"
                 alt="Abhiyantra Logo"
-                className="h-7 sm:h-9 md:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+                className="h-6 sm:h-9 md:h-10 w-auto object-contain group-hover:scale-105 transition-transform shrink-0"
               />
               <div className="hidden sm:block border-l border-slate-200 pl-2.5">
                 <span className="block text-[10px] uppercase font-bold tracking-wider text-teal-700">
@@ -430,19 +430,19 @@ export default function Navbar() {
         </div>
 
         {/* Mobile & Small Tablet Navigation Bar */}
-        <div className="flex md:hidden items-center justify-around py-2 border-t border-slate-100 overflow-x-auto no-scrollbar gap-1 px-1">
+        <div className="flex md:hidden items-center justify-around py-1.5 border-t border-slate-100 overflow-x-auto no-scrollbar gap-0.5 px-0.5 w-full max-w-full">
           {links.map((link) => {
             const isActive = isLinkActive(link.to);
             return (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`flex flex-col items-center gap-1 text-[11px] font-semibold py-1.5 px-2 rounded-lg transition-colors shrink-0 ${
+                className={`flex flex-col items-center gap-0.5 text-[10px] sm:text-[11px] font-semibold py-1 px-1.5 rounded-lg transition-colors shrink-0 ${
                   isActive ? 'text-indigo-700 bg-indigo-50 font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {link.icon}
-                <span className="truncate max-w-[55px] text-center">{link.shortLabel}</span>
+                <span className="truncate max-w-[48px] sm:max-w-[55px] text-center">{link.shortLabel}</span>
               </Link>
             );
           })}
